@@ -7,8 +7,8 @@
  "scope": "./",
  "display": "standalone",
  "orientation": "any",
- "background_color":"#000000",
- "theme_color":"#000000",
+ "background_color": "#000000",
+ "theme_color": "#000000",
  "categories": [
   "music",
   "entertainment"
@@ -33,6 +33,12 @@
    "purpose": "maskable"
   },
   {
+   "src": "icons/maskable-512.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
    "src": "icons/icon.svg",
    "sizes": "any",
    "type": "image/svg+xml",
@@ -48,7 +54,9 @@
      "src": "icons/icon-192.png",
      "sizes": "192x192"
     }
-   ]
+   ],
+   "short_name": "Search",
+   "description": "Open Search"
   },
   {
    "name": "Discover",
@@ -58,11 +66,27 @@
      "src": "icons/icon-192.png",
      "sizes": "192x192"
     }
-   ]
+   ],
+   "short_name": "Discover",
+   "description": "Open Discover"
   },
   {
    "name": "Library",
    "url": "./index.html#library",
+   "icons": [
+    {
+     "src": "icons/icon-192.png",
+     "sizes": "192x192"
+    }
+   ],
+   "short_name": "Library",
+   "description": "Open Library"
+  },
+  {
+   "name": "Messages",
+   "short_name": "Messages",
+   "description": "Open your chats",
+   "url": "./index.html#messages",
    "icons": [
     {
      "src": "icons/icon-192.png",
@@ -111,5 +135,73 @@
     }
    ]
   }
- }
+ },
+ "lang": "en",
+ "dir": "ltr",
+ "display_override": [
+  "window-controls-overlay",
+  "standalone",
+  "minimal-ui"
+ ],
+ "prefer_related_applications": false,
+ "related_applications": [],
+ "handle_links": "preferred",
+ "screenshots": [
+  {
+   "src": "screenshots/wide-home.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "label": "Home",
+   "form_factor": "wide"
+  },
+  {
+   "src": "screenshots/wide-discover.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "label": "Discover free music",
+   "form_factor": "wide"
+  },
+  {
+   "src": "screenshots/wide-library.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "label": "Library",
+   "form_factor": "wide"
+  },
+  {
+   "src": "screenshots/wide-playing.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "label": "Now playing",
+   "form_factor": "wide"
+  },
+  {
+   "src": "screenshots/narrow-home.png",
+   "sizes": "720x1280",
+   "type": "image/png",
+   "label": "Home",
+   "form_factor": "narrow"
+  },
+  {
+   "src": "screenshots/narrow-discover.png",
+   "sizes": "720x1280",
+   "type": "image/png",
+   "label": "Discover free music",
+   "form_factor": "narrow"
+  },
+  {
+   "src": "screenshots/narrow-library.png",
+   "sizes": "720x1280",
+   "type": "image/png",
+   "label": "Library",
+   "form_factor": "narrow"
+  },
+  {
+   "src": "screenshots/narrow-playing.png",
+   "sizes": "720x1280",
+   "type": "image/png",
+   "label": "Now playing",
+   "form_factor": "narrow"
+  }
+ ]
 }

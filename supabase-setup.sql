@@ -199,5 +199,30 @@ begin
 end $$;
 grant execute on function public.delete_me() to authenticated;
 
+-- push notifications (new messages and friend requests while the app is closed)
+create table if not exists public.push_subs (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null check (kind in ('web','fcm')),
+  endpoint text not null unique,
+  keys jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists push_subs_user on public.push_subs (user_id);
+alter table public.push_subs enable row level security;
+drop policy if exists "push own" on public.push_subs;
+create policy "push own" on public.push_subs for select to authenticated using (user_id = auth.uid());
+create or replace function public.push_save(k text, e text, x jsonb) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or k not in ('web','fcm') or length(e) > 2000 then return; end if;
+  delete from public.push_subs where endpoint = e;
+  delete from public.push_subs where id in (select id from public.push_subs where user_id = auth.uid() and kind = k order by created_at desc offset 4);
+  insert into public.push_subs(user_id, kind, endpoint, keys) values (auth.uid(), k, e, x);
+end $$;
+grant execute on function public.push_save(text, text, jsonb) to authenticated;
+create or replace function public.push_drop(e text) returns void language sql security definer set search_path = public as
+$$ delete from public.push_subs where endpoint = e and user_id = auth.uid() $$;
+grant execute on function public.push_drop(text) to authenticated;
+
 -- optional but recommended: also purge expired messages every hour (Database > Extensions > enable pg_cron first)
 -- select cron.schedule('milo-purge', '0 * * * *', $$ delete from public.messages where created_at < now() - interval '1 day' $$);
