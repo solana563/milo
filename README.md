@@ -134,3 +134,5 @@ milo. detects whether it runs in a browser, an installed web app, an Android Web
 - Share as image: song menu > "Share as image" makes a card with the art. In lyrics, the share button lets you pick up to 6 lines and share them as an image.
 - Sleep timer now eases the volume down over the last 25 seconds (also for "End of song").
 - Messaging: re-run supabase-setup.sql once so live delivery, read receipts, reactions and replies work.
+
+- **Source split + native audio**: `index.html` is now built from `src/` (see `src/README.md`), and the Android app plays phone songs with a native Media3 engine (see NATIVE.md).

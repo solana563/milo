@@ -1,0 +1,15 @@
+/* ---------- mobile card layout: black canvas, big rounded cards (phones only) ---------- */
+.mcard{display:contents}
+@media (max-width:859px){
+#app{--mc:#ececf0;--mcl:rgba(0,0,0,.06)}
+#app[data-theme=dark]{--mc:#141312;--mcl:rgba(255,255,255,.07)}
+#app:has(#view:not(.dt)) #sheet{background:#000!important;border-radius:0}#app:has(#view:not(.dt)) #sheet .bl,#app:has(#view:not(.dt)) #sheet .sc{display:none!important}
+#app:has(#view:not(.dt)) #hd{background:#000}#app:has(#view:not(.dt)) #hd .bl{display:none!important}#app:has(#view:not(.dt)) #hd .sc{background:#000!important}
+main#view:not(.dt){top:calc(var(--hd) + 8px);padding:0;border-radius:0;background:none}
+main#view .mcard{display:block;background:var(--mc);border:1px solid var(--mcl);border-radius:38px;padding:24px 16px 22px;margin:0 0 10px;overflow:hidden}
+main#view .mcard>:first-child{margin-top:0}
+main#view .mcard:last-child{margin-bottom:0;min-height:calc(100dvh - var(--hd) - 8px);padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+main#view .mcard .pls{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+main#view .mcard .hello{white-space:normal;overflow:visible;text-overflow:clip;font-size:27px;line-height:1.05}
+}
+

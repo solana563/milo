@@ -1691,7 +1691,7 @@ setInterval(()=>{if(!S.playing||S.cur<0||S.sleep==="end"||Date.now()<S.xfb)retur
   if((A.duration-A.currentTime)/S.rate>lead)return;autoAdvance(xf?S.xf:0)},60);
 function seekTo(x){S.pos=x;if(T[S.cur].yt){if(YTX.ready)try{YTX.p.seekTo(x,true)}catch(e){}}else if(T[S.cur].url)A.currentTime=x;prog();msPos(true)}
 function start(i,auto){S.lis=0;S.cnt=0;const pc=S.cur,pt=T[pc],was=S.playing;S.cur=i;S.pos=0;S.playing=true;pushHist(i);
-  const loc=x=>x&&x.url&&!x.radio&&!x.stream;
+  const loc=x=>x&&x.url&&!x.radio&&!x.stream&&!(window.NE&&NE.use(x));
   if(!auto&&S.xf>0&&was&&S.dg&&loc(pt)&&loc(T[i])&&pc!==i)crossTo(i,Math.min(S.xf,2.5));
   else if(auto&&S.dg&&loc(pt)&&loc(T[i])&&S.pre&&S.pre.i===i&&pc!==i)crossTo(i,0);
   else engine(i);
@@ -3857,7 +3857,7 @@ async function dlList(list){const ids=(list||[]).filter(i=>dlOk(T[i]));if(!ids.l
   let ok=0,n=0;for(const i of ids){n++;toast("Saving "+n+" of "+ids.length+"…");if(await dlTrack(i,true))ok++}toast(ok?"Saved "+ok+" of "+ids.length+" for offline":"Couldn't save these. Their source blocks downloads.")}
 offInit();addEventListener("offline",()=>toast("You're offline. Songs you saved still play."));
 /* sleep timer: ease the volume down over the last 25 s */
-(function(){let on=0;const set=v=>{try{if(S.mv&&S.ctx)S.mv.gain.setTargetAtTime(v*v,S.ctx.currentTime,.05);else DK.forEach(e=>e.volume=v);RA.volume=v;if(YTX.ready)YTX.p.setVolume(Math.round(v*100))}catch(e){}};
+(function(){let on=0;const set=v=>{try{if(S.mv&&S.ctx)S.mv.gain.setTargetAtTime(v*v,S.ctx.currentTime,.05);else DK.forEach(e=>e.volume=v);RA.volume=v;if(window.NE)NE.vol(v);if(YTX.ready)YTX.p.setVolume(Math.round(v*100))}catch(e){}};
   setInterval(()=>{const t=T[S.cur];let rem=1e9;if(S.sleep==="end"){if(t&&t.d&&S.playing&&!t.radio)rem=(t.d-S.pos)*1000}else if(S.sleep)rem=S.sleep-Date.now();
     if(S.playing&&rem<=25000&&rem>0){on=1;set(S.vol*Math.max(.04,rem/25000))}else if(on){on=0;setTimeout(()=>set(S.vol),400)}},400)})();
 /* image cards */
@@ -3932,7 +3932,7 @@ function pushOpen(act,chat){if(act==="chat"&&chat&&SO.fr&&(SO.fr.includes(chat)|
 /* ===== v7: music already on the phone, played in place (no copying) ===== */
 var DVRM=new Set(LS.get("milo.dvrm",[])||[]);
 var DV={on:+LS.get("milo.dv",0)||0,busy:0,last:0,art:new Map(),dir:null,need:0};
-function dvM(){try{return NV.cap&&NV.P&&NV.P.MiloMedia}catch(e){return null}}
+function dvM(){try{if(!NV.cap)return null;let p=NV.P&&NV.P.MiloMedia;if(!p&&window.Capacitor&&Capacitor.registerPlugin)p=Capacitor.registerPlugin("MiloMedia");return p||null}catch(e){return null}}
 const dvFile=p=>window.Capacitor&&Capacitor.convertFileUrl?Capacitor.convertFileUrl("file://"+p):"file://"+p;
 const dvUrl=x=>x.p?dvFile(x.p):location.origin+"/_capacitor_content_"+String(x.u).slice(9);
 const dvAlt=x=>x.p&&x.u?location.origin+"/_capacitor_content_"+String(x.u).slice(9):"";
@@ -3956,7 +3956,7 @@ async function dvArt(){
   T.forEach(t=>{if(t.dev&&!t.gone&&!t.img&&!t.noart){const k=dvAk(t);if(!seen.has(k)){seen.add(k);todo.push(t)}}});
   if(!todo.length)return;let i=0,done=0;
   const w=async()=>{while(i<todo.length){const t=todo[i++],k=dvAk(t);
-    if(!DV.art.has(k)){try{const r=await M.art({id:t.did,aid:t.aid||0});DV.art.set(k,r&&r.path?dvFile(r.path):"")}catch(e){DV.art.set(k,"")}}
+    if(!DV.art.has(k)){try{const r=await M.art({id:t.did,aid:t.aid||0});DV.art.set(k,r&&r.path?dvFile(r.path):"");(DV.artp=DV.artp||new Map()).set(k,r&&r.path||"")}catch(e){DV.art.set(k,"")}}
     const u=DV.art.get(k);T.forEach(x=>{if(x.dev&&dvAk(x)===k){if(u)x.img=u;else x.noart=1}});
     if(++done===24)dvPaint()}};
   await Promise.all([w(),w(),w()]);dvPaint()}
@@ -4095,6 +4095,67 @@ function pgRestore(){if(S.cur>=0)return true;const r=LS.get("milo.np",null);if(!
   let s=u;try{s=decodeURIComponent(u)}catch(e){}s=s.replace(/^web\+milo:\/*/i,"");const a=s.split("/")[0].toLowerCase(),q=s.split("/").slice(1).join("/");
   const tabs={home:"Home",search:"Search",discover:"Discover",library:"Library",profile:"Profile"};
   setTimeout(()=>{try{const t=tabs[a];if(t){go(t);if(t==="Search"&&q){S.sq=q;render()}}}catch(e){}try{history.replaceState(null,"",location.pathname)}catch(e){}},1500)})();
+/* ===== v9: native audio engine (Android app): songs on the phone play through Media3 / ExoPlayer ===== */
+/* The HTML player is still the interface. In the Android app, songs found on the phone are handed to the native
+   player (background-safe, lock-screen controls, gapless). Everything else, and every other platform, uses the
+   web audio path exactly as before. If the native player isn't there or errors, the web path takes over. */
+var NE={ok:false,act:false,key:null,nk:null,pos:0,dur:0,at:0,pw:false,pl:false,cmd:0,rate:1};
+function neP(){try{if(!NV.cap)return null;let p=NV.P&&NV.P.MiloAudio;if(!p&&window.Capacitor&&Capacitor.registerPlugin)p=Capacitor.registerPlugin("MiloAudio");return p||null}catch(e){return null}}
+NE.call=(m,o)=>{const P=neP();if(!P||typeof P[m]!=="function")return Promise.resolve();try{return Promise.resolve(P[m](o||{})).catch(()=>{})}catch(e){return Promise.resolve()}};
+NE.use=t=>!!(NE.ok&&t&&t.dev&&t.did&&!t.gone&&!t.nne&&!t.radio&&!t.stream&&!t.yt&&!t.ph&&LS.get("milo.native",1)!==0);
+NE.cur=()=>{const t=T[S.cur];return t&&NE.act&&t.key===NE.key?t:null};
+NE.item=t=>{const k=t.aid>0?"a"+t.aid:"t"+t.did,ap=DV.artp&&DV.artp.get(k);
+  return{key:t.key,did:t.did,title:t.t||"",artist:t.a||"",album:t.al||"",art:ap?(/^(file|content|https?):/.test(ap)?ap:"file://"+ap):""}};
+NE.vol=v=>{if(NE.ok)NE.call("volume",{v:v*v})};
+/* looks like an <audio> element to the rest of the app, so the progress bar, seek, speed and ended logic keep working */
+const NA={
+  get currentTime(){const d=NE.dur||1e9;return Math.min(d,NE.pos+(NE.pl?(Date.now()-NE.at)/1000*NE.rate:0))},
+  set currentTime(v){NE.pos=+v||0;NE.at=Date.now();NE.call("seek",{pos:NE.pos})},
+  get duration(){return NE.dur||NaN},get paused(){return !NE.pw},ended:false,seeking:false,readyState:4,
+  get playbackRate(){return NE.rate},set playbackRate(v){NE.rate=+v||1;NE.call("rate",{v:NE.rate})},
+  get defaultPlaybackRate(){return NE.rate},set defaultPlaybackRate(v){},
+  pause(){NE.pw=false;NE.pl=false;NE.cmd=Date.now();NE.call("pause")},
+  play(){NE.pw=true;NE.pl=true;NE.at=Date.now();NE.cmd=Date.now();NE.call("play");return Promise.resolve()},
+  getAttribute(){return null},addEventListener(){},removeEventListener(){},load(){}};
+function neStop(){if(!NE.act)return;NE.act=false;NE.key=null;NE.nk=null;NE.pw=NE.pl=false;NE.call("stop")}
+function neEngine(i,tog){const t=T[i];
+  RA.pause();RB.pause();DK.forEach(e=>e.pause());try{ytStop()}catch(e){}try{audioStop()}catch(e){}
+  clearTimeout(S.xt);S.xfb=0;S.pre=null;A=NA;NE.cmd=Date.now();
+  if(tog&&NE.act&&NE.key===t.key){S.playing?NA.play():NA.pause();return}
+  let p=0;if(PG&&PG.seek&&PG.seek.i===i){p=PG.seek.p||0;PG.seek=null}
+  NE.act=true;NE.key=t.key;NE.nk=null;NE.pos=p;NE.dur=t.d||0;NE.at=Date.now();NE.pw=NE.pl=!!S.playing;NE.rate=S.rate||1;
+  NE.call("load",Object.assign(NE.item(t),{pos:Math.round(p*1000),play:!!S.playing,rate:NE.rate,vol:Math.pow(S.vol==null?1:S.vol,2)}));
+  setTimeout(preload,400)}
+var _neEng=engine;
+engine=function(i,tog){const t=T[i];if(NE.use(t)){neEngine(i,tog);return}
+  if(NE.act){const keep=A===NA;neStop();if(keep)A=DK[S.dk]}
+  _neEng(i,tog)};
+/* the next song is queued natively so the change is gapless; the app keeps the queue and is told when it happens */
+var _nePre=preload;
+preload=function(){
+  if(NE.act&&NE.cur()){const ni=peekNext(),n=ni!=null&&S.sleep!=="end"&&NE.use(T[ni])&&ni!==S.cur?T[ni]:null,k=n?n.key:"";
+    if(NE.nk!==k){NE.nk=k;NE.call("next",n?NE.item(n):{})}S.pre=null;return}
+  const ni=peekNext();if(ni!=null&&NE.use(T[ni])){S.pre=null;return}
+  return _nePre()};
+var _neSv=setVol;setVol=function(v){_neSv(v);NE.vol(S.vol)};
+var _neAA=autoAdvance;autoAdvance=function(d){const ni=peekNext();if(NE.act||(ni!=null&&NE.use(T[ni])))return false;return _neAA(d)};
+function neAdvance(k){const t=NE.cur();if(!t)return;const ni=T.findIndex(x=>x.key===k&&!x.gone);if(ni<0){next(true);return}
+  const qi=S.q.indexOf(ni);if(qi>=0)S.qi=qi;else{S.q.splice(S.qi+1,0,ni);S.qi++}
+  S.cur=ni;S.pos=0;S.lis=0;S.cnt=0;S.playing=true;NE.key=k;NE.nk=null;NE.pos=0;NE.at=Date.now();NE.pw=NE.pl=true;NE.dur=T[ni].d||0;
+  pushHist(ni);sync();miFill();miNote(ni,ni);setTimeout(preload,300)}
+function neEvent(e){if(!e)return;
+  if(e.ev==="state"){NE.pos=e.pos||0;if(e.dur)NE.dur=e.dur;NE.at=Date.now();NE.pl=!!e.pl;
+    /* buttons on the lock screen / headset / audio focus can change play state outside the app */
+    if(NE.cur()&&Date.now()-NE.cmd>800&&S.playing!==!!e.pw){S.playing=!!e.pw;NE.pw=S.playing;sync()}}
+  else if(e.ev==="end"){if(NE.cur()){NE.pl=false;next(true)}}
+  else if(e.ev==="advance"){neAdvance(e.k)}
+  else if(e.ev==="skip"){if(S.cur>=0){e.d==="prev"?prev():next(false)}}
+  else if(e.ev==="err"){const t=NE.cur();if(!t)return;
+    /* native couldn't play this one: hand it to the normal web player from the same spot */
+    t.nne=1;const pos=NA.currentTime||0;neStop();A=DK[S.dk];PG.seek={i:S.cur,p:pos};engine(S.cur)}}
+(function(){const P=neP();if(!P)return;
+  try{P.addListener("ne",neEvent)}catch(e){}
+  P.ready().then(r=>{NE.ok=!!(r&&r.ok);if(NE.ok){NE.vol(S.vol==null?1:S.vol);if(S.cur>=0&&T[S.cur]&&NE.use(T[S.cur])&&!S.playing){/* restored song: re-route to native, paused */engine(S.cur)}}}).catch(()=>{})})();
 </script>
 </body>
 </html>

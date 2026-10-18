@@ -46,3 +46,24 @@ This was generated and synced here, but **not compiled or run on a phone**, so t
 `native/plugin/MiloMediaPlugin.java` reads the phone's music (MediaStore) and `scripts/patch-android.mjs` installs it and registers it in MainActivity every time you run `npm run android:add` or `npm run sync`.
 The first launch offers "Play the music on your phone"; the permission asked is Music and audio (Android 13+) or Storage (older).
 Songs play from their file path through Capacitor's local file route; cover art is written to the app cache. Please test on a real phone: seeking inside long files and Android 14+ partial media access are the two things to check.
+
+
+## Native audio engine (Android app)
+
+Songs found on the phone are played by Android's own player (Media3 / ExoPlayer) instead of the web view. The HTML
+player is still the screen; it sends play/pause/seek/speed/volume to the native player and shows what comes back.
+
+What you get: playback that continues with the screen off or the app swiped away, lock-screen / notification / headset
+controls (next and previous follow milo.'s queue), proper handling of calls and unplugged headphones, and gapless
+changes between phone songs. Songs are opened straight from the phone's media library (nothing is copied).
+
+What stays web-only: equalizer, stereo width and crossfade only apply to songs played through the web player
+(streams, radio, online songs, files added to the app). Phone songs play without them for now.
+
+Safety net: if the native player isn't present or errors on a song, milo. falls back to the web player at the same
+position. To switch it off: `localStorage.setItem("milo.native","0")`.
+
+How it gets built: `npm run sync` (used by the "Build Android APK" workflow) copies `plugin/MiloAudioPlugin.java` and
+`plugin/MiloPlayService.java` into the app, registers the plugin, declares the playback service in the manifest and adds the
+Media3 libraries to `app/build.gradle`. This has been tested against a simulated plugin; **it has not been compiled or run
+on a real phone yet**, so the first APK build is where any compile error would show up.
