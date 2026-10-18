@@ -17,3 +17,7 @@ shortcuts, share target, file handlers, a service worker that works offline, pus
 
 Note: the Capacitor APK in `native/` and a PWABuilder Android package are two separate ways to ship Android. Use one or the other.
 Push notifications work in both (the PWABuilder/TWA build uses Web Push through Chrome).
+
+## Report card leftovers
+- **IARC rating:** needs a real certificate ID. Get it free by filling the age-rating questionnaire in Google Play Console (or iarc-ratings.org), then add `"iarc_rating_id": "YOUR-ID"` to `manifest.webmanifest`.
+- **scope_extensions, widgets, tabbed display, note taking:** optional extras left out on purpose (they need extra domains or features milo. doesn't use).

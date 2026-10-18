@@ -4089,6 +4089,12 @@ function pgRestore(){if(S.cur>=0)return true;const r=LS.get("milo.np",null);if(!
   const q=(r.q||[]).map(f).filter(x=>x>=0);if(!q.includes(i))q.unshift(i);
   S.base=q.slice();S.q=q.slice();S.qi=q.indexOf(i);S.cur=i;S.pos=r.p||0;S.playing=false;PG.seek={i,p:r.p||0};engine(i);sync();return true}
 (function(){let n=0;const iv=setInterval(()=>{if(++n>10||pgRestore())clearInterval(iv)},1500)})();
+
+/* ===== web+milo: links (protocol handler): web+milo:search/<words>, web+milo:library, web+milo:discover ... ===== */
+(function(){const u=new URLSearchParams(location.search).get("uri");if(!u)return;
+  let s=u;try{s=decodeURIComponent(u)}catch(e){}s=s.replace(/^web\+milo:\/*/i,"");const a=s.split("/")[0].toLowerCase(),q=s.split("/").slice(1).join("/");
+  const tabs={home:"Home",search:"Search",discover:"Discover",library:"Library",profile:"Profile"};
+  setTimeout(()=>{try{const t=tabs[a];if(t){go(t);if(t==="Search"&&q){S.sq=q;render()}}}catch(e){}try{history.replaceState(null,"",location.pathname)}catch(e){}},1500)})();
 </script>
 </body>
 </html>
