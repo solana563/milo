@@ -45,7 +45,8 @@ async function dvFolder(){
     else h=await showOpenFilePicker({multiple:true,types:[{description:"Music",accept:{"audio/*":[".mp3",".m4a",".aac",".flac",".wav",".ogg",".opus",".weba"]}}]});
     for(const x of h)if(!(await Promise.all(DVH.map(y=>y.isSameEntry(x)))).some(Boolean))DVH.push(x);
     DV.need=0;LS.set("milo.dv",1);DV.on=1;await dvSaveH();await dvLoadH()}
-  catch(e){if(!e||e.name!=="AbortError")toast("Couldn't open that")}}
+  catch(e){if(e&&e.name==="AbortError")return;if(/android/i.test(navigator.userAgent))dvAndroidWeb();else toast("Couldn't open that")}}
+function dvAndroidWeb(){modal(`<h3>This needs the milo. Android app</h3><p class="empty">Android does not let a browser or an installed web app read your Music folder, so songs can only be added by copying them in. The milo. Android app (APK) asks for music permission and plays your songs right where they are.</p><button class="mi" data-dv="x">OK</button>`)}
 async function dvPerm(ask){let ok=true;for(const h of DVH){try{let p=await h.queryPermission({mode:"read"});if(p!=="granted"&&ask)p=await h.requestPermission({mode:"read"});if(p!=="granted")ok=false}catch(e){ok=false}}return ok}
 async function dvLoadH(){
   if(DV.busy||!DVH.length)return;DV.busy=1;
@@ -76,7 +77,7 @@ async function dvBoot(){
       /* the browser wants one tap to re-allow access: take it from the first tap anywhere */
       addEventListener("pointerup",async function f(){removeEventListener("pointerup",f);if(await dvPerm(true)){DV.need=0;dvLoadH()}},{once:true})}}catch(e){}}
 function dvBar(){
-  if(!DV||!DV.art)return"";const M=dvM(),can=M||dvWebOk();if(!can)return"";
+  if(!DV||!DV.art)return"";const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
   if(!DV.on)return M?'<button class="addb" data-dv="on">Play music on this phone</button>':'<button class="addb" data-dv="dir">'+(window.showDirectoryPicker?"Link a music folder":"Link music files")+'</button>';
   return (DV.need?'<button class="addb" data-dv="re">Reconnect music folder</button>':`<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button>`)+'<button class="ghost" data-dv="off">Turn off</button>'}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-dv]");if(!b)return;const k=b.dataset.dv;
@@ -86,12 +87,14 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   else if(k==="re"){if(await dvPerm(true)){DV.need=0;dvLoadH()}}
   else if(k==="off"){DV.on=0;LS.set("milo.dv",0);T.forEach(t=>{if(t.dev){t.hid=true;t.gone=true}});toast("Phone music hidden");render()}
   else if(k==="later"){LS.set("milo.dvAsk",1);closeM()}
+  else if(k==="aw"){dvAndroidWeb()}
   else if(k==="x"){closeM()}});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&DV.on&&dvM()&&Date.now()-DV.last>45000)dvScan(true)});
-/* first launch of the app: offer it once */
-(function(){if(!dvM()||DV.on||LS.get("milo.dvAsk",0))return;let n=0;
-  const t=setInterval(()=>{if(++n>40){clearInterval(t);return}const g=document.getElementById("gate"),m=document.getElementById("mdl");
-    if(g||(m&&!m.hidden))return;clearInterval(t);
-    modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`);LS.set("milo.dvAsk",1)},2000)})();
+/* first launch of the app: ask for the music permission once. It waits for the sign-in screens to finish (it used to give up after 80 seconds and never ask) */
+(function(){if(!dvM()||DV.on||LS.get("milo.dvAsk",0))return;
+  const t=setInterval(()=>{const g=document.getElementById("gate"),m=document.getElementById("mdl");
+    if(g||(m&&!m.hidden)||DV.on||LS.get("milo.dvAsk",0)){if(DV.on||LS.get("milo.dvAsk",0))clearInterval(t);return}
+    clearInterval(t);LS.set("milo.dvAsk",1);
+    modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`)},1500)})();
 setTimeout(dvBoot,1200);
 

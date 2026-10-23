@@ -28,7 +28,7 @@ function vzSpawn(k){k=k||1;if(VP.length>=80)return;const w=VZ.w,r=VZ.sr,desk=VZ.
     else if(d<arc+flat){px=VZ.sx+r+(d-arc);py=VZ.sy;nx=0;ny=-1}
     else{const th=1.5*Math.PI+(d-arc-flat)/arc*Math.PI/2;px=VZ.sx+VZ.w-r+r*Math.cos(th);py=VZ.sy+r+r*Math.sin(th);nx=Math.cos(th);ny=Math.sin(th)}}
   const sp=(12+Math.random()*20)*k;VP.push({x:px,y:py,vx:nx*sp+(Math.random()-.5)*8,vy:ny*sp-4,age:0,life:1.1+Math.random()*1.4,s:(.8+Math.random()*1.3)*(k>1?1.25:1),ph:Math.random()*6.28,ac:Math.random()<.3})}
-function vzFrame(){VZ.raf=0;const c=VZ.cv,x=VZ.cx;if(!c||!x)return;
+function vzFrame(){VZ.raf=0;const c=VZ.cv,x=VZ.cx;if(!c||!x)return;{const n0=performance.now();if(!IM.on&&VZ.lf&&n0-VZ.lf<30){VZ.raf=requestAnimationFrame(vzFrame);return}VZ.lf=n0}
   const now=performance.now(),dt=Math.min(.05,VZ.lt?(now-VZ.lt)/1000:.016);VZ.lt=now;
   const t=T[S.cur],live=!!((S.viz||IM.on)&&S.playing&&t&&!document.hidden&&!vzReduce());let burst=0,low=0,max=0;
   if(live){const a=vzSource(t);

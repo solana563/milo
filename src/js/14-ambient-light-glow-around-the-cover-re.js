@@ -3,7 +3,8 @@ let ambRaf=0;
 const ambK=()=>[0,.75,1.3][S.amb]*(S.luxk||1);
 function ambApply(){const a=$("amb");if(!a)return;a.style.display=S.amb?"":"none";a.style.setProperty("--ak",ambK())}
 function micLevel(){const m=S.mic;m.an.getByteFrequencyData(m.buf);let n=0;for(let i=1;i<14;i++)n+=m.buf[i];const l=n/13/255;m.pk=Math.max(m.pk*.997,l,.05);return Math.min(1,l/m.pk)}
-function ambTick(){ambRaf=0;const a=$("amb"),f=$("full");
+var AMBT=0;
+function ambTick(){ambRaf=0;const a=$("amb"),f=$("full");const n0=performance.now();if(n0-AMBT<32){ambRaf=requestAnimationFrame(ambTick);return}AMBT=n0;
   if(!S.amb||!f.classList.contains("open")||S.cur<0||(!S.playing&&!S.mic)){a.classList.remove("breathe");a.style.transform="";a.style.opacity="";return}
   const t=T[S.cur];let lv=null;
   if(S.mic){try{lv=micLevel()}catch(e){}}

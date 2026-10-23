@@ -55,7 +55,7 @@ function resHtml(){const q=S.sq.toLowerCase(),m=s=>!q||s.toLowerCase().includes(
   if(sg.length)h+=`<div class="row"><h2>Songs</h2></div>`+list(sg,"s");else if(!h)h='<p class="empty">No matches. Try an artist or album name.</p>';return h}
 const searchV=()=>`<h1 style="margin-top:20px">Find something to sit with</h1><input id="q" placeholder="Songs, albums or artists" value="${esc(S.sq)}" autocomplete="off"><div id="res">${resHtml()}</div>`;
 function libV(){let h=`<h1 style="margin-top:20px">Your library</h1><div class="dvrow">${addBtn("Add music",MUSIC,"m")}${addBtn("Add lyrics (.lrc)","","l")}${dvBar()}</div><div class="seg" style="margin:6px 0 18px">${["Songs","Albums","Artists","Playlists"].map(k=>`<button data-lib="${k}" class="${S.lib===k?"on":""}">${k}</button>`).join("")}</div>`;
-  if(S.lib==="Songs")h+=vis().length?list(vis(),"lib"):'<p class="empty">Add music to build your library. Songs you add are kept on this device for next time.</p>';
+  if(S.lib==="Songs")h+=vis().length?list(byTitle(vis()),"lib"):'<p class="empty">Add music to build your library. Songs you add are kept on this device for next time.</p>';
   else if(S.lib==="Albums"){const a=albums();h+=a.length?`<div class="grid">${a.map(alCard).join("")}</div>`:'<p class="empty">Albums are built from your songs\' tags.</p>'}
   else if(S.lib==="Artists"){const a=artists();h+=a.length?`<div class="list">${a.map(arRow).join("")}</div>`:'<p class="empty">Artists appear here.</p>'}
   else h+=`<button class="ghost" data-np style="margin-bottom:14px">+ New playlist</button><div class="list">${plRow("liked","Liked songs",likedIdx())}${S.pls.map(p=>plRow(p.id,p.name,plIdx(p))).join("")}</div>`;

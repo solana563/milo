@@ -45,7 +45,7 @@ function soRender(keep){const el=soEl();if(!SO.on)return;const sc=el.querySelect
 const CHAT='<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>';
 function soBubble(m){const mine=m.sender===soUid();let b="";
   if(m.kind==="song"){let d={};try{d=JSON.parse(m.body)}catch(e){}b=`<div class="so-song in"><i style="background:${d.img?`center/cover url(${esc(d.img)})`:art("201,151,90")}"></i><span><b>${esc(d.t||"Song")}</b><small>${esc(d.a||"")}</small></span>${d.local?"":`<button class="so-ic" data-sc="mplay:${m.id}" aria-label="Play">${PLAY}</button>`}</div>`}
-  else if(m.kind==="img")b=`<img class="so-img" alt="Photo" src="${esc(m.body)}">`;else b=`<span>${esc(m.body)}</span>`;
+  else if(m.kind==="img")b=`<img class="so-img" alt="Photo" src="${esc(m.body)}">`;else if(m.kind==="voice")b=`<span>🎤 Voice message</span>`;else b=`<span>${esc(m.body)}</span>`;
   return `<div class="so-msg ${mine?"me":"they"}"><div class="so-bub">${b}</div><small>${new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</small></div>`}
 const chatId=o=>[soUid(),o].sort().join(":");
 async function soMsgs(){if(!SO.fid)return;const r=await sb("/rest/v1/messages?select=id,sender,rcpt,kind,body,bytes,created_at&chat=eq."+encodeURIComponent(chatId(SO.fid))+"&created_at=gt."+encodeURIComponent(isoAgo(SO_DAY))+"&order=created_at.asc&limit=300");SO.msgs=r||[];

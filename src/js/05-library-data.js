@@ -24,6 +24,9 @@ const plRow=(id,n,idx)=>`<div class="li" data-nav="${nav1("pl",id)}" role="butto
 const newCard='<button class="cd" data-np><i class="nw">+</i><b>New playlist</b><small>Create one</small></button>';
 const tile=i=>`<button class="tile" data-i="${i}" data-l="home" style="--c:${T[i].c};background:${artOf(T[i])}"><u class="eq"><s></s><s></s><s></s></u><b>${esc(T[i].t)}</b><span>${esc(T[i].a)}</span></button>`;
 const greet=()=>{const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening"};
-function devSec(){const L=T.map((t,i)=>t.url&&!t.hid?i:-1).filter(i=>i>=0);
+/* A to Z by title (numbers sort naturally, accents and case ignored, leading symbols skipped) */
+const COLL=new Intl.Collator(undefined,{numeric:true,sensitivity:"base"}),sortKey=t=>String(t&&t.t||"").replace(/^[^\p{L}\p{N}]+/u,"");
+const byTitle=idx=>idx.slice().sort((a,b)=>COLL.compare(sortKey(T[a]),sortKey(T[b]))||COLL.compare(String(T[a].a||""),String(T[b].a||"")));
+function devSec(){const L=byTitle(T.map((t,i)=>t.url&&!t.hid?i:-1).filter(i=>i>=0));
   return `<div class="row" style="margin-top:8px"><h2>On this device</h2>${L.length?'<button data-go="Library" data-lib="Songs">See all</button>':""}</div>`+(L.length?list(L.slice(0,5),"dev")+`<div class="dvrow">${addBtn("Add music",MUSIC,"m")}${dvBar()}</div>`:`<p class="empty">${dvM()?"Play the songs on your phone straight from its storage. Nothing is copied.":dvWebOk()?"Link a folder and milo. plays your songs right where they are. Nothing is copied.":"Play songs stored on this device. Choose audio files and they will show up here."}</p><div class="dvrow">${dvBar()}${addBtn("Add music",MUSIC,"m")}</div>`)}
 

@@ -8,6 +8,9 @@
   "css/04-mobile-liquid-glass-phones-only-deskto.css",
   "css/05-mobile-card-layout-black-canvas-big-ro.css",
   "css/06-messaging-2-chats-list-chat-notificat.css",
+  "css/07-mobile-now-playing-mockup-layout.css",
+  "css/08-performance-smooth-screens.css",
+  "css/09-song-art-cards.css",
   "body.html",
   "js/00-start.js",
   "js/01-synth-demo-audio.js",
@@ -73,6 +76,8 @@
   "js/61-v8-playback-guard-local-music-keeps-pl.js",
   "js/62-web-milo-links-protocol-handler-web.js",
   "js/63-v9-native-audio-engine-android-app-plays-s.js",
+  "js/64-mobile-now-playing-more-menu.js",
+  "js/65-song-art-cards.js",
   "foot.html"
  ]
 }

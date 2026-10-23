@@ -1,0 +1,21 @@
+/* ---------- performance: smooth screen changes, no see-through backdrop ---------- */
+/* Tab changes used to fade every card in from fully transparent (black backdrop showed through for a moment)
+   and animated EVERY row of long lists. Now: quick, shallow rise from 55% opacity, no stagger, rows beyond the first screenful don't animate. */
+@keyframes vRise2{from{opacity:.55;transform:translateY(8px)}to{opacity:1;transform:none}}
+#view.vin>*,#view.vin .list>*,#view.vin .pls>*,#view.vin .hubg>*,#view.vin .recent>*{animation-name:vRise2!important;animation-duration:.26s!important;animation-delay:0s!important;animation-timing-function:cubic-bezier(.2,.8,.2,1)!important}
+#view.vin .list>*:nth-child(n+9),#view.vin .pls>*:nth-child(n+9),#view.vin .hubg>*:nth-child(n+9),#view.vin .recent>*:nth-child(n+9){animation:none!important}
+/* long song lists: the browser skips layout and paint for rows that are off screen */
+.list>.li,.list>.row2{content-visibility:auto;contain-intrinsic-size:auto 64px}
+/* phones: no live backdrop blur on the always-visible pills / chips (the progress bar under them repaints every tick, which forced
+   a re-blur every time) and no extra GPU layers for the hidden full-screen players. These were the biggest costs next to the audio. */
+@media (max-width:859px){
+ #app{--lgb:none}
+ #app nav,#app #mini,#app #npill,#app .jmp,#app #toast,#app .mc-in,#app .qp,#app .hub,#app .rb2,#app .sxbox,#app .chip,#app #vhud,#app .nph .npk{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ #app nav,#app #mini{background:rgba(24,22,20,.94)!important}
+ #app[data-theme=light] nav,#app[data-theme=light] #mini{background:rgba(244,242,238,.96)!important}
+ #full>.bl,#lyr>.bl{inset:-8%;filter:blur(22px) saturate(1.25)}
+ #im>.bl{inset:-6%;filter:blur(28px) saturate(1.3)}
+ #im:not(.open){visibility:hidden;transition:visibility 0s .7s}
+ .bl{transition-duration:.45s}
+}
+@media (prefers-reduced-motion:reduce){#view.vin>*,#view.vin .list>*{animation:none!important}}

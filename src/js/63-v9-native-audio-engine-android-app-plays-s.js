@@ -9,6 +9,7 @@ NE.use=t=>!!(NE.ok&&t&&t.dev&&t.did&&!t.gone&&!t.nne&&!t.radio&&!t.stream&&!t.yt
 NE.cur=()=>{const t=T[S.cur];return t&&NE.act&&t.key===NE.key?t:null};
 NE.item=t=>{const k=t.aid>0?"a"+t.aid:"t"+t.did,ap=DV.artp&&DV.artp.get(k);
   return{key:t.key,did:t.did,title:t.t||"",artist:t.a||"",album:t.al||"",art:ap?(/^(file|content|https?):/.test(ap)?ap:"file://"+ap):""}};
+NE.eq=()=>{if(NE.ok&&NE.act)NE.call("eq",{on:!!S.eqOn,g:(S.eq&&S.eq.g||[]).slice(),f:EQF.slice()})};
 NE.vol=v=>{if(NE.ok)NE.call("volume",{v:v*v})};
 /* looks like an <audio> element to the rest of the app, so the progress bar, seek, speed and ended logic keep working */
 const NA={
@@ -28,7 +29,7 @@ function neEngine(i,tog){const t=T[i];
   let p=0;if(PG&&PG.seek&&PG.seek.i===i){p=PG.seek.p||0;PG.seek=null}
   NE.act=true;NE.key=t.key;NE.nk=null;NE.pos=p;NE.dur=t.d||0;NE.at=Date.now();NE.pw=NE.pl=!!S.playing;NE.rate=S.rate||1;
   NE.call("load",Object.assign(NE.item(t),{pos:Math.round(p*1000),play:!!S.playing,rate:NE.rate,vol:Math.pow(S.vol==null?1:S.vol,2)}));
-  setTimeout(preload,400)}
+  NE.eq();setTimeout(preload,400)}
 var _neEng=engine;
 engine=function(i,tog){const t=T[i];if(NE.use(t)){neEngine(i,tog);return}
   if(NE.act){const keep=A===NA;neStop();if(keep)A=DK[S.dk]}
@@ -40,6 +41,7 @@ preload=function(){
     if(NE.nk!==k){NE.nk=k;NE.call("next",n?NE.item(n):{})}S.pre=null;return}
   const ni=peekNext();if(ni!=null&&NE.use(T[ni])){S.pre=null;return}
   return _nePre()};
+var _neAE=applyEQ;applyEQ=function(){_neAE.apply(this,arguments);NE.eq()};
 var _neSv=setVol;setVol=function(v){_neSv(v);NE.vol(S.vol)};
 var _neAA=autoAdvance;autoAdvance=function(d){const ni=peekNext();if(NE.act||(ni!=null&&NE.use(T[ni])))return false;return _neAA(d)};
 function neAdvance(k){const t=NE.cur();if(!t)return;const ni=T.findIndex(x=>x.key===k&&!x.gone);if(ni<0){next(true);return}

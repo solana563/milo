@@ -1,7 +1,7 @@
 /* ----- sharing: now playing + playlists, as song DNA only ----- */
 const shNP=()=>!S.prof||S.prof.share_np!==false,shPL=()=>!S.prof||S.prof.share_pl!==false;
 let npSig="",npAt=0,plSig="",plT=0;
-async function npTick(){if(!S.cloud||!S.prof||!termsOk())return;const t=T[S.cur],on=!!(t&&S.playing&&shNP());let np=null;if(on){const d=dnaOf(t);np=d?Object.assign({p:1},d):null}
+async function npTick(){if(!S.cloud||!S.prof||!termsOk())return;const t=T[S.cur],on=!!(t&&S.playing&&shNP());let np=null;if(on){const d=dnaOf(t);np=d?Object.assign({p:1},/^\d{1,3},\d{1,3},\d{1,3}$/.test(String(t.c))?{c:t.c}:{},d):null}
   const sig=np?np.id||np.t+"|"+np.a:"off";if(sig===npSig&&(!np||Date.now()-npAt<90000))return;npSig=sig;npAt=Date.now();
   try{await sb("/rest/v1/shared?on_conflict=user_id",{m:"POST",h:{Prefer:"resolution=merge-duplicates,return=minimal"},b:{user_id:S.cloud.id,np,np_at:new Date().toISOString()}})}catch(e){npSig=""}}
 setInterval(npTick,4000);

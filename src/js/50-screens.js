@@ -8,6 +8,7 @@ function mcBub(m,gs,ge){const mine=m.sender===soUid();let c="";
   if(m.reply_to){const q=SO.msgs.find(x=>x.id===m.reply_to);c+=`<div class="mc-q" data-sc="mjump:${m.reply_to}"><b>${q?(q.sender===soUid()?"You":esc((SO.prof[q.sender]||{}).name||"They")):"Message"}</b><span>${q?esc(mcPrev(q,1)):"Expired"}</span></div>`}
   if(m.kind==="song"){let d={};try{d=JSON.parse(m.body)}catch(e){}c+=`<div class="mc-song"><i style="background:${d.img&&/^https:/.test(d.img)?`center/cover url(${esc(d.img)})`:art("249,156,0")}"></i><span><b>${esc(d.t||"Song")}</b><small>${esc(d.a||"")}</small></span>${d.local?`<em>On their device</em>`:`<button class="mc-play" data-sc="mplay:${m.id}" aria-label="Play">${PLAY}<span>Play</span></button>`}</div>`}
   else if(m.kind==="img")c+=`<img class="so-img" alt="Photo" src="${esc(m.body)}" data-sc="mimg:${m.id}">`;
+  else if(m.kind==="voice")c+=`<span>🎤 Voice message · listen in miloCHAT</span>`;
   else{const big=/^(\p{Extended_Pictographic}|️|‍|\s){1,12}$/u.test(m.body)&&[...m.body.trim()].length<=8;c+=`<span class="${big?"mc-big":""}">${mcLink(m.body)}</span>`}
   const meta=ge||m.st==="fail"?(m.st==="fail"?`<button class="mc-fail" data-sc="mretry:${m.id}">${esc(m.err||"Not sent")} · Retry</button>`:`<small class="mc-m">${mcTime(new Date(m.created_at))}${mine?mcTick(m):""}</small>`):"";
   return `<div class="mc-r ${mine?"me":"they"}${gs?" gs":""}${ge?" ge":""}${m.kind==="img"?" im":""}" data-mid="${m.id}"><div class="mc-b${m.st==="fail"?" bad":""}" data-lp="${m.id}">${c}</div>${mcRxHtml(m)}${meta}</div>`}

@@ -21,7 +21,11 @@ const $=id=>document.getElementById(id);
 const esc=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const art=c=>`linear-gradient(145deg,rgba(${c},1),rgba(${c},.35) 60%,#1a1714)`;
 const artOf=t=>t.img&&!(S.lite&&/^https?:/.test(t.img))?`center/cover url(${t.img})${t.rimg?","+art(t.c):""}`:t.logo?`center/58% no-repeat url(${t.logo}),${art(t.c)}`:art(t.c);
-const acc=c=>c.split(",").map(v=>Math.round(+v+(255-v)*.5)).join(",");
+/* r,g,b (0-255) <-> h,s,l (0-1) */
+const rgb2hsl=(r,g,b)=>{r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;if(!d)return[0,0,l];const s=l>.5?d/(2-mx-mn):d/(mx+mn);let h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;return[h/6,s,l]};
+const hsl2rgb=(h,s,l)=>{if(!s){const v=Math.round(l*255);return[v,v,v]}const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q,f=t=>{t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<.5?q:t<2/3?p+(q-p)*(2/3-t)*6:p};return[f(h+1/3),f(h),f(h-1/3)].map(v=>Math.round(v*255))};
+/* UI accent from the song's colour: SAME hue and saturation as the art, only the lightness is nudged so it stays readable (no more washing it out toward white) */
+const acc=c=>{const [r,g,b]=String(c).split(",").map(Number),[h,s,l]=rgb2hsl(r,g,b);if(s<.1)return"226,226,226";return hsl2rgb(h,Math.min(1,s*1.04),Math.min(.7,Math.max(.56,l))).join(",")};
 const fmt=s=>!isFinite(s)?"0:00":Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
 let PLAY='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
 const svg=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;

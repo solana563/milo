@@ -1,0 +1,12 @@
+/* ---------- phones: the cards show the playing song's cover, softened ----------
+   --cardart (js/65) is a 36px copy of the cover; stretched up it is soft without any blur filter, so it costs almost nothing.
+   Every card uses the SAME scale of the cover (a full screen tall, like the tall Library card), so the softness is the same on every screen instead of squeezing the whole cover into short cards. A tint on top keeps text readable (light in light mode, dark in dark mode). The black canvas behind the cards is untouched. */
+@media (max-width:859px){
+#app{--cv:rgba(255,255,255,.42)}
+#app[data-theme=dark]{--cv:rgba(10,9,8,.42)}
+#app main#view .mcard{position:relative;isolation:isolate;background:var(--mc)}
+#app main#view .mcard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(var(--cv),var(--cv)),var(--cardart,none) center top/100% max(100dvh,100%) no-repeat}
+/* fallback (web covers the browser won't let us read): real image, live blur, visible cards only */
+#app.cardlive main#view .mcard:not(.av)::before{background:linear-gradient(var(--cv),var(--cv)),var(--mc)}
+#app.cardlive main#view .mcard.av::before{inset:-20px;filter:blur(16px) saturate(1.3)}
+}

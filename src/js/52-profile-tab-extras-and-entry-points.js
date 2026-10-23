@@ -1,6 +1,8 @@
 /* ----- profile tab extras and entry points ----- */
+const mcUrl=()=>{try{return NV.cap||!/^https?:/.test(location.protocol)||/claude/.test(location.host)?"https://mylo-beta.vercel.app/milo-chat/":new URL("milo-chat/",location.href).href}catch(e){return"https://mylo-beta.vercel.app/milo-chat/"}};
 function sxHtml(){const p=S.prof||{},on=!!S.cloud;
   return `<div class="row" style="margin-top:6px"><h2>Friends &amp; sharing</h2></div><div class="sxbox">${on?`<button class="sxb" data-sx="friends"><b>Friends</b><small>Find people by username, share playlists, chat</small></button>
+  <a class="sxb" href="${mcUrl()}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit"><b>Open miloCHAT</b><small>The chat app for milo. friends, with covers and song colours</small></a>
   <label class="sxs"><span><b>Share my playlists</b><small>Friends see your playlists as song DNA, never your files</small></span><input type="checkbox" data-sx="shpl" ${p.share_pl!==false?"checked":""}></label>
   <label class="sxs"><span><b>Share what I'm listening to</b><small>Friends can listen along by streaming it</small></span><input type="checkbox" data-sx="shnp" ${p.share_np!==false?"checked":""}></label>`:`<p>Sign up to add friends and keep your playlists on every device.</p><button class="addb" data-sx="signup">Sign up or sign in</button>`}
   ${sxExtra()}<button class="sxb" data-sx="terms"><b>Terms and privacy</b><small>How your information is used</small></button></div>`}
