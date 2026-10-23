@@ -1477,6 +1477,138 @@ html[dir=rtl] .mc-r.me{align-self:flex-start;align-items:flex-start}html[dir=rtl
 #lyS svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #app[data-theme=light] #full .ex .exlogo{filter:brightness(0) invert(1)}
 .dvrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.dvrow>*{margin:0!important}.dvrow .ghost{height:auto}
+/* ---------- mobile now-playing, phone portrait: UBayanda's mockup ----------
+   Top card : big art, back button top-left, 4 round buttons top-right,
+              song / artist / album + year bottom-left.
+   Lower card: progress bar, small prev, BIG play, small next, lyrics handle.
+   Everything is scoped to phone portrait; tablets / landscape keep their layouts.
+   Colour tokens (--np*) are set once per theme so the cards follow light / dark. */
+#fMore,#fMoreP{display:none}
+@media (max-width:859px) and (max-aspect-ratio:11/10){
+#app{--npb:#efede9;--npc:#121110;--npm:#6d675f;--npk:rgba(0,0,0,.08);--npg:rgba(0,0,0,.28);--npr:46px}
+#app[data-theme=dark]{--npb:#181716;--npc:#f4f1ea;--npm:#a9a59d;--npk:rgba(255,255,255,.09)}
+
+/* layout: art row, then the lower card (seek, times, controls, lyrics handle) */
+#app #full{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto auto auto;align-content:stretch;row-gap:0;padding:0}
+#app #full::after{content:"";grid-row:2/6;grid-column:1;z-index:0;background:var(--npb);border-radius:38px 38px 0 0;pointer-events:none}
+#app #full .fsheet{display:contents}
+#app #full .artw{grid-row:1;grid-column:1;position:relative;z-index:1;margin:0 0 10px;width:auto;height:auto;min-height:0;border-radius:0 0 38px 38px;overflow:hidden;flex:none}
+#app #full .artb,#app #full #big{width:100%;height:100%;border-radius:0 0 38px 38px}
+#app #full #big{box-shadow:none}
+#app #full .hov,#app #full .f2,#app #full .fbig,#app #full #fCirc,#app #full #fSt,#app #full .fvol,#app #full .imclk,#app #full .fl,#app #full .exlogo{display:none!important}
+
+/* title block over the bottom of the art */
+#app #full .fcard{grid-row:1;grid-column:1;align-self:end;z-index:2;display:block;margin:0 0 10px;padding:90px 26px 26px;border-radius:0 0 38px 38px;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.62));pointer-events:none}
+#app #full .fcard .ft{display:block;min-width:0}
+#app #full .fcard h2{font-family:Figtree,system-ui,sans-serif;font-size:clamp(28px,9vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1.04;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#fff!important;text-shadow:0 2px 14px rgba(0,0,0,.45)!important}
+#app #full .fcard #fA{font-size:clamp(17px,5vw,21px);font-weight:600;margin-top:6px;color:rgba(255,255,255,.95)!important;text-shadow:0 1px 10px rgba(0,0,0,.45)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app #full .fcard #fM{font-size:15px;font-weight:500;margin-top:3px;color:rgba(255,255,255,.78)!important;text-shadow:0 1px 10px rgba(0,0,0,.45)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* top bar: back button + the 4 round buttons (Like, Queue, Sound, More) */
+#app #full>.fh{position:absolute;inset:0;padding:0;pointer-events:none;z-index:6}
+#app #full .fh>*,#app #full #fL,#app #full #snd{pointer-events:auto}
+#app #full .fh .cl,#app #full #fQ,#app #full #fMore,#app #full #fL,#app #full #snd{display:flex;align-items:center;justify-content:center;position:absolute;width:var(--npr);height:var(--npr);padding:0;margin:0;border-radius:50%;border:0;color:#fff!important;background-color:var(--npg)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:none}
+#app #full .fh .cl{left:26px;top:calc(26px + env(safe-area-inset-top,0px))}
+#app #full #fQ,#app #full #fL,#app #full #snd,#app #full #fMore{right:26px}
+#app #full #fQ{top:calc(26px + env(safe-area-inset-top,0px))}
+#app #full #fL{top:calc(84px + env(safe-area-inset-top,0px))}
+#app #full #snd{top:calc(142px + env(safe-area-inset-top,0px))}
+#app #full #fMore{top:calc(200px + env(safe-area-inset-top,0px))}
+#app #full #fQ svg,#app #full #fL svg,#app #full #fMore svg{width:22px;height:22px}
+#app #full #fMore svg{fill:#fff;stroke:none}
+#app #full #fL.on{color:#ff5a6e!important}
+#app #full #fL.on svg{fill:#ff5a6e}
+/* Sound chip becomes an icon button */
+#app #full #snd,#app[data-theme] #full .fsheet #snd{opacity:1!important;z-index:8;font-size:0!important;border:0!important;background-color:var(--npg)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:22px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 4v16M12 4v16M19 4v16M3 15h4M10 8h4M17 13h4'/%3E%3C/svg%3E")!important}
+
+/* More menu */
+#app #full #fMoreP{display:none;position:absolute;z-index:7;right:84px;top:calc(200px + env(safe-area-inset-top,0px));width:min(236px,calc(100% - 120px));padding:12px;border-radius:26px;background:rgba(20,19,18,.82);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.14);flex-wrap:wrap;gap:8px;justify-content:center;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+#app #full.mo #fMoreP{display:flex}
+#app #full .ctl #shf,#app #full .ctl #rep{width:50px;height:50px;background:none!important;color:var(--npc)!important;flex:none}
+#app #full .ctl #shf svg,#app #full .ctl #rep svg{width:24px;height:24px}
+#app #full .ctl #shf.on,#app #full .ctl #rep.on{color:var(--npc)!important;background:var(--npk)!important}
+#app #full #fMoreP .ic,#app #full #fMoreP .chip{position:static;color:#f4f1ea!important;background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:999px;margin:0}
+#app #full #fMoreP .ic{width:46px;height:46px;display:flex;align-items:center;justify-content:center;padding:0}
+#app #full #fMoreP .ic.on{background:#f4f1ea!important;color:#111!important}
+#app #full #fMoreP .chip{padding:11px 14px;font-size:14px;white-space:nowrap}
+
+/* lower card */
+#app #full #seek,#app #full .tm,#app #full .ctl,#app #full #lyPeek{position:relative;z-index:1;grid-column:1}
+#app #full #seek{grid-row:2;margin:26px 34px 0;width:auto;height:28px;-webkit-appearance:none;appearance:none;background:transparent;--p:0%}
+#app[data-theme] #full .fsheet #seek::-webkit-slider-runnable-track,#app #full .fsheet #seek::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(var(--npc),var(--npc)) 0/var(--p,0%) 100% no-repeat,var(--npk)!important}
+#app #full #seek::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border-radius:50%;background:var(--npc);border:0;box-shadow:inset 0 0 0 8px var(--npc),inset 0 0 0 9px var(--npb)}
+#app #full #seek::-moz-range-track{height:4px;border-radius:4px;background:var(--npk)}
+#app #full #seek::-moz-range-progress{height:4px;border-radius:4px;background:var(--npc)}
+#app #full #seek::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--npc)}
+#app #full .tm{grid-row:3;display:flex;justify-content:space-between;margin:0 34px;font-size:12px;font-weight:600}
+#app[data-theme] #full .fsheet .tm span,#app #full .fsheet .tm span{color:var(--npm)!important;text-shadow:none!important}
+#app #full .ctl{grid-row:4;display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 0;padding:0 14px}
+#app #full .ctl>button{display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;cursor:pointer}
+#app #full .ctl #prev,#app #full .ctl #next{width:62px;height:62px;background:var(--npk)!important;color:var(--npc)!important}
+#app #full .ctl #prev svg,#app #full .ctl #next svg{width:26px;height:26px;fill:var(--npc)!important}
+#app[data-theme] #full .fsheet .ctl .pb,#app #full .fsheet .ctl .pb{width:88px;height:88px;background:var(--npc)!important;color:var(--npb)!important}
+#app #full .fsheet .ctl .pb svg{width:38px;height:38px;fill:var(--npb)!important}
+#app #full #lyPeek{grid-row:5;position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;height:auto!important;padding:20px 24px calc(14px + env(safe-area-inset-bottom,0px))!important;margin:0;border-radius:0!important;background:transparent!important;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+#app #full #lyPeek .grab{width:76px;height:5px;border-radius:3px;background:var(--npc)!important;opacity:.85}
+#app #full #lyPeek .pk{align-items:center;max-width:100%}
+#app #full #lyPeek .pk span{display:none}
+#app #full #lyPeek .pk b{font-size:12px;font-weight:500;color:var(--npm)!important;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app #full #lyPeek *{color:var(--npm)}
+}
+
+/* ---------- welcome / sign up / log in screens (inspired by a streaming-app welcome layout) ---------- */
+#gate .gw{position:relative;width:100%;max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.gw-bub{position:absolute;left:-22px;right:-22px;top:0;height:58%;pointer-events:none;overflow:hidden;-webkit-mask-image:linear-gradient(#000 65%,transparent);mask-image:linear-gradient(#000 65%,transparent)}
+.gw-bub img{position:absolute;height:auto;object-fit:contain;transform:rotate(var(--r,0deg));animation:gwf 9s ease-in-out infinite alternate}
+@keyframes gwf{from{transform:translateY(-8px) rotate(var(--r,0deg))}to{transform:translateY(10px) rotate(calc(var(--r,0deg) + 3deg))}}
+@media (prefers-reduced-motion:reduce){.gw-bub img{animation:none}}
+.gw-in{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:0 8px 6px}
+.gw-logo{height:46px;width:auto;max-width:190px;object-fit:contain;margin-bottom:8px}
+.gw-in h1{font-size:clamp(34px,10vw,44px);line-height:1.08;margin:0 0 4px;font-weight:800;letter-spacing:-.035em}
+.gw-in .gt-sub{margin:0 0 18px;font-size:16px}
+#gate .gt-go{width:100%;padding:17px 20px;border-radius:999px;font-size:13.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+#gate .gt-pri{border:0;background:rgb(var(--acc,249,156,0));color:#111}
+#gate .gt-ol{background:#111;color:#f4f1ea;border:1px solid rgba(255,255,255,.22)}
+#gate .gt-link{background:none;border:0;color:#f4f1ea;font:inherit;font-size:13px;font-weight:700;letter-spacing:.08em;padding:14px 8px;cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(255,255,255,.3)}
+#gate .gt-in.gt-form{position:relative;padding-top:56px}
+#gate .gt-in.gt-form input:not([type=checkbox]){border-radius:999px;padding:16px 22px}
+.gt-back{position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.gt-back svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.gt-form .gt-logo{display:none}
+.gt-form h1{font-size:34px;font-weight:800;letter-spacing:-.035em}
+/* ---------- performance: smooth screen changes, no see-through backdrop ---------- */
+/* Tab changes used to fade every card in from fully transparent (black backdrop showed through for a moment)
+   and animated EVERY row of long lists. Now: quick, shallow rise from 55% opacity, no stagger, rows beyond the first screenful don't animate. */
+@keyframes vRise2{from{opacity:.55;transform:translateY(8px)}to{opacity:1;transform:none}}
+#view.vin>*,#view.vin .list>*,#view.vin .pls>*,#view.vin .hubg>*,#view.vin .recent>*{animation-name:vRise2!important;animation-duration:.26s!important;animation-delay:0s!important;animation-timing-function:cubic-bezier(.2,.8,.2,1)!important}
+#view.vin .list>*:nth-child(n+9),#view.vin .pls>*:nth-child(n+9),#view.vin .hubg>*:nth-child(n+9),#view.vin .recent>*:nth-child(n+9){animation:none!important}
+/* long song lists: the browser skips layout and paint for rows that are off screen */
+.list>.li,.list>.row2{content-visibility:auto;contain-intrinsic-size:auto 64px}
+/* phones: no live backdrop blur on the always-visible pills / chips (the progress bar under them repaints every tick, which forced
+   a re-blur every time) and no extra GPU layers for the hidden full-screen players. These were the biggest costs next to the audio. */
+@media (max-width:859px){
+ #app{--lgb:none}
+ #app nav,#app #mini,#app #npill,#app .jmp,#app #toast,#app .mc-in,#app .qp,#app .hub,#app .rb2,#app .sxbox,#app .chip,#app #vhud,#app .nph .npk{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ #app nav,#app #mini{background:rgba(24,22,20,.94)!important}
+ #app[data-theme=light] nav,#app[data-theme=light] #mini{background:rgba(244,242,238,.96)!important}
+ #full>.bl,#lyr>.bl{inset:-8%;filter:blur(22px) saturate(1.25)}
+ #im>.bl{inset:-6%;filter:blur(28px) saturate(1.3)}
+ #im:not(.open){visibility:hidden;transition:visibility 0s .7s}
+ .bl{transition-duration:.45s}
+}
+@media (prefers-reduced-motion:reduce){#view.vin>*,#view.vin .list>*{animation:none!important}}
+/* ---------- phones: the cards show the playing song's cover, softened ----------
+   --cardart (js/65) is a 36px copy of the cover; stretched up it is soft without any blur filter, so it costs almost nothing.
+   Every card uses the SAME scale of the cover (a full screen tall, like the tall Library card), so the softness is the same on every screen instead of squeezing the whole cover into short cards. A tint on top keeps text readable (light in light mode, dark in dark mode). The black canvas behind the cards is untouched. */
+@media (max-width:859px){
+#app{--cv:rgba(255,255,255,.42)}
+#app[data-theme=dark]{--cv:rgba(10,9,8,.42)}
+#app main#view .mcard{position:relative;isolation:isolate;background:var(--mc)}
+#app main#view .mcard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(var(--cv),var(--cv)),var(--cardart,none) center top/100% max(100dvh,100%) no-repeat}
+/* fallback (web covers the browser won't let us read): real image, live blur, visible cards only */
+#app.cardlive main#view .mcard:not(.av)::before{background:linear-gradient(var(--cv),var(--cv)),var(--mc)}
+#app.cardlive main#view .mcard.av::before{inset:-20px;filter:blur(16px) saturate(1.3)}
+}
 </style>
 </head>
 <body>
@@ -1500,7 +1632,7 @@ html[dir=rtl] .mc-r.me{align-self:flex-start;align-items:flex-start}html[dir=rtl
   <nav id="nav"></nav>
   <section id="full" aria-label="Now playing">
     <i class="bl"></i><i class="bl"></i><b class="sc"></b>
-    <div class="fh"><button class="cl" id="cl">Close</button><span class="fl">Now playing</span><button class="ic" id="fQ" aria-label="Queue"></button></div>
+    <div class="fh"><button class="cl" id="cl">Close</button><span class="fl">Now playing</span><button class="ic" id="fQ" aria-label="Queue"></button><button class="ic" id="fMore" aria-label="More options" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button></div><div id="fMoreP" role="group" aria-label="More options"></div>
     <div class="imclk" id="fClk" aria-hidden="true"><b id="fCk"></b><span id="fDt"></span></div>
     <div class="artw"><div class="artb"><div id="amb"></div><div id="big"></div><div class="hov"><b id="hT"></b><span id="hS"></span></div></div></div>
     <div class="fsheet">
@@ -1585,7 +1717,11 @@ const $=id=>document.getElementById(id);
 const esc=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const art=c=>`linear-gradient(145deg,rgba(${c},1),rgba(${c},.35) 60%,#1a1714)`;
 const artOf=t=>t.img&&!(S.lite&&/^https?:/.test(t.img))?`center/cover url(${t.img})${t.rimg?","+art(t.c):""}`:t.logo?`center/58% no-repeat url(${t.logo}),${art(t.c)}`:art(t.c);
-const acc=c=>c.split(",").map(v=>Math.round(+v+(255-v)*.5)).join(",");
+/* r,g,b (0-255) <-> h,s,l (0-1) */
+const rgb2hsl=(r,g,b)=>{r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;if(!d)return[0,0,l];const s=l>.5?d/(2-mx-mn):d/(mx+mn);let h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;return[h/6,s,l]};
+const hsl2rgb=(h,s,l)=>{if(!s){const v=Math.round(l*255);return[v,v,v]}const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q,f=t=>{t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<.5?q:t<2/3?p+(q-p)*(2/3-t)*6:p};return[f(h+1/3),f(h),f(h-1/3)].map(v=>Math.round(v*255))};
+/* UI accent from the song's colour: SAME hue and saturation as the art, only the lightness is nudged so it stays readable (no more washing it out toward white) */
+const acc=c=>{const [r,g,b]=String(c).split(",").map(Number),[h,s,l]=rgb2hsl(r,g,b);if(s<.1)return"226,226,226";return hsl2rgb(h,Math.min(1,s*1.04),Math.min(.7,Math.max(.56,l))).join(",")};
 const fmt=s=>!isFinite(s)?"0:00":Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
 let PLAY='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
 const svg=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
@@ -1727,9 +1863,16 @@ function updCtl(){$("shf").classList.toggle("on",S.shuf);const r=$("rep");r.clas
 function bgArt(t){const c=t.c;S.bl=1-(S.bl||0);const n=S.bl;
   const css=t.img?artOf(t):t.radio&&t.logo&&t.lg?`center/34% no-repeat url(${t.logo}),radial-gradient(circle at 25% 20%,rgba(${c},1),transparent 55%),radial-gradient(circle at 80% 55%,rgba(${c},.75),transparent 55%),${art(c)}`:`radial-gradient(circle at 25% 20%,rgba(${c},1),transparent 55%),radial-gradient(circle at 80% 55%,rgba(${c},.75),transparent 55%),${art(c)}`;
   document.querySelectorAll("#hd,#sheet,#full,#lyr,#im").forEach(el=>{const L=el.querySelectorAll(".bl");L[n].style.background=css;L[n].style.opacity=1;L[1-n].style.opacity=0})}
-function swatch(t){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=24;const x=c.getContext("2d");x.drawImage(im,0,0,24,24);const d=x.getImageData(0,0,24,24).data;let r=0,g=0,b=0,w=0;
-  for(let i=0;i<d.length;i+=4){const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]),s=(mx-mn)/(mx||1),k=.15+s*s;r+=d[i]*k;g+=d[i+1]*k;b+=d[i+2]*k;w+=k}
-  t.c=[r,g,b].map(v=>Math.round(v/w)).join(",");saveSoon(t);if(T[S.cur]===t)$("app").style.setProperty("--acc",acc(t.c))}catch(e){}};im.src=t.img}
+/* the song's true colour: group the cover's pixels into hue families and take the biggest one,
+   instead of averaging everything (an average of red + blue art is a muddy purple that is neither) */
+function swatch(t){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const N=40,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.drawImage(im,0,0,N,N);const d=x.getImageData(0,0,N,N).data;
+  const bins={};let all=[0,0,0,0];
+  for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const r=d[i],g=d[i+1],b=d[i+2],[h,s,l]=rgb2hsl(r,g,b);all[0]+=r;all[1]+=g;all[2]+=b;all[3]++;
+    if(l<.1||l>.94)continue;
+    const k=s<.12?"n"+Math.floor(l*4):Math.floor(h*12)%12,w=(.25+s*s*1.6)*(1-Math.abs(l-.5)*.9),o=bins[k]||(bins[k]={w:0,r:0,g:0,b:0,s:0});o.w+=w;o.r+=r*w;o.g+=g*w;o.b+=b*w;o.s+=s*w}
+  let best=null;for(const k in bins)if(!best||bins[k].w>best.w)best=bins[k];
+  let col=best?[best.r/best.w,best.g/best.w,best.b/best.w]:all[3]?[all[0]/all[3],all[1]/all[3],all[2]/all[3]]:null;if(!col)return;
+  t.c=col.map(v=>Math.round(v)).join(",");saveSoon(t);if(T[S.cur]===t){$("app").style.setProperty("--acc",acc(t.c))}}catch(e){}};im.src=t.img}
 function sync(){
   const t=T[S.cur];if(!t)return;S.lastIdx=S.cur;
   $("mini").hidden=false;if(S.playing)$("app").classList.add("started");$("app").style.setProperty("--acc",acc(t.c));applyWash();
@@ -1799,7 +1942,10 @@ const plRow=(id,n,idx)=>`<div class="li" data-nav="${nav1("pl",id)}" role="butto
 const newCard='<button class="cd" data-np><i class="nw">+</i><b>New playlist</b><small>Create one</small></button>';
 const tile=i=>`<button class="tile" data-i="${i}" data-l="home" style="--c:${T[i].c};background:${artOf(T[i])}"><u class="eq"><s></s><s></s><s></s></u><b>${esc(T[i].t)}</b><span>${esc(T[i].a)}</span></button>`;
 const greet=()=>{const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening"};
-function devSec(){const L=T.map((t,i)=>t.url&&!t.hid?i:-1).filter(i=>i>=0);
+/* A to Z by title (numbers sort naturally, accents and case ignored, leading symbols skipped) */
+const COLL=new Intl.Collator(undefined,{numeric:true,sensitivity:"base"}),sortKey=t=>String(t&&t.t||"").replace(/^[^\p{L}\p{N}]+/u,"");
+const byTitle=idx=>idx.slice().sort((a,b)=>COLL.compare(sortKey(T[a]),sortKey(T[b]))||COLL.compare(String(T[a].a||""),String(T[b].a||"")));
+function devSec(){const L=byTitle(T.map((t,i)=>t.url&&!t.hid?i:-1).filter(i=>i>=0));
   return `<div class="row" style="margin-top:8px"><h2>On this device</h2>${L.length?'<button data-go="Library" data-lib="Songs">See all</button>':""}</div>`+(L.length?list(L.slice(0,5),"dev")+`<div class="dvrow">${addBtn("Add music",MUSIC,"m")}${dvBar()}</div>`:`<p class="empty">${dvM()?"Play the songs on your phone straight from its storage. Nothing is copied.":dvWebOk()?"Link a folder and milo. plays your songs right where they are. Nothing is copied.":"Play songs stored on this device. Choose audio files and they will show up here."}</p><div class="dvrow">${dvBar()}${addBtn("Add music",MUSIC,"m")}</div>`)}
 
 /* ---------- views ---------- */
@@ -1859,7 +2005,7 @@ function resHtml(){const q=S.sq.toLowerCase(),m=s=>!q||s.toLowerCase().includes(
   if(sg.length)h+=`<div class="row"><h2>Songs</h2></div>`+list(sg,"s");else if(!h)h='<p class="empty">No matches. Try an artist or album name.</p>';return h}
 const searchV=()=>`<h1 style="margin-top:20px">Find something to sit with</h1><input id="q" placeholder="Songs, albums or artists" value="${esc(S.sq)}" autocomplete="off"><div id="res">${resHtml()}</div>`;
 function libV(){let h=`<h1 style="margin-top:20px">Your library</h1><div class="dvrow">${addBtn("Add music",MUSIC,"m")}${addBtn("Add lyrics (.lrc)","","l")}${dvBar()}</div><div class="seg" style="margin:6px 0 18px">${["Songs","Albums","Artists","Playlists"].map(k=>`<button data-lib="${k}" class="${S.lib===k?"on":""}">${k}</button>`).join("")}</div>`;
-  if(S.lib==="Songs")h+=vis().length?list(vis(),"lib"):'<p class="empty">Add music to build your library. Songs you add are kept on this device for next time.</p>';
+  if(S.lib==="Songs")h+=vis().length?list(byTitle(vis()),"lib"):'<p class="empty">Add music to build your library. Songs you add are kept on this device for next time.</p>';
   else if(S.lib==="Albums"){const a=albums();h+=a.length?`<div class="grid">${a.map(alCard).join("")}</div>`:'<p class="empty">Albums are built from your songs\' tags.</p>'}
   else if(S.lib==="Artists"){const a=artists();h+=a.length?`<div class="list">${a.map(arRow).join("")}</div>`:'<p class="empty">Artists appear here.</p>'}
   else h+=`<button class="ghost" data-np style="margin-bottom:14px">+ New playlist</button><div class="list">${plRow("liked","Liked songs",likedIdx())}${S.pls.map(p=>plRow(p.id,p.name,plIdx(p))).join("")}</div>`;
@@ -2287,7 +2433,8 @@ let ambRaf=0;
 const ambK=()=>[0,.75,1.3][S.amb]*(S.luxk||1);
 function ambApply(){const a=$("amb");if(!a)return;a.style.display=S.amb?"":"none";a.style.setProperty("--ak",ambK())}
 function micLevel(){const m=S.mic;m.an.getByteFrequencyData(m.buf);let n=0;for(let i=1;i<14;i++)n+=m.buf[i];const l=n/13/255;m.pk=Math.max(m.pk*.997,l,.05);return Math.min(1,l/m.pk)}
-function ambTick(){ambRaf=0;const a=$("amb"),f=$("full");
+var AMBT=0;
+function ambTick(){ambRaf=0;const a=$("amb"),f=$("full");const n0=performance.now();if(n0-AMBT<32){ambRaf=requestAnimationFrame(ambTick);return}AMBT=n0;
   if(!S.amb||!f.classList.contains("open")||S.cur<0||(!S.playing&&!S.mic)){a.classList.remove("breathe");a.style.transform="";a.style.opacity="";return}
   const t=T[S.cur];let lv=null;
   if(S.mic){try{lv=micLevel()}catch(e){}}
@@ -2740,7 +2887,7 @@ function vzSpawn(k){k=k||1;if(VP.length>=80)return;const w=VZ.w,r=VZ.sr,desk=VZ.
     else if(d<arc+flat){px=VZ.sx+r+(d-arc);py=VZ.sy;nx=0;ny=-1}
     else{const th=1.5*Math.PI+(d-arc-flat)/arc*Math.PI/2;px=VZ.sx+VZ.w-r+r*Math.cos(th);py=VZ.sy+r+r*Math.sin(th);nx=Math.cos(th);ny=Math.sin(th)}}
   const sp=(12+Math.random()*20)*k;VP.push({x:px,y:py,vx:nx*sp+(Math.random()-.5)*8,vy:ny*sp-4,age:0,life:1.1+Math.random()*1.4,s:(.8+Math.random()*1.3)*(k>1?1.25:1),ph:Math.random()*6.28,ac:Math.random()<.3})}
-function vzFrame(){VZ.raf=0;const c=VZ.cv,x=VZ.cx;if(!c||!x)return;
+function vzFrame(){VZ.raf=0;const c=VZ.cv,x=VZ.cx;if(!c||!x)return;{const n0=performance.now();if(!IM.on&&VZ.lf&&n0-VZ.lf<30){VZ.raf=requestAnimationFrame(vzFrame);return}VZ.lf=n0}
   const now=performance.now(),dt=Math.min(.05,VZ.lt?(now-VZ.lt)/1000:.016);VZ.lt=now;
   const t=T[S.cur],live=!!((S.viz||IM.on)&&S.playing&&t&&!document.hidden&&!vzReduce());let burst=0,low=0,max=0;
   if(live){const a=vzSource(t);
@@ -2774,7 +2921,7 @@ vzSize();vzKick();
 /* ---------- Supabase cloud sync: sign in once, playlists, likes and settings follow you across devices ---------- */
 var LANG;function LOC(){return !LANG||LANG==="en"?undefined:LANG}
 const SBC={url:"https://lwcypxiwkgphuekygrps.supabase.co",key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3lweGl3a2dwaHVla3lncnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMjU3NzEsImV4cCI6MjA5OTcwMTc3MX0.qCLKCluVfjkByX9GqRvxcihVl0Qo8eJOhfkVXN-nqAQ"};
-const SQL_SETUP="-- milo. cloud sync: run once in Supabase > SQL editor\ncreate table if not exists public.milo_sync (\n  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,\n  data jsonb not null default '{}'::jsonb,\n  updated_at timestamptz not null default now()\n);\nalter table public.milo_sync enable row level security;\ndrop policy if exists \"milo read own\" on public.milo_sync;\ndrop policy if exists \"milo insert own\" on public.milo_sync;\ndrop policy if exists \"milo update own\" on public.milo_sync;\ndrop policy if exists \"milo delete own\" on public.milo_sync;\ncreate policy \"milo read own\" on public.milo_sync for select using (auth.uid() = user_id);\ncreate policy \"milo insert own\" on public.milo_sync for insert with check (auth.uid() = user_id);\ncreate policy \"milo update own\" on public.milo_sync for update using (auth.uid() = user_id) with check (auth.uid() = user_id);\ncreate policy \"milo delete own\" on public.milo_sync for delete using (auth.uid() = user_id);\n\n-- ======================= milo. accounts, friends, sharing and chat =======================\n-- Run this whole file once in Supabase > SQL editor. Safe to run again.\n-- Tip: Authentication > Providers > Email > turn OFF \"Confirm email\" so people can start right after signing up.\n\ncreate table if not exists public.profiles (\n  id uuid primary key references auth.users(id) on delete cascade,\n  username text not null unique check (username ~ '^[a-z0-9_]{3,20}$'),\n  name text not null default '',\n  av jsonb not null default '{}'::jsonb check (pg_column_size(av) < 90000),\n  terms_v int not null default 0,\n  terms_at timestamptz,\n  share_pl boolean not null default true,\n  share_np boolean not null default true,\n  created_at timestamptz not null default now()\n);\nalter table public.profiles enable row level security;\ndrop policy if exists \"profiles read\" on public.profiles;\ndrop policy if exists \"profiles insert own\" on public.profiles;\ndrop policy if exists \"profiles update own\" on public.profiles;\ncreate policy \"profiles read\" on public.profiles for select to authenticated using (true);\ncreate policy \"profiles insert own\" on public.profiles for insert to authenticated with check (id = auth.uid());\ncreate policy \"profiles update own\" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());\n\n-- create the profile automatically when someone signs up with a username\ncreate or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$\ndeclare u text := lower(coalesce(new.raw_user_meta_data->>'username',''));\nbegin\n  if u ~ '^[a-z0-9_]{3,20}$' then\n    insert into public.profiles(id, username, name) values (new.id, u, coalesce(nullif(new.raw_user_meta_data->>'name',''), u));\n  end if;\n  return new;\nend $$;\ndrop trigger if exists on_auth_user_created on auth.users;\ncreate trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();\n\ncreate or replace function public.username_free(u text) returns boolean language sql security definer set search_path = public as\n$$ select not exists (select 1 from public.profiles where username = lower(u)) $$;\ngrant execute on function public.username_free(text) to anon, authenticated;\n\ncreate or replace function public.find_user(u text) returns table(id uuid, username text, name text, av jsonb) language sql security definer set search_path = public as\n$$ select p.id, p.username, p.name, p.av from public.profiles p where p.username = lower(u) limit 1 $$;\ngrant execute on function public.find_user(text) to authenticated;\n\n-- friendships: a asks b; b accepts\ncreate table if not exists public.friendships (\n  a uuid not null references auth.users(id) on delete cascade,\n  b uuid not null references auth.users(id) on delete cascade,\n  status text not null default 'pending' check (status in ('pending','accepted')),\n  created_at timestamptz not null default now(),\n  primary key (a, b),\n  check (a <> b)\n);\ncreate unique index if not exists friendships_pair on public.friendships (least(a, b), greatest(a, b));\nalter table public.friendships enable row level security;\ndrop policy if exists \"fr read\" on public.friendships;\ndrop policy if exists \"fr ask\" on public.friendships;\ndrop policy if exists \"fr accept\" on public.friendships;\ndrop policy if exists \"fr delete\" on public.friendships;\ncreate policy \"fr read\" on public.friendships for select to authenticated using (auth.uid() in (a, b));\ncreate policy \"fr ask\" on public.friendships for insert to authenticated with check (a = auth.uid() and status = 'pending');\ncreate policy \"fr accept\" on public.friendships for update to authenticated using (b = auth.uid()) with check (b = auth.uid() and status = 'accepted');\ncreate policy \"fr delete\" on public.friendships for delete to authenticated using (auth.uid() in (a, b));\n\ncreate or replace function public.are_friends(x uuid, y uuid) returns boolean language sql stable security definer set search_path = public as\n$$ select exists (select 1 from public.friendships f where f.status = 'accepted' and ((f.a = x and f.b = y) or (f.a = y and f.b = x))) $$;\n\ncreate or replace function public.friend_cap() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  if (select count(*) from public.friendships where a = new.a or b = new.a) >= 200 then raise exception 'friend_limit'; end if;\n  return new;\nend $$;\ndrop trigger if exists friend_cap_t on public.friendships;\ncreate trigger friend_cap_t before insert on public.friendships for each row execute function public.friend_cap();\n\n-- shared: now playing + playlists, stored as song DNA (metadata and a stream source, never audio files)\ncreate table if not exists public.shared (\n  user_id uuid primary key references auth.users(id) on delete cascade,\n  np jsonb, np_at timestamptz,\n  pl jsonb check (pl is null or pg_column_size(pl) < 400000), pl_at timestamptz\n);\nalter table public.shared enable row level security;\ndrop policy if exists \"shared read\" on public.shared;\ndrop policy if exists \"shared insert\" on public.shared;\ndrop policy if exists \"shared update\" on public.shared;\ndrop policy if exists \"shared delete\" on public.shared;\ncreate policy \"shared read\" on public.shared for select to authenticated using (user_id = auth.uid() or public.are_friends(auth.uid(), user_id));\ncreate policy \"shared insert\" on public.shared for insert to authenticated with check (user_id = auth.uid());\ncreate policy \"shared update\" on public.shared for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());\ncreate policy \"shared delete\" on public.shared for delete to authenticated using (user_id = auth.uid());\n\n-- messages: disappear after 24 hours, each chat holds 5 MB, oldest removed first\ncreate table if not exists public.messages (\n  id bigint generated always as identity primary key,\n  chat text not null,\n  sender uuid not null default auth.uid() references auth.users(id) on delete cascade,\n  rcpt uuid not null references auth.users(id) on delete cascade,\n  kind text not null check (kind in ('text','song','img')),\n  body text not null,\n  bytes int not null default 0,\n  created_at timestamptz not null default now()\n);\ncreate index if not exists messages_chat_time on public.messages (chat, created_at desc);\ncreate index if not exists messages_rcpt_time on public.messages (rcpt, created_at desc);\n-- read receipts, replies, reactions and a short preview (so the chat list never downloads photos)\nalter table public.messages add column if not exists read_at timestamptz;\nalter table public.messages add column if not exists reply_to bigint;\nalter table public.messages add column if not exists rx jsonb not null default '{}'::jsonb;\nalter table public.messages add column if not exists pv text generated always as (case when kind = 'text' then left(body, 80) when kind = 'song' then left(body, 300) else null end) stored;\nalter table public.messages enable row level security;\ndrop policy if exists \"msg read\" on public.messages;\ndrop policy if exists \"msg send\" on public.messages;\ncreate policy \"msg read\" on public.messages for select to authenticated using (auth.uid() in (sender, rcpt) and created_at > now() - interval '1 day');\ncreate policy \"msg send\" on public.messages for insert to authenticated with check (sender = auth.uid() and public.are_friends(sender, rcpt));\ndrop policy if exists \"msg update\" on public.messages;\ndrop policy if exists \"msg unsend\" on public.messages;\ncreate policy \"msg update\" on public.messages for update to authenticated using (auth.uid() in (sender, rcpt)) with check (auth.uid() in (sender, rcpt));\ncreate policy \"msg unsend\" on public.messages for delete to authenticated using (sender = auth.uid());\n\ncreate or replace function public.msg_before() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  new.sender := auth.uid();\n  new.chat := least(new.sender::text, new.rcpt::text) || ':' || greatest(new.sender::text, new.rcpt::text);\n  new.bytes := octet_length(new.body) + 64;\n  new.read_at := null;\n  new.rx := '{}'::jsonb;\n  if new.reply_to is not null and not exists (select 1 from public.messages where id = new.reply_to and chat = new.chat) then new.reply_to := null; end if;\n  if new.bytes > 400000 then raise exception 'message_too_large'; end if;\n  if (select count(*) from public.messages where sender = new.sender and created_at > now() - interval '1 minute') >= 30 then raise exception 'rate_limited'; end if;\n  return new;\nend $$;\ndrop trigger if exists msg_before_t on public.messages;\ncreate trigger msg_before_t before insert on public.messages for each row execute function public.msg_before();\n\ncreate or replace function public.msg_after() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  delete from public.messages where chat = new.chat and created_at < now() - interval '1 day';\n  delete from public.messages where id in (\n    select id from (select id, sum(bytes) over (order by created_at desc, id desc) as run from public.messages where chat = new.chat) s where s.run > 5242880);\n  return null;\nend $$;\ndrop trigger if exists msg_after_t on public.messages;\ncreate trigger msg_after_t after insert on public.messages for each row execute function public.msg_after();\n\n-- on update, only read_at (by the recipient, once) and your own reaction can change\ncreate or replace function public.msg_guard() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  if auth.uid() is null then return new; end if; -- server-side edits (dashboard, service role) are not restricted\n  if new.id <> old.id or new.chat <> old.chat or new.sender <> old.sender or new.rcpt <> old.rcpt or new.kind <> old.kind or new.body <> old.body\n     or new.bytes <> old.bytes or new.created_at <> old.created_at or new.reply_to is distinct from old.reply_to then raise exception 'message_locked'; end if;\n  if new.read_at is distinct from old.read_at then\n    if auth.uid() is distinct from old.rcpt or old.read_at is not null then new.read_at := old.read_at; end if;\n  end if;\n  if new.rx is distinct from old.rx then\n    if pg_column_size(new.rx) > 1500 then raise exception 'rx_too_large'; end if;\n    if (new.rx - coalesce(auth.uid()::text, '')) <> (old.rx - coalesce(auth.uid()::text, '')) then raise exception 'rx_locked'; end if;\n  end if;\n  return new;\nend $$;\ndrop trigger if exists msg_guard_t on public.messages;\ncreate trigger msg_guard_t before update on public.messages for each row execute function public.msg_guard();\n\n-- live updates (instant messages, friend requests, sync between devices)\ndo $$ declare t text; begin\n  foreach t in array array['messages','friendships','shared','milo_sync'] loop\n    begin execute format('alter publication supabase_realtime add table public.%I', t);\n    exception when duplicate_object then null; when undefined_object then null; end;\n  end loop;\nend $$;\n\n-- removing a friend deletes the chat\ncreate or replace function public.fr_gone() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  delete from public.messages where chat = least(old.a::text, old.b::text) || ':' || greatest(old.a::text, old.b::text);\n  return old;\nend $$;\ndrop trigger if exists fr_gone_t on public.friendships;\ncreate trigger fr_gone_t after delete on public.friendships for each row execute function public.fr_gone();\n\n-- delete my account and everything under it\ncreate or replace function public.delete_me() returns void language plpgsql security definer set search_path = public, auth as $$\nbegin\n  delete from auth.users where id = auth.uid();\nend $$;\ngrant execute on function public.delete_me() to authenticated;\n\n-- push notifications (new messages and friend requests while the app is closed)\ncreate table if not exists public.push_subs (\n  id bigint generated always as identity primary key,\n  user_id uuid not null references auth.users(id) on delete cascade,\n  kind text not null check (kind in ('web','fcm')),\n  endpoint text not null unique,\n  keys jsonb,\n  created_at timestamptz not null default now()\n);\ncreate index if not exists push_subs_user on public.push_subs (user_id);\nalter table public.push_subs enable row level security;\ndrop policy if exists \"push own\" on public.push_subs;\ncreate policy \"push own\" on public.push_subs for select to authenticated using (user_id = auth.uid());\ncreate or replace function public.push_save(k text, e text, x jsonb) returns void language plpgsql security definer set search_path = public as $$\nbegin\n  if auth.uid() is null or k not in ('web','fcm') or length(e) > 2000 then return; end if;\n  delete from public.push_subs where endpoint = e;\n  delete from public.push_subs where id in (select id from public.push_subs where user_id = auth.uid() and kind = k order by created_at desc offset 4);\n  insert into public.push_subs(user_id, kind, endpoint, keys) values (auth.uid(), k, e, x);\nend $$;\ngrant execute on function public.push_save(text, text, jsonb) to authenticated;\ncreate or replace function public.push_drop(e text) returns void language sql security definer set search_path = public as\n$$ delete from public.push_subs where endpoint = e and user_id = auth.uid() $$;\ngrant execute on function public.push_drop(text) to authenticated;\n\n-- optional but recommended: also purge expired messages every hour (Database > Extensions > enable pg_cron first)\n-- select cron.schedule('milo-purge', '0 * * * *', $$ delete from public.messages where created_at < now() - interval '1 day' $$);\n";
+const SQL_SETUP="-- milo. cloud sync: run once in Supabase > SQL editor\ncreate table if not exists public.milo_sync (\n  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,\n  data jsonb not null default '{}'::jsonb,\n  updated_at timestamptz not null default now()\n);\nalter table public.milo_sync enable row level security;\ndrop policy if exists \"milo read own\" on public.milo_sync;\ndrop policy if exists \"milo insert own\" on public.milo_sync;\ndrop policy if exists \"milo update own\" on public.milo_sync;\ndrop policy if exists \"milo delete own\" on public.milo_sync;\ncreate policy \"milo read own\" on public.milo_sync for select using (auth.uid() = user_id);\ncreate policy \"milo insert own\" on public.milo_sync for insert with check (auth.uid() = user_id);\ncreate policy \"milo update own\" on public.milo_sync for update using (auth.uid() = user_id) with check (auth.uid() = user_id);\ncreate policy \"milo delete own\" on public.milo_sync for delete using (auth.uid() = user_id);\n\n-- ======================= milo. accounts, friends, sharing and chat =======================\n-- Run this whole file once in Supabase > SQL editor. Safe to run again.\n-- Tip: Authentication > Providers > Email > turn OFF \"Confirm email\" so people can start right after signing up.\n\ncreate table if not exists public.profiles (\n  id uuid primary key references auth.users(id) on delete cascade,\n  username text not null unique check (username ~ '^[a-z0-9_]{3,20}$'),\n  name text not null default '',\n  av jsonb not null default '{}'::jsonb check (pg_column_size(av) < 90000),\n  terms_v int not null default 0,\n  terms_at timestamptz,\n  share_pl boolean not null default true,\n  share_np boolean not null default true,\n  created_at timestamptz not null default now()\n);\n-- optional profile cover photo (used by miloCHAT)\nalter table public.profiles add column if not exists cover text check (cover is null or length(cover) < 70000);\nalter table public.profiles enable row level security;\ndrop policy if exists \"profiles read\" on public.profiles;\ndrop policy if exists \"profiles insert own\" on public.profiles;\ndrop policy if exists \"profiles update own\" on public.profiles;\ncreate policy \"profiles read\" on public.profiles for select to authenticated using (true);\ncreate policy \"profiles insert own\" on public.profiles for insert to authenticated with check (id = auth.uid());\ncreate policy \"profiles update own\" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());\n\n-- create the profile automatically when someone signs up with a username\ncreate or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$\ndeclare u text := lower(coalesce(new.raw_user_meta_data->>'username',''));\nbegin\n  if u ~ '^[a-z0-9_]{3,20}$' then\n    insert into public.profiles(id, username, name) values (new.id, u, coalesce(nullif(new.raw_user_meta_data->>'name',''), u));\n  end if;\n  return new;\nend $$;\ndrop trigger if exists on_auth_user_created on auth.users;\ncreate trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();\n\ncreate or replace function public.username_free(u text) returns boolean language sql security definer set search_path = public as\n$$ select not exists (select 1 from public.profiles where username = lower(u)) $$;\ngrant execute on function public.username_free(text) to anon, authenticated;\n\ncreate or replace function public.find_user(u text) returns table(id uuid, username text, name text, av jsonb) language sql security definer set search_path = public as\n$$ select p.id, p.username, p.name, p.av from public.profiles p where p.username = lower(u) limit 1 $$;\ngrant execute on function public.find_user(text) to authenticated;\n\n-- friendships: a asks b; b accepts\ncreate table if not exists public.friendships (\n  a uuid not null references auth.users(id) on delete cascade,\n  b uuid not null references auth.users(id) on delete cascade,\n  status text not null default 'pending' check (status in ('pending','accepted')),\n  created_at timestamptz not null default now(),\n  primary key (a, b),\n  check (a <> b)\n);\ncreate unique index if not exists friendships_pair on public.friendships (least(a, b), greatest(a, b));\nalter table public.friendships enable row level security;\ndrop policy if exists \"fr read\" on public.friendships;\ndrop policy if exists \"fr ask\" on public.friendships;\ndrop policy if exists \"fr accept\" on public.friendships;\ndrop policy if exists \"fr delete\" on public.friendships;\ncreate policy \"fr read\" on public.friendships for select to authenticated using (auth.uid() in (a, b));\ncreate policy \"fr ask\" on public.friendships for insert to authenticated with check (a = auth.uid() and status = 'pending');\ncreate policy \"fr accept\" on public.friendships for update to authenticated using (b = auth.uid()) with check (b = auth.uid() and status = 'accepted');\ncreate policy \"fr delete\" on public.friendships for delete to authenticated using (auth.uid() in (a, b));\n\ncreate or replace function public.are_friends(x uuid, y uuid) returns boolean language sql stable security definer set search_path = public as\n$$ select exists (select 1 from public.friendships f where f.status = 'accepted' and ((f.a = x and f.b = y) or (f.a = y and f.b = x))) $$;\n\ncreate or replace function public.friend_cap() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  if (select count(*) from public.friendships where a = new.a or b = new.a) >= 200 then raise exception 'friend_limit'; end if;\n  return new;\nend $$;\ndrop trigger if exists friend_cap_t on public.friendships;\ncreate trigger friend_cap_t before insert on public.friendships for each row execute function public.friend_cap();\n\n-- shared: now playing + playlists, stored as song DNA (metadata and a stream source, never audio files)\ncreate table if not exists public.shared (\n  user_id uuid primary key references auth.users(id) on delete cascade,\n  np jsonb, np_at timestamptz,\n  pl jsonb check (pl is null or pg_column_size(pl) < 400000), pl_at timestamptz\n);\nalter table public.shared enable row level security;\ndrop policy if exists \"shared read\" on public.shared;\ndrop policy if exists \"shared insert\" on public.shared;\ndrop policy if exists \"shared update\" on public.shared;\ndrop policy if exists \"shared delete\" on public.shared;\ncreate policy \"shared read\" on public.shared for select to authenticated using (user_id = auth.uid() or public.are_friends(auth.uid(), user_id));\ncreate policy \"shared insert\" on public.shared for insert to authenticated with check (user_id = auth.uid());\ncreate policy \"shared update\" on public.shared for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());\ncreate policy \"shared delete\" on public.shared for delete to authenticated using (user_id = auth.uid());\n\n-- messages: disappear after 24 hours, each chat holds 5 MB, oldest removed first\ncreate table if not exists public.messages (\n  id bigint generated always as identity primary key,\n  chat text not null,\n  sender uuid not null default auth.uid() references auth.users(id) on delete cascade,\n  rcpt uuid not null references auth.users(id) on delete cascade,\n  kind text not null check (kind in ('text','song','img')),\n  body text not null,\n  bytes int not null default 0,\n  created_at timestamptz not null default now()\n);\ncreate index if not exists messages_chat_time on public.messages (chat, created_at desc);\ncreate index if not exists messages_rcpt_time on public.messages (rcpt, created_at desc);\n-- read receipts, replies, reactions and a short preview (so the chat list never downloads photos)\n-- voice notes (miloCHAT)\nalter table public.messages drop constraint if exists messages_kind_check;\nalter table public.messages add constraint messages_kind_check check (kind in ('text','song','img','voice'));\nalter table public.messages add column if not exists read_at timestamptz;\nalter table public.messages add column if not exists reply_to bigint;\nalter table public.messages add column if not exists rx jsonb not null default '{}'::jsonb;\nalter table public.messages add column if not exists pv text generated always as (case when kind = 'text' then left(body, 80) when kind = 'song' then left(body, 300) else null end) stored;\nalter table public.messages enable row level security;\ndrop policy if exists \"msg read\" on public.messages;\ndrop policy if exists \"msg send\" on public.messages;\ncreate policy \"msg read\" on public.messages for select to authenticated using (auth.uid() in (sender, rcpt) and created_at > now() - interval '1 day');\ncreate policy \"msg send\" on public.messages for insert to authenticated with check (sender = auth.uid() and public.are_friends(sender, rcpt));\ndrop policy if exists \"msg update\" on public.messages;\ndrop policy if exists \"msg unsend\" on public.messages;\ncreate policy \"msg update\" on public.messages for update to authenticated using (auth.uid() in (sender, rcpt)) with check (auth.uid() in (sender, rcpt));\ncreate policy \"msg unsend\" on public.messages for delete to authenticated using (sender = auth.uid());\n\ncreate or replace function public.msg_before() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  new.sender := auth.uid();\n  new.chat := least(new.sender::text, new.rcpt::text) || ':' || greatest(new.sender::text, new.rcpt::text);\n  new.bytes := octet_length(new.body) + 64;\n  new.read_at := null;\n  new.rx := '{}'::jsonb;\n  if new.reply_to is not null and not exists (select 1 from public.messages where id = new.reply_to and chat = new.chat) then new.reply_to := null; end if;\n  if new.bytes > 400000 then raise exception 'message_too_large'; end if;\n  if (select count(*) from public.messages where sender = new.sender and created_at > now() - interval '1 minute') >= 30 then raise exception 'rate_limited'; end if;\n  return new;\nend $$;\ndrop trigger if exists msg_before_t on public.messages;\ncreate trigger msg_before_t before insert on public.messages for each row execute function public.msg_before();\n\ncreate or replace function public.msg_after() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  delete from public.messages where chat = new.chat and created_at < now() - interval '1 day';\n  delete from public.messages where id in (\n    select id from (select id, sum(bytes) over (order by created_at desc, id desc) as run from public.messages where chat = new.chat) s where s.run > 5242880);\n  return null;\nend $$;\ndrop trigger if exists msg_after_t on public.messages;\ncreate trigger msg_after_t after insert on public.messages for each row execute function public.msg_after();\n\n-- on update, only read_at (by the recipient, once) and your own reaction can change\ncreate or replace function public.msg_guard() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  if auth.uid() is null then return new; end if; -- server-side edits (dashboard, service role) are not restricted\n  if new.id <> old.id or new.chat <> old.chat or new.sender <> old.sender or new.rcpt <> old.rcpt or new.kind <> old.kind or new.body <> old.body\n     or new.bytes <> old.bytes or new.created_at <> old.created_at or new.reply_to is distinct from old.reply_to then raise exception 'message_locked'; end if;\n  if new.read_at is distinct from old.read_at then\n    if auth.uid() is distinct from old.rcpt or old.read_at is not null then new.read_at := old.read_at; end if;\n  end if;\n  if new.rx is distinct from old.rx then\n    if pg_column_size(new.rx) > 1500 then raise exception 'rx_too_large'; end if;\n    if (new.rx - coalesce(auth.uid()::text, '')) <> (old.rx - coalesce(auth.uid()::text, '')) then raise exception 'rx_locked'; end if;\n  end if;\n  return new;\nend $$;\ndrop trigger if exists msg_guard_t on public.messages;\ncreate trigger msg_guard_t before update on public.messages for each row execute function public.msg_guard();\n\n-- live updates (instant messages, friend requests, sync between devices)\ndo $$ declare t text; begin\n  foreach t in array array['messages','friendships','shared','milo_sync'] loop\n    begin execute format('alter publication supabase_realtime add table public.%I', t);\n    exception when duplicate_object then null; when undefined_object then null; end;\n  end loop;\nend $$;\n\n-- removing a friend deletes the chat\ncreate or replace function public.fr_gone() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  delete from public.messages where chat = least(old.a::text, old.b::text) || ':' || greatest(old.a::text, old.b::text);\n  return old;\nend $$;\ndrop trigger if exists fr_gone_t on public.friendships;\ncreate trigger fr_gone_t after delete on public.friendships for each row execute function public.fr_gone();\n\n-- delete my account and everything under it\ncreate or replace function public.delete_me() returns void language plpgsql security definer set search_path = public, auth as $$\nbegin\n  delete from auth.users where id = auth.uid();\nend $$;\ngrant execute on function public.delete_me() to authenticated;\n\n-- push notifications (new messages and friend requests while the app is closed)\ncreate table if not exists public.push_subs (\n  id bigint generated always as identity primary key,\n  user_id uuid not null references auth.users(id) on delete cascade,\n  kind text not null check (kind in ('web','fcm')),\n  endpoint text not null unique,\n  keys jsonb,\n  created_at timestamptz not null default now()\n);\ncreate index if not exists push_subs_user on public.push_subs (user_id);\nalter table public.push_subs enable row level security;\ndrop policy if exists \"push own\" on public.push_subs;\ncreate policy \"push own\" on public.push_subs for select to authenticated using (user_id = auth.uid());\ncreate or replace function public.push_save(k text, e text, x jsonb) returns void language plpgsql security definer set search_path = public as $$\nbegin\n  if auth.uid() is null or k not in ('web','fcm') or length(e) > 2000 then return; end if;\n  delete from public.push_subs where endpoint = e;\n  delete from public.push_subs where id in (select id from public.push_subs where user_id = auth.uid() and kind = k order by created_at desc offset 4);\n  insert into public.push_subs(user_id, kind, endpoint, keys) values (auth.uid(), k, e, x);\nend $$;\ngrant execute on function public.push_save(text, text, jsonb) to authenticated;\ncreate or replace function public.push_drop(e text) returns void language sql security definer set search_path = public as\n$$ delete from public.push_subs where endpoint = e and user_id = auth.uid() $$;\ngrant execute on function public.push_drop(text) to authenticated;\n\n-- optional but recommended: also purge expired messages every hour (Database > Extensions > enable pg_cron first)\n-- select cron.schedule('milo-purge', '0 * * * *', $$ delete from public.messages where created_at < now() - interval '1 day' $$);\n";
 S.cloud=LS.get("milo.cloud",null);let sbT=0;
 async function sbReq(path,o){o=o||{};const h={apikey:SBC.key,"Content-Type":"application/json",Authorization:"Bearer "+(o.anon||!S.cloud?SBC.key:S.cloud.at)};Object.assign(h,o.h||{});
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),12000);
@@ -3379,24 +3526,33 @@ const dnaLink=d=>location.origin+location.pathname+"#dna="+btoa(unescape(encodeU
 /* ----- launch gate ----- */
 const GATE={step:"up",err:"",busy:0};
 function gateEl(){let g=$("gate");if(!g){g=document.createElement("div");g.id="gate";$("app").appendChild(g)}return g}
-function gateOpen(step){GATE.step=step==="in"?"in":step==="terms"?"terms":step==="claim"?"claim":"up";GATE.err="";gateRender()}
+function gateOpen(step){GATE.step=step==="in"?"in":step==="terms"?"terms":step==="claim"?"claim":step==="welcome"?"welcome":"up";GATE.err="";gateRender()}
 function gateClose(){const g=$("gate");if(g)g.remove();document.documentElement.classList.remove("gated")}
 function gateNeeded(){if(!S.cloud)return"up";if(!S.prof||!S.prof.username)return"claim";if(!termsOk())return"terms";return""}
+const GT_MARK="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="190 346 966 644"><path d="M332.1,353.7 C324.3,355.2 314.7,357.8 306.4,361.3 C298.1,364.7 290.0,369.3 282.3,374.3 C274.6,379.3 267.2,385.2 260.3,391.3 C253.3,397.5 246.7,404.2 240.7,411.2 C234.6,418.2 229.1,425.7 224.0,433.4 C218.9,441.0 214.1,449.1 210.1,457.0 C206.1,465.0 202.3,473.4 200.1,481.1 C197.9,488.8 196.3,497.0 196.7,503.4 C197.1,509.9 199.2,516.0 202.7,519.8 C206.3,523.6 212.0,525.8 218.0,526.2 C224.1,526.6 231.8,524.7 239.2,522.0 C246.6,519.4 254.6,514.9 262.4,510.4 C270.1,505.9 277.9,500.4 285.7,495.1 C293.4,489.9 301.1,484.3 308.9,478.9 C316.7,473.6 324.5,468.2 332.4,463.2 C340.3,458.1 348.2,453.1 356.4,448.6 C364.5,444.1 372.7,439.7 381.1,436.3 C389.5,432.8 398.2,429.7 406.9,427.8 C415.6,425.8 424.6,424.7 433.5,424.7 C442.3,424.7 451.3,425.7 459.9,427.8 C468.5,429.8 477.1,433.1 485.2,437.0 C493.4,440.9 501.3,445.9 508.9,451.3 C516.4,456.7 523.7,462.9 530.6,469.3 C537.5,475.8 544.1,482.8 550.5,489.9 C556.9,497.0 562.9,504.5 568.8,512.0 C574.6,519.5 580.2,527.2 585.6,535.0 C591.1,542.7 596.2,550.6 601.4,558.5 C606.5,566.3 611.4,574.3 616.4,582.2 C621.4,590.2 626.3,598.2 631.2,606.1 C636.0,614.1 640.9,622.1 645.7,630.1 C650.6,638.1 655.3,646.2 660.3,654.1 C665.2,662.1 670.2,670.0 675.3,677.9 C680.5,685.8 685.8,693.6 691.2,701.3 C696.6,709.0 702.2,716.7 707.8,724.4 C713.4,732.0 719.1,739.6 724.8,747.1 C730.6,754.7 736.5,762.2 742.5,769.5 C748.4,776.9 754.4,784.3 760.6,791.5 C766.8,798.7 773.1,805.7 779.6,812.7 C786.0,819.7 792.7,826.5 799.4,833.3 C806.1,840.1 812.9,846.8 819.8,853.3 C826.7,859.9 833.6,866.4 840.8,872.5 C847.9,878.6 855.1,884.6 862.6,890.1 C870.0,895.7 877.6,900.9 885.4,906.0 C893.1,911.1 901.1,915.9 909.1,920.6 C917.1,925.3 925.2,929.9 933.3,934.3 C941.5,938.7 949.7,943.0 958.0,947.0 C966.4,951.1 974.7,955.0 983.2,958.6 C991.7,962.3 1000.2,965.8 1008.8,968.9 C1017.5,972.0 1026.2,975.0 1035.0,977.2 C1043.8,979.5 1052.9,981.5 1061.7,982.4 C1070.5,983.3 1079.5,983.8 1087.7,982.8 C1095.9,981.7 1104.0,979.6 1110.8,976.0 C1117.5,972.3 1123.5,967.0 1128.3,960.8 C1133.1,954.5 1136.6,946.6 1139.4,938.6 C1142.3,930.5 1144.0,921.3 1145.5,912.3 C1147.0,903.3 1147.7,893.8 1148.4,884.4 C1149.1,875.1 1149.5,865.5 1149.7,856.0 C1149.9,846.5 1149.9,836.9 1149.6,827.4 C1149.3,817.9 1148.8,808.3 1148.0,798.9 C1147.2,789.4 1146.1,779.9 1144.9,770.5 C1143.7,761.1 1142.3,751.7 1140.7,742.4 C1139.1,733.0 1137.4,723.7 1135.4,714.6 C1133.4,705.4 1131.2,696.3 1128.7,687.4 C1126.2,678.4 1123.3,669.6 1120.3,660.8 C1117.3,652.0 1114.0,643.4 1110.6,634.8 C1107.1,626.3 1103.4,617.8 1099.4,609.4 C1095.5,601.0 1091.3,592.8 1086.9,584.6 C1082.5,576.4 1077.8,568.3 1073.0,560.3 C1068.2,552.4 1063.2,544.4 1057.9,536.7 C1052.6,528.9 1047.1,521.2 1041.3,513.8 C1035.5,506.3 1029.5,499.0 1023.1,491.9 C1016.7,484.9 1010.0,478.0 1003.1,471.4 C996.2,464.8 989.0,458.4 981.7,452.2 C974.4,446.0 966.9,440.0 959.3,434.2 C951.8,428.4 944.1,422.8 936.3,417.4 C928.6,412.0 920.8,406.7 912.9,401.6 C904.9,396.6 897.0,391.6 888.9,387.1 C880.7,382.6 872.5,378.2 864.1,374.5 C855.6,370.8 847.0,367.4 838.2,364.7 C829.4,361.9 820.3,359.6 811.3,357.9 C802.2,356.2 793.0,354.9 783.9,354.2 C774.7,353.5 765.5,353.4 756.3,353.8 C747.1,354.2 737.9,355.3 728.7,356.6 C719.6,357.8 710.3,359.6 701.2,361.4 C692.0,363.1 682.8,365.2 673.7,367.3 C664.6,369.4 655.5,371.7 646.5,374.0 C637.5,376.3 628.5,378.8 619.4,381.1 C610.4,383.4 601.4,385.8 592.2,387.9 C583.1,390.0 574.0,392.1 564.8,393.7 C555.6,395.4 546.3,397.1 537.1,398.0 C527.8,398.9 518.5,399.6 509.4,399.3 C500.2,399.0 491.0,398.1 482.1,396.3 C473.2,394.5 464.4,391.7 455.9,388.6 C447.3,385.5 439.0,381.4 430.6,377.6 C422.2,373.8 414.0,369.4 405.5,365.9 C397.0,362.4 388.5,358.9 379.8,356.6 C371.1,354.4 361.3,352.9 353.4,352.4 C345.4,351.9 340.0,352.2 332.1,353.7 Z" fill="#fff"/></svg>');
+const GT_BUB=[[5,8,30,-14,.42],[62,4,24,10,.26],[36,24,34,-6,.14],[-6,36,28,15,.26],[62,38,30,-11,.38],[8,60,24,-5,.2],[44,58,22,13,.16]];
+const gtBubbles=()=>`<div class="gw-bub" aria-hidden="true">${GT_BUB.map((b,i)=>`<img alt="" src="${GT_MARK}" style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;--r:${b[3]}deg;opacity:${b[4]};animation-delay:${-i*1.9}s;animation-duration:${8+i%3*2}s">`).join("")}</div>`;
+const gtBack=()=>`<button class="gt-back" data-gt="tab:welcome" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>`;
 function gateRender(){const g=gateEl();document.documentElement.classList.add("gated");const st=GATE.step;let h="";
   const logo=$("logo")?$("logo").src:"";
-  if(st==="up"||st==="in"){const up=st==="up";
-    h=`<div class="gt-in"><img class="gt-logo" alt="milo." src="${logo}"><h1>${up?"Create your account":"Welcome back"}</h1><p class="gt-sub">${up?"Your playlists, friends and settings, on every device.":"Sign in to pick up where you left off."}</p>
-    <div class="gt-seg"><button class="${up?"on":""}" data-gt="tab:up">Sign up</button><button class="${up?"":"on"}" data-gt="tab:in">Sign in</button></div>
+  if(st==="welcome"){
+    h=`<div class="gw">${gtBubbles()}<div class="gw-in"><img class="gw-logo" alt="milo." src="${logo}"><h1>Your music.<br>Your people.</h1><p class="gt-sub">Playlists, friends and chat, on every device.</p>
+    <button class="gt-go gt-pri" data-gt="tab:up">Sign up free</button><button class="gt-go gt-ol" data-gt="tab:in">Log in</button>
+    ${navigator.onLine===false?`<button class="gt-link" data-gt="skip">Continue without an account</button>`:""}
+    <p class="gt-fine">By continuing you agree to the terms, shown on the next screens.</p></div></div>`}
+  else if(st==="up"||st==="in"){const up=st==="up";
+    h=`<div class="gt-in gt-form">${gtBack()}<img class="gt-logo" alt="milo." src="${logo}"><h1>${up?"Create your account":"Welcome back"}</h1><p class="gt-sub">${up?"Your playlists, friends and settings, on every device.":"Sign in to pick up where you left off."}</p>
     ${up?`<input id="gt-u" placeholder="Username (letters, numbers, _)" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false">`:""}
     <input id="gt-e" type="email" placeholder="Email" autocomplete="email" autocapitalize="none">
     <input id="gt-p" type="password" placeholder="Password${up?" (6+ characters)":""}" autocomplete="${up?"new-password":"current-password"}">
     <p class="gt-err" id="gt-err">${esc(GATE.err)}</p>
-    <button class="addb gt-go" data-gt="go" ${GATE.busy?"disabled":""}>${GATE.busy?"Please wait…":up?"Create account":"Sign in"}</button>
-    ${navigator.onLine===false?`<button class="ghost gt-skip" data-gt="skip">Continue without an account</button>`:""}
-    <p class="gt-fine">${up?"Next you will see your profile card and the terms.":"New here? Choose Sign up."}</p></div>`}
+    <button class="gt-go gt-pri" data-gt="go" ${GATE.busy?"disabled":""}>${GATE.busy?"Please wait…":up?"Create account":"Log in"}</button>
+    ${navigator.onLine===false?`<button class="gt-link" data-gt="skip">Continue without an account</button>`:""}
+    <p class="gt-fine">${up?"Next you will see your profile card and the terms.":""}</p>
+    <button class="gt-link" data-gt="tab:${up?"in":"up"}">${up?"Already have an account? Log in":"New here? Sign up free"}</button></div>`}
   else if(st==="claim"){h=`<div class="gt-in"><img class="gt-logo" alt="milo." src="${logo}"><h1>Pick a username</h1><p class="gt-sub">Friends find you by this name. 3 to 20 letters, numbers or _.</p>
     <input id="gt-u" placeholder="Username" maxlength="20" autocapitalize="none" spellcheck="false"><p class="gt-err" id="gt-err">${esc(GATE.err)}</p>
-    <button class="addb gt-go" data-gt="claim" ${GATE.busy?"disabled":""}>Continue</button><button class="ghost gt-skip" data-gt="out">Sign out</button></div>`}
+    <button class="gt-go gt-pri" data-gt="claim" ${GATE.busy?"disabled":""}>Continue</button><button class="gt-go gt-ol" data-gt="out">Sign out</button></div>`}
   else{const u=me(),p=S.prof||{},un=p.username||u.un||"",hrs=Object.values(S.stat||{}).reduce((a,b)=>a+b,0)/3600;
     h=`<div class="gt-in gt-wide"><h1>Your profile</h1><p class="gt-sub">This is how friends see you.</p>
     <div class="pcard"><i class="pbg" style="background:${avCss(u.av)}"></i><i class="pfade"></i><div class="ptop">${avEl(u,"big")}<button class="dm" data-gt="edit">Edit profile</button></div>
@@ -3404,7 +3560,7 @@ function gateRender(){const g=gateEl();document.documentElement.classList.add("g
     <div class="ptr"><div><b>${S.likes.size}</b><span>Liked</span></div><div><b>${S.pls.length}</b><span>Playlists</span></div><div><b>${hrs>=10?Math.round(hrs):hrs.toFixed(1)}</b><span>Hours</span></div></div></div>
     <h3 class="gt-h3">Terms and how your information is used</h3><div class="gt-terms" tabindex="0">${TERMS_HTML}</div>
     <label class="gt-chk"><input type="checkbox" id="gt-ok"><span>I have read and agree to the terms, including how my synced playlists, shared listening and messages are used.</span></label>
-    <p class="gt-err" id="gt-err">${esc(GATE.err)}</p><button class="addb gt-go" id="gt-agree" data-gt="agree" disabled>Agree and continue</button><button class="ghost gt-skip" data-gt="out">Sign out</button></div>`}
+    <p class="gt-err" id="gt-err">${esc(GATE.err)}</p><button class="gt-go gt-pri" id="gt-agree" data-gt="agree" disabled>Agree and continue</button><button class="gt-go gt-ol" data-gt="out">Sign out</button></div>`}
   g.innerHTML=h;const f=g.querySelector("input");if(f&&st!=="terms"&&matchMedia("(hover:hover)").matches)setTimeout(()=>{try{f.focus()}catch(e){}},50)}
 const gtErr=m=>{GATE.err=m;const e=$("gt-err");if(e)e.textContent=m};
 async function gtAuth(){const up=GATE.step==="up",e=($("gt-e").value||"").trim(),p=$("gt-p").value||"",un=up?($("gt-u").value||"").trim().toLowerCase().replace(/^@/,""):"";
@@ -3449,7 +3605,7 @@ const _edSave=edSave;edSave=function(){_edSave();if(!$("merr")||!$("merr").textC
 /* ----- sharing: now playing + playlists, as song DNA only ----- */
 const shNP=()=>!S.prof||S.prof.share_np!==false,shPL=()=>!S.prof||S.prof.share_pl!==false;
 let npSig="",npAt=0,plSig="",plT=0;
-async function npTick(){if(!S.cloud||!S.prof||!termsOk())return;const t=T[S.cur],on=!!(t&&S.playing&&shNP());let np=null;if(on){const d=dnaOf(t);np=d?Object.assign({p:1},d):null}
+async function npTick(){if(!S.cloud||!S.prof||!termsOk())return;const t=T[S.cur],on=!!(t&&S.playing&&shNP());let np=null;if(on){const d=dnaOf(t);np=d?Object.assign({p:1},/^\d{1,3},\d{1,3},\d{1,3}$/.test(String(t.c))?{c:t.c}:{},d):null}
   const sig=np?np.id||np.t+"|"+np.a:"off";if(sig===npSig&&(!np||Date.now()-npAt<90000))return;npSig=sig;npAt=Date.now();
   try{await sb("/rest/v1/shared?on_conflict=user_id",{m:"POST",h:{Prefer:"resolution=merge-duplicates,return=minimal"},b:{user_id:S.cloud.id,np,np_at:new Date().toISOString()}})}catch(e){npSig=""}}
 setInterval(npTick,4000);
@@ -3505,7 +3661,7 @@ function soRender(keep){const el=soEl();if(!SO.on)return;const sc=el.querySelect
 const CHAT='<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>';
 function soBubble(m){const mine=m.sender===soUid();let b="";
   if(m.kind==="song"){let d={};try{d=JSON.parse(m.body)}catch(e){}b=`<div class="so-song in"><i style="background:${d.img?`center/cover url(${esc(d.img)})`:art("201,151,90")}"></i><span><b>${esc(d.t||"Song")}</b><small>${esc(d.a||"")}</small></span>${d.local?"":`<button class="so-ic" data-sc="mplay:${m.id}" aria-label="Play">${PLAY}</button>`}</div>`}
-  else if(m.kind==="img")b=`<img class="so-img" alt="Photo" src="${esc(m.body)}">`;else b=`<span>${esc(m.body)}</span>`;
+  else if(m.kind==="img")b=`<img class="so-img" alt="Photo" src="${esc(m.body)}">`;else if(m.kind==="voice")b=`<span>🎤 Voice message</span>`;else b=`<span>${esc(m.body)}</span>`;
   return `<div class="so-msg ${mine?"me":"they"}"><div class="so-bub">${b}</div><small>${new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</small></div>`}
 const chatId=o=>[soUid(),o].sort().join(":");
 async function soMsgs(){if(!SO.fid)return;const r=await sb("/rest/v1/messages?select=id,sender,rcpt,kind,body,bytes,created_at&chat=eq."+encodeURIComponent(chatId(SO.fid))+"&created_at=gt."+encodeURIComponent(isoAgo(SO_DAY))+"&order=created_at.asc&limit=300");SO.msgs=r||[];
@@ -3540,6 +3696,7 @@ const mcDay=d=>{const n=new Date(),y=new Date(n.getTime()-864e5);return d.toDate
 const mcStamp=iso=>{const d=new Date(iso);return d.toDateString()===new Date().toDateString()?mcTime(d):mcDay(d)};
 function mcPrev(m,noyou){if(!m)return"";const pre=m.sender===soUid()&&!noyou?"You: ":"";
   if(m.kind==="img")return pre+"📷 Photo";
+  if(m.kind==="voice")return pre+"🎤 Voice message";
   if(m.kind==="song"){const x=/"t":"((?:[^"\\]|\\.)*)/.exec(m.pv||m.body||"");let t="Song";try{if(x)t=JSON.parse('"'+x[1]+'"')}catch(e){t=x?x[1]:"Song"}return pre+"♪ "+t}
   return pre+(m.pv!=null?m.pv:String(m.body||"").slice(0,80))}
 const mcTick=m=>m.st==="sending"?'<svg class="tk" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>':m.read_at?'<svg class="tk rd" viewBox="0 0 24 24"><path d="M2 13l4 4 8-9M10 16l1 1 9-10"/></svg>':'<svg class="tk" viewBox="0 0 24 24"><path d="M5 13l4 4 10-10"/></svg>';
@@ -3652,6 +3809,7 @@ function mcBub(m,gs,ge){const mine=m.sender===soUid();let c="";
   if(m.reply_to){const q=SO.msgs.find(x=>x.id===m.reply_to);c+=`<div class="mc-q" data-sc="mjump:${m.reply_to}"><b>${q?(q.sender===soUid()?"You":esc((SO.prof[q.sender]||{}).name||"They")):"Message"}</b><span>${q?esc(mcPrev(q,1)):"Expired"}</span></div>`}
   if(m.kind==="song"){let d={};try{d=JSON.parse(m.body)}catch(e){}c+=`<div class="mc-song"><i style="background:${d.img&&/^https:/.test(d.img)?`center/cover url(${esc(d.img)})`:art("249,156,0")}"></i><span><b>${esc(d.t||"Song")}</b><small>${esc(d.a||"")}</small></span>${d.local?`<em>On their device</em>`:`<button class="mc-play" data-sc="mplay:${m.id}" aria-label="Play">${PLAY}<span>Play</span></button>`}</div>`}
   else if(m.kind==="img")c+=`<img class="so-img" alt="Photo" src="${esc(m.body)}" data-sc="mimg:${m.id}">`;
+  else if(m.kind==="voice")c+=`<span>🎤 Voice message · listen in miloCHAT</span>`;
   else{const big=/^(\p{Extended_Pictographic}|️|‍|\s){1,12}$/u.test(m.body)&&[...m.body.trim()].length<=8;c+=`<span class="${big?"mc-big":""}">${mcLink(m.body)}</span>`}
   const meta=ge||m.st==="fail"?(m.st==="fail"?`<button class="mc-fail" data-sc="mretry:${m.id}">${esc(m.err||"Not sent")} · Retry</button>`:`<small class="mc-m">${mcTime(new Date(m.created_at))}${mine?mcTick(m):""}</small>`):"";
   return `<div class="mc-r ${mine?"me":"they"}${gs?" gs":""}${ge?" ge":""}${m.kind==="img"?" im":""}" data-mid="${m.id}"><div class="mc-b${m.st==="fail"?" bad":""}" data-lp="${m.id}">${c}</div>${mcRxHtml(m)}${meta}</div>`}
@@ -3731,8 +3889,10 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)mcWake()})
 sbPushSoon=function(o){if(!S.cloud||S.cloudApplying)return;S.cloudPend=o;clearTimeout(sbT);sbT=setTimeout(sbPush,600)};
 
 /* ----- profile tab extras and entry points ----- */
+const mcUrl=()=>{try{return NV.cap||!/^https?:/.test(location.protocol)||/claude/.test(location.host)?"https://mylo-beta.vercel.app/milo-chat/":new URL("milo-chat/",location.href).href}catch(e){return"https://mylo-beta.vercel.app/milo-chat/"}};
 function sxHtml(){const p=S.prof||{},on=!!S.cloud;
   return `<div class="row" style="margin-top:6px"><h2>Friends &amp; sharing</h2></div><div class="sxbox">${on?`<button class="sxb" data-sx="friends"><b>Friends</b><small>Find people by username, share playlists, chat</small></button>
+  <a class="sxb" href="${mcUrl()}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit"><b>Open miloCHAT</b><small>The chat app for milo. friends, with covers and song colours</small></a>
   <label class="sxs"><span><b>Share my playlists</b><small>Friends see your playlists as song DNA, never your files</small></span><input type="checkbox" data-sx="shpl" ${p.share_pl!==false?"checked":""}></label>
   <label class="sxs"><span><b>Share what I'm listening to</b><small>Friends can listen along by streaming it</small></span><input type="checkbox" data-sx="shnp" ${p.share_np!==false?"checked":""}></label>`:`<p>Sign up to add friends and keep your playlists on every device.</p><button class="addb" data-sx="signup">Sign up or sign in</button>`}
   ${sxExtra()}<button class="sxb" data-sx="terms"><b>Terms and privacy</b><small>How your information is used</small></button></div>`}
@@ -3751,7 +3911,7 @@ function dnaFromHash(){const m=location.hash.match(/dna=([A-Za-z0-9+/=_-]+)/);if
 dnaFromHash();
 /* ----- start-up ----- */
 (function boot(){const need=gateNeeded();
-  if(need){if(S.cloud&&need!=="up"){profLoad().then(p=>{if(p){cloudAdopt(p);const n=gateNeeded();if(n){GATE.step=n;gateRender()}else soStart()}else{GATE.step="claim";gateRender()}}).catch(()=>{if(S.acct){GATE.step=termsOk()?"":"terms";if(GATE.step)gateRender()}})}else{GATE.step="up";gateRender()}}
+  if(need){if(S.cloud&&need!=="up"){profLoad().then(p=>{if(p){cloudAdopt(p);const n=gateNeeded();if(n){GATE.step=n;gateRender()}else soStart()}else{GATE.step="claim";gateRender()}}).catch(()=>{if(S.acct){GATE.step=termsOk()?"":"terms";if(GATE.step)gateRender()}})}else{GATE.step="welcome";gateRender()}}
   else{profLoad().then(()=>{soStart();setTimeout(()=>{plSig="";plPush()},3000)})}})();
 
 
@@ -3976,7 +4136,8 @@ async function dvFolder(){
     else h=await showOpenFilePicker({multiple:true,types:[{description:"Music",accept:{"audio/*":[".mp3",".m4a",".aac",".flac",".wav",".ogg",".opus",".weba"]}}]});
     for(const x of h)if(!(await Promise.all(DVH.map(y=>y.isSameEntry(x)))).some(Boolean))DVH.push(x);
     DV.need=0;LS.set("milo.dv",1);DV.on=1;await dvSaveH();await dvLoadH()}
-  catch(e){if(!e||e.name!=="AbortError")toast("Couldn't open that")}}
+  catch(e){if(e&&e.name==="AbortError")return;if(/android/i.test(navigator.userAgent))dvAndroidWeb();else toast("Couldn't open that")}}
+function dvAndroidWeb(){modal(`<h3>This needs the milo. Android app</h3><p class="empty">Android does not let a browser or an installed web app read your Music folder, so songs can only be added by copying them in. The milo. Android app (APK) asks for music permission and plays your songs right where they are.</p><button class="mi" data-dv="x">OK</button>`)}
 async function dvPerm(ask){let ok=true;for(const h of DVH){try{let p=await h.queryPermission({mode:"read"});if(p!=="granted"&&ask)p=await h.requestPermission({mode:"read"});if(p!=="granted")ok=false}catch(e){ok=false}}return ok}
 async function dvLoadH(){
   if(DV.busy||!DVH.length)return;DV.busy=1;
@@ -4007,7 +4168,7 @@ async function dvBoot(){
       /* the browser wants one tap to re-allow access: take it from the first tap anywhere */
       addEventListener("pointerup",async function f(){removeEventListener("pointerup",f);if(await dvPerm(true)){DV.need=0;dvLoadH()}},{once:true})}}catch(e){}}
 function dvBar(){
-  if(!DV||!DV.art)return"";const M=dvM(),can=M||dvWebOk();if(!can)return"";
+  if(!DV||!DV.art)return"";const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
   if(!DV.on)return M?'<button class="addb" data-dv="on">Play music on this phone</button>':'<button class="addb" data-dv="dir">'+(window.showDirectoryPicker?"Link a music folder":"Link music files")+'</button>';
   return (DV.need?'<button class="addb" data-dv="re">Reconnect music folder</button>':`<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button>`)+'<button class="ghost" data-dv="off">Turn off</button>'}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-dv]");if(!b)return;const k=b.dataset.dv;
@@ -4017,13 +4178,15 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   else if(k==="re"){if(await dvPerm(true)){DV.need=0;dvLoadH()}}
   else if(k==="off"){DV.on=0;LS.set("milo.dv",0);T.forEach(t=>{if(t.dev){t.hid=true;t.gone=true}});toast("Phone music hidden");render()}
   else if(k==="later"){LS.set("milo.dvAsk",1);closeM()}
+  else if(k==="aw"){dvAndroidWeb()}
   else if(k==="x"){closeM()}});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&DV.on&&dvM()&&Date.now()-DV.last>45000)dvScan(true)});
-/* first launch of the app: offer it once */
-(function(){if(!dvM()||DV.on||LS.get("milo.dvAsk",0))return;let n=0;
-  const t=setInterval(()=>{if(++n>40){clearInterval(t);return}const g=document.getElementById("gate"),m=document.getElementById("mdl");
-    if(g||(m&&!m.hidden))return;clearInterval(t);
-    modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`);LS.set("milo.dvAsk",1)},2000)})();
+/* first launch of the app: ask for the music permission once. It waits for the sign-in screens to finish (it used to give up after 80 seconds and never ask) */
+(function(){if(!dvM()||DV.on||LS.get("milo.dvAsk",0))return;
+  const t=setInterval(()=>{const g=document.getElementById("gate"),m=document.getElementById("mdl");
+    if(g||(m&&!m.hidden)||DV.on||LS.get("milo.dvAsk",0)){if(DV.on||LS.get("milo.dvAsk",0))clearInterval(t);return}
+    clearInterval(t);LS.set("milo.dvAsk",1);
+    modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`)},1500)})();
 setTimeout(dvBoot,1200);
 
 /* ===== v8: playback guard (local music keeps playing through stalls, interruptions, file hiccups and app restarts) ===== */
@@ -4106,6 +4269,7 @@ NE.use=t=>!!(NE.ok&&t&&t.dev&&t.did&&!t.gone&&!t.nne&&!t.radio&&!t.stream&&!t.yt
 NE.cur=()=>{const t=T[S.cur];return t&&NE.act&&t.key===NE.key?t:null};
 NE.item=t=>{const k=t.aid>0?"a"+t.aid:"t"+t.did,ap=DV.artp&&DV.artp.get(k);
   return{key:t.key,did:t.did,title:t.t||"",artist:t.a||"",album:t.al||"",art:ap?(/^(file|content|https?):/.test(ap)?ap:"file://"+ap):""}};
+NE.eq=()=>{if(NE.ok&&NE.act)NE.call("eq",{on:!!S.eqOn,g:(S.eq&&S.eq.g||[]).slice(),f:EQF.slice()})};
 NE.vol=v=>{if(NE.ok)NE.call("volume",{v:v*v})};
 /* looks like an <audio> element to the rest of the app, so the progress bar, seek, speed and ended logic keep working */
 const NA={
@@ -4125,7 +4289,7 @@ function neEngine(i,tog){const t=T[i];
   let p=0;if(PG&&PG.seek&&PG.seek.i===i){p=PG.seek.p||0;PG.seek=null}
   NE.act=true;NE.key=t.key;NE.nk=null;NE.pos=p;NE.dur=t.d||0;NE.at=Date.now();NE.pw=NE.pl=!!S.playing;NE.rate=S.rate||1;
   NE.call("load",Object.assign(NE.item(t),{pos:Math.round(p*1000),play:!!S.playing,rate:NE.rate,vol:Math.pow(S.vol==null?1:S.vol,2)}));
-  setTimeout(preload,400)}
+  NE.eq();setTimeout(preload,400)}
 var _neEng=engine;
 engine=function(i,tog){const t=T[i];if(NE.use(t)){neEngine(i,tog);return}
   if(NE.act){const keep=A===NA;neStop();if(keep)A=DK[S.dk]}
@@ -4137,6 +4301,7 @@ preload=function(){
     if(NE.nk!==k){NE.nk=k;NE.call("next",n?NE.item(n):{})}S.pre=null;return}
   const ni=peekNext();if(ni!=null&&NE.use(T[ni])){S.pre=null;return}
   return _nePre()};
+var _neAE=applyEQ;applyEQ=function(){_neAE.apply(this,arguments);NE.eq()};
 var _neSv=setVol;setVol=function(v){_neSv(v);NE.vol(S.vol)};
 var _neAA=autoAdvance;autoAdvance=function(d){const ni=peekNext();if(NE.act||(ni!=null&&NE.use(T[ni])))return false;return _neAA(d)};
 function neAdvance(k){const t=NE.cur();if(!t)return;const ni=T.findIndex(x=>x.key===k&&!x.gone);if(ni<0){next(true);return}
@@ -4156,6 +4321,50 @@ function neEvent(e){if(!e)return;
 (function(){const P=neP();if(!P)return;
   try{P.addListener("ne",neEvent)}catch(e){}
   P.ready().then(r=>{NE.ok=!!(r&&r.ok);if(NE.ok){NE.vol(S.vol==null?1:S.vol);if(S.cur>=0&&T[S.cur]&&NE.use(T[S.cur])&&!S.playing){/* restored song: re-route to native, paused */engine(S.cur)}}}).catch(()=>{})})();
+/* Mobile now-playing (phone portrait): the "more" menu.
+   The mockup has four round buttons (Like, Queue, Sound, More). Everything else
+   (speed, sleep, + playlist) lives in the More menu. We MOVE the
+   real buttons (ids and handlers stay), and move them back on wide/landscape layouts. */
+(function(){
+  const full=$("full"),menu=$("fMoreP"),btn=$("fMore"),ctl=full.querySelector(".ctl"),ex=full.querySelector(".ex");
+  if(!full||!menu||!btn||!ctl||!ex)return;
+  const mq=matchMedia("(max-width:859px) and (max-aspect-ratio:11/10)");
+  const shf=$("shf"),rep=$("rep"),items=[$("spd"),$("slp"),$("apl")];
+  function shut(){full.classList.remove("mo");btn.setAttribute("aria-expanded","false")}
+  function place(){
+    if(mq.matches){items.forEach(e=>menu.appendChild(e))}
+    else{const lg=ex.querySelector(".exlogo");[$("spd"),$("slp"),$("apl")].forEach(e=>ex.insertBefore(e,lg))}
+    shut();
+  }
+  btn.onclick=e=>{e.stopPropagation();const o=!full.classList.contains("mo");full.classList.toggle("mo",o);btn.setAttribute("aria-expanded",String(o))};
+  full.addEventListener("click",e=>{if(full.classList.contains("mo")&&!e.target.closest("#fMoreP,#fMore"))shut()});
+  menu.addEventListener("click",e=>{if(e.target.closest("#slp,#apl,#spd"))setTimeout(shut,0)});
+  new MutationObserver(()=>{if(!full.classList.contains("open"))shut()}).observe(full,{attributes:true,attributeFilter:["class"]});
+  (mq.addEventListener?mq.addEventListener("change",place):mq.addListener(place));
+  place();
+})();
+/* cards follow the song: hand the cover to the CSS as --cardart.
+   Light path (no blur filter at all): the cover is shrunk once to a 48px bitmap; stretched back up it is already soft.
+   Fallback when the browser won't let us read a web cover: blur the real image, but ONLY on the cards you can see. */
+(function(){
+  function small(t){if(t.cardFor===t.img)return;t.cardFor=t.img;t.cardSm=null;if(!t.img)return;
+    const im=new Image();im.crossOrigin="anonymous";
+    im.onload=()=>{try{const a=document.createElement("canvas");a.width=a.height=96;const x=a.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,96,96);
+      const b=document.createElement("canvas");b.width=b.height=36;const y=b.getContext("2d");y.imageSmoothingQuality="high";try{y.filter="saturate(1.35)"}catch(e){}y.drawImage(a,0,0,36,36);
+      t.cardSm=b.toDataURL("image/png");if(T[S.cur]===t)paint()}catch(e){}};
+    im.src=t.img}
+  function paint(){try{const a=$("app"),t=T[S.cur];if(!a)return;
+    if(!t){a.style.setProperty("--cardart","none");a.classList.remove("cardlive");return}
+    small(t);
+    if(t.cardSm){a.style.setProperty("--cardart",`url(${t.cardSm})`);a.classList.remove("cardlive")}
+    else if(t.img){a.style.setProperty("--cardart",`url("${String(t.img).replace(/"/g,"%22")}")`);a.classList.add("cardlive")}
+    else{a.style.setProperty("--cardart",art(t.c));a.classList.remove("cardlive")}}catch(e){}}
+  const o=glowSet;glowSet=function(t){const r=o.apply(this,arguments);if(T[S.cur]===t)paint();return r};
+  /* only cards on screen get the live-blur fallback */
+  const io=window.IntersectionObserver?new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle("av",e.isIntersecting)),{rootMargin:"60px"}):null;
+  const watch=()=>{if(!io)return;document.querySelectorAll("#view .mcard").forEach(c=>{if(!c._w){c._w=1;io.observe(c)}})};
+  const _r=render;render=function(){const r=_r.apply(this,arguments);watch();return r};
+  watch();paint()})();
 </script>
 </body>
 </html>

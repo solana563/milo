@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const e = await req.json(), r = e.record, o = e.old_record;
     if (e.table === "messages" && e.type === "INSERT") {
       const nm = await who(r.sender);
-      const body = r.kind === "song" ? "Sent you a song" : r.kind === "img" ? "Sent you a photo" : String(r.pv || r.body || "").slice(0, 120);
+      const body = r.kind === "song" ? "Sent you a song" : r.kind === "img" ? "Sent you a photo" : r.kind === "voice" ? "Sent you a voice note" : String(r.pv || r.body || "").slice(0, 120);
       await send(r.rcpt, { title: nm, body, tag: "milo-" + r.sender, act: "chat", chat: r.sender });
     } else if (e.table === "friendships") {
       if (e.type === "INSERT" && r.status === "pending") {

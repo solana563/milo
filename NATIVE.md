@@ -57,7 +57,9 @@ What you get: playback that continues with the screen off or the app swiped away
 controls (next and previous follow milo.'s queue), proper handling of calls and unplugged headphones, and gapless
 changes between phone songs. Songs are opened straight from the phone's media library (nothing is copied).
 
-What stays web-only: equalizer, stereo width and crossfade only apply to songs played through the web player
+The equalizer now works on phone songs too: milo.'s 10 bands are mapped onto the phone's built-in equalizer (phones with fewer bands get the nearest match, and a phone without an equalizer plays flat).
+
+What stays web-only: stereo width, the compressor and crossfade only apply to songs played through the web player
 (streams, radio, online songs, files added to the app). Phone songs play without them for now.
 
 Safety net: if the native player isn't present or errors on a song, milo. falls back to the web player at the same
@@ -67,3 +69,8 @@ How it gets built: `npm run sync` (used by the "Build Android APK" workflow) cop
 `plugin/MiloPlayService.java` into the app, registers the plugin, declares the playback service in the manifest and adds the
 Media3 libraries to `app/build.gradle`. This has been tested against a simulated plugin; **it has not been compiled or run
 on a real phone yet**, so the first APK build is where any compile error would show up.
+
+## Which install can read your music directly?
+Only the **Android app (APK)** built by the GitHub Actions workflow. On first open (after sign-in) it asks for "Music and audio" permission, then plays your songs where they are.
+An installed web app (PWABuilder / browser "Install") cannot do this: Android does not let browsers read the Music folder, so "Add music" has to copy files in. Notification permission is the only prompt a web app can show.
+If the APK does not ask: Settings, Apps, milo., Permissions, Music and audio, Allow; then open milo. > Library > "Play music on this phone".
