@@ -15,6 +15,9 @@ import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
+import android.media.audiofx.Equalizer;
+import androidx.media3.exoplayer.ExoPlayer;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -155,5 +158,42 @@ public class MiloAudioPlugin extends Plugin {
     @PluginMethod public void rate(PluginCall call) { final double v = call.getDouble("v", 1.0); run(() -> { mc.setPlaybackSpeed((float) v); call.resolve(); }); }
     @PluginMethod public void volume(PluginCall call) { final double v = call.getDouble("v", 1.0); run(() -> { mc.setVolume((float) Math.max(0, Math.min(1, v))); call.resolve(); }); }
     @PluginMethod public void stop(PluginCall call) { run(() -> { mc.setPlayWhenReady(false); mc.stop(); mc.clearMediaItems(); call.resolve(); }); }
+    private Equalizer eq;
+    private int eqSession = -1;
+
+    /** eq({on, g:[10 gains in dB], f:[10 centre frequencies]}): maps milo.'s 10 bands onto the phone's equalizer bands. */
+    @PluginMethod
+    public void eq(PluginCall call) {
+        final boolean on = call.getBoolean("on", false);
+        final JSArray g = call.getArray("g");
+        final JSArray f = call.getArray("f");
+        h.post(() -> {
+            try {
+                ExoPlayer p = MiloPlayService.player;
+                if (p == null) { call.resolve(); return; }
+                int sess = p.getAudioSessionId();
+                if (eq == null || sess != eqSession) {
+                    if (eq != null) { try { eq.release(); } catch (Exception ignored) { } }
+                    eq = new Equalizer(0, sess);
+                    eqSession = sess;
+                }
+                eq.setEnabled(on);
+                if (on && g != null && f != null) {
+                    short[] range = eq.getBandLevelRange();
+                    for (short b = 0; b < eq.getNumberOfBands(); b++) {
+                        double hz = eq.getCenterFreq(b) / 1000.0, best = 1e9; int bi = 0;
+                        for (int i = 0; i < f.length(); i++) {
+                            double d = Math.abs(Math.log(hz / f.getDouble(i)));
+                            if (d < best) { best = d; bi = i; }
+                        }
+                        int lvl = (int) Math.round(g.getDouble(bi) * 100);
+                        eq.setBandLevel(b, (short) Math.max(range[0], Math.min(range[1], lvl)));
+                    }
+                }
+                call.resolve();
+            } catch (Exception e) { call.resolve(); } /* devices without an equalizer just play flat */
+        });
+    }
+
     @PluginMethod public void state(PluginCall call) { run(() -> { emitState(); call.resolve(); }); }
 }

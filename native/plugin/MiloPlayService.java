@@ -20,6 +20,8 @@ public class MiloPlayService extends MediaSessionService {
     static volatile Skip skip;
 
     private MediaSession session;
+    /** The raw player, for audio effects (equalizer) in the plugin. Touch it on the main thread only. */
+    static volatile ExoPlayer player;
 
     @Override
     public void onCreate() {
@@ -32,6 +34,7 @@ public class MiloPlayService extends MediaSessionService {
                 .setHandleAudioBecomingNoisy(true) // pauses when headphones are unplugged
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build();
+        MiloPlayService.player = player;
         Player wrapped = new ForwardingPlayer(player) {
             private boolean skipCmd(int c) {
                 return c == COMMAND_SEEK_TO_NEXT || c == COMMAND_SEEK_TO_PREVIOUS
@@ -69,6 +72,7 @@ public class MiloPlayService extends MediaSessionService {
 
     @Override
     public void onDestroy() {
+        player = null;
         if (session != null) {
             session.getPlayer().release();
             session.release();
