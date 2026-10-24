@@ -90,6 +90,16 @@ class PlayerHolder(context: Context) {
         c.play()
     }
 
+    fun playNext(t: Track) = withController { c ->
+        if (c.mediaItemCount == 0) { c.setMediaItems(listOf(item(t))); c.prepare(); c.play() }
+        else c.addMediaItem(c.currentMediaItemIndex + 1, item(t))
+    }
+    fun addToQueue(t: Track) = withController { c ->
+        if (c.mediaItemCount == 0) { c.setMediaItems(listOf(item(t))); c.prepare(); c.play() }
+        else c.addMediaItem(item(t))
+    }
+    fun removeFromQueue(i: Int) = withController { c -> if (i in 0 until c.mediaItemCount) c.removeMediaItem(i) }
+
     fun toggle() = withController { c -> if (c.isPlaying) c.pause() else c.play() }
     fun next() = withController { c -> c.seekToNextMediaItem() }
     fun previous() = withController { c -> if (c.currentPosition > 3000) c.seekTo(0) else c.seekToPreviousMediaItem() }

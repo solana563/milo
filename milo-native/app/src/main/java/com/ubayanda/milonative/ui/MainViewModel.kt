@@ -10,7 +10,11 @@ import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ubayanda.milonative.data.ArtLoader
+import com.ubayanda.milonative.data.LyricsRepo
 import com.ubayanda.milonative.data.MediaRepo
+import com.ubayanda.milonative.data.PlaylistStore
+import com.ubayanda.milonative.model.Lyrics
+import com.ubayanda.milonative.model.Playlist
 import com.ubayanda.milonative.model.Album
 import com.ubayanda.milonative.model.Artist
 import com.ubayanda.milonative.model.Track
@@ -32,6 +36,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = MediaRepo(app)
     val art = ArtLoader(app)
     val player = PlayerHolder(app)
+    private val lyricsRepo = LyricsRepo(app)
+    private val store = PlaylistStore(app)
     private val prefs = app.getSharedPreferences("milo", Context.MODE_PRIVATE)
 
     private val _tracks = MutableStateFlow<List<Track>>(emptyList())
@@ -49,6 +55,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         prefs.getStringSet("favs", emptySet()).orEmpty().mapNotNull { it.toLongOrNull() }.toSet()
     )
     val favs: StateFlow<Set<Long>> = _favs.asStateFlow()
+
+    private val _playlists = MutableStateFlow(store.load())
+    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
+
+    private fun savePlaylists(l: List<Playlist>) { _playlists.value = l; store.save(l) }
+
+    fun createPlaylist(name: String, firstTrackId: Long? = null): String {
+        val id = "p" + System.currentTimeMillis()
+        savePlaylists(_playlists.value + Playlist(id, name.trim().ifEmpty { "New playlist" }, listOfNotNull(firstTrackId)))
+        return id
+    }
+    fun deletePlaylist(id: String) = savePlaylists(_playlists.value.filterNot { it.id == id })
+    fun renamePlaylist(id: String, name: String) = savePlaylists(_playlists.value.map { if (it.id == id) it.copy(name = name.trim().ifEmpty { it.name }) else it })
+    fun addToPlaylist(id: String, trackId: Long) = savePlaylists(_playlists.value.map {
+        if (it.id == id && trackId !in it.trackIds) it.copy(trackIds = it.trackIds + trackId) else it
+    })
+    fun removeFromPlaylist(id: String, trackId: Long) = savePlaylists(_playlists.value.map {
+        if (it.id == id) it.copy(trackIds = it.trackIds.filterNot { x -> x == trackId }) else it
+    })
+
+    suspend fun lyricsFor(t: Track): Lyrics? = lyricsRepo.get(t)
 
     /** RGB (0xAARRGGBB) of the colour the UI leans toward, taken from the playing song's art. */
     private val _accent = MutableStateFlow(0xFF8A8A8A.toInt())

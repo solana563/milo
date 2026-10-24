@@ -32,3 +32,10 @@ data class PlayerUi(
     val queueIndex: Int = 0,
     val sleepLeftMs: Long = 0L,
 )
+
+data class Playlist(val id: String, val name: String, val trackIds: List<Long>)
+
+/** One timed lyric line (synced lyrics). */
+data class LyricLine(val timeMs: Long, val text: String)
+
+data class Lyrics(val synced: List<LyricLine>, val plain: String)

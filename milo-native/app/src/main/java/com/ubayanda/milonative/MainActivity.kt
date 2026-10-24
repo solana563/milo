@@ -43,8 +43,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val accent by vm.accent.collectAsState()
-            MiloTheme(Color(accent)) { Root() }
+            MiloTheme { Root() }
         }
     }
 

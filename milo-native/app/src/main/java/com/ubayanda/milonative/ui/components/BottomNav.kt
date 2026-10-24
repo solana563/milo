@@ -1,52 +1,56 @@
 package com.ubayanda.milonative.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.ui.theme.Milo
 
 enum class Tab(val label: String, val icon: ImageVector) {
-    Home("Home", Icons.Rounded.Home),
-    Library("Library", Icons.Rounded.LibraryMusic),
-    Search("Search", Icons.Rounded.Search),
+    Home("Home", Icons.Outlined.Home),
+    Search("Search", Icons.Outlined.Search),
+    Library("Library", Icons.Outlined.BookmarkBorder),
 }
 
-/** Solid (no blur effect) floating bar: cheap to draw, so screens stay smooth. */
+/** The web milo. pill nav: a dark rounded bar with hairline border, the active tab sits in a raised pill. Solid, no blur. */
 @Composable
-fun BottomNav(current: Tab, accent: Color, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
+fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
+    val bar = RoundedCornerShape(36.dp)
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(26.dp)).background(Color(0xFF111111)).padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
+            .clip(bar).background(Milo.card, bar).border(1.dp, Milo.line, bar).padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
     ) {
         Tab.values().forEach { tab ->
             val on = tab == current
-            Column(
-                Modifier.clip(RoundedCornerShape(16.dp)).clickable { onSelect(tab) }.padding(horizontal = 18.dp, vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            val pill = RoundedCornerShape(28.dp)
+            Box(
+                Modifier.width(76.dp).clip(pill)
+                    .then(if (on) Modifier.background(Brush.verticalGradient(listOf(Color(0xFF3A3530), Color(0xFF26221E))), pill).border(1.dp, Milo.line, pill) else Modifier)
+                    .clickable { onSelect(tab) }.padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(tab.icon, tab.label, tint = if (on) accent else Milo.dim, modifier = Modifier.size(24.dp))
-                Text(tab.label, color = if (on) accent else Milo.dim, fontSize = 11.sp)
+                Icon(tab.icon, tab.label, tint = if (on) Milo.amber else Milo.text, modifier = Modifier.size(26.dp))
             }
         }
     }

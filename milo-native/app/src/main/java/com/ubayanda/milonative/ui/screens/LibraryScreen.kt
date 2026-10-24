@@ -2,6 +2,7 @@ package com.ubayanda.milonative.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,21 +12,33 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -34,11 +47,15 @@ import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.model.Album
 import com.ubayanda.milonative.model.Artist
 import com.ubayanda.milonative.model.PlayerUi
+import com.ubayanda.milonative.model.Playlist
 import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.components.Cover
 import com.ubayanda.milonative.ui.components.EmptyNote
 import com.ubayanda.milonative.ui.components.LetterHeader
+import com.ubayanda.milonative.ui.components.MiloChip
+import com.ubayanda.milonative.ui.components.NameDialog
+import com.ubayanda.milonative.ui.components.ScreenTitle
 import com.ubayanda.milonative.ui.components.TrackRow
 import com.ubayanda.milonative.ui.theme.Milo
 import com.ubayanda.milonative.util.NaturalOrder
@@ -47,25 +64,21 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
-    vm: MainViewModel, tracks: List<Track>, albums: List<Album>, artists: List<Artist>, ui: PlayerUi, accent: Color,
-    section: Int, onSection: (Int) -> Unit, bottomPad: Dp, onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit,
+    vm: MainViewModel, tracks: List<Track>, albums: List<Album>, artists: List<Artist>, playlists: List<Playlist>,
+    likedCount: Int, ui: PlayerUi, section: Int, onSection: (Int) -> Unit, bottomPad: Dp,
+    onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit, onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        Text("Library", color = Milo.text, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 16.dp, top = 18.dp, bottom = 10.dp))
-        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-            listOf("Songs", "Albums", "Artists").forEachIndexed { i, label ->
-                val on = i == section
-                Text(
-                    label, color = if (on) Color.Black else Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clip(RoundedCornerShape(18.dp)).background(if (on) Color.White else Milo.card2)
-                        .clickable { onSection(i) }.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
+    Column(Modifier.fillMaxSize()) {
+        ScreenTitle("Library")
+        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val labels = listOf("Songs", "Albums", "Artists", "Playlists")
+            items(labels.size) { i -> MiloChip(labels[i], i == section) { onSection(i) } }
         }
-        Spacer(Modifier.padding(top = 8.dp))
+        Spacer(Modifier.padding(top = 10.dp))
         when {
+            section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked)
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
-            section == 0 -> SongsList(vm, tracks, ui, accent, bottomPad)
+            section == 0 -> SongsList(vm, tracks, ui, bottomPad)
             section == 1 -> LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
                 items(albums, key = { "al" + it.id + it.title }) { a ->
                     ListRow(vm, a.tracks.first(), a.title, a.artist + " · " + plural(a.tracks.size, "song")) { onOpenAlbum(a) }
@@ -82,44 +95,86 @@ fun LibraryScreen(
 
 @Composable
 private fun ListRow(vm: MainViewModel, lead: Track, title: String, sub: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Cover(vm, lead, 52.dp, 10.dp, px = 120)
-        Spacer(Modifier.width(12.dp))
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Cover(vm, lead, 52.dp, 14.dp, px = 120)
+        Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(sub, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
+@Composable
+private fun IconRow(icon: ImageVector, hot: Boolean, title: String, sub: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(
+                if (hot) Brush.verticalGradient(listOf(Color(0xFFE39000), Color(0xFF6B4300))) else Brush.verticalGradient(listOf(Milo.card2, Milo.card))
+            ),
+            contentAlignment = Alignment.Center,
+        ) { Icon(icon, null, tint = if (hot) Color.White else Milo.text, modifier = Modifier.size(24.dp)) }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(sub, color = Milo.dim, fontSize = 13.sp, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun PlaylistsList(
+    vm: MainViewModel, playlists: List<Playlist>, likedCount: Int, bottomPad: Dp,
+    onOpen: (Playlist) -> Unit, onLiked: () -> Unit,
+) {
+    var creating by remember { mutableStateOf(false) }
+    LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
+        item { IconRow(Icons.Rounded.Add, false, "New playlist", "Make your own mix", { creating = true }) }
+        item { IconRow(Icons.Rounded.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
+        items(playlists, key = { it.id }) { p ->
+            IconRow(Icons.Rounded.QueueMusic, false, p.name, plural(p.trackIds.size, "song")) { onOpen(p) }
+        }
+        if (playlists.isEmpty()) item { EmptyNote("No playlists yet", "Tap New playlist, or use the ⋮ menu on any song and choose Add to playlist.") }
+    }
+    if (creating) {
+        NameDialog("New playlist", "", "Create", { n -> vm.createPlaylist(n); creating = false }, { creating = false })
+    }
+}
+
 /** Songs A to Z with letter headers and a tappable letter rail on the right. */
 @Composable
-private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, accent: Color, bottomPad: Dp) {
+private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bottomPad: Dp) {
     val state: LazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    // flat rows: a header whenever the first letter changes
-    val rows = ArrayList<Any>()
-    val letterIndex = LinkedHashMap<String, Int>()
-    var last = ""
-    for (t in tracks) {
-        val l = NaturalOrder.letter(t.title)
-        if (l != last) { letterIndex[l] = rows.size; rows.add(l); last = l }
-        rows.add(t)
+    val rows = remember(tracks) {
+        val out = ArrayList<Any>()
+        var last = ""
+        for (t in tracks) {
+            val l = NaturalOrder.letter(t.title)
+            if (l != last) { out.add(l); last = l }
+            out.add(t)
+        }
+        out
+    }
+    val letterIndex = remember(rows) {
+        val m = LinkedHashMap<String, Int>()
+        rows.forEachIndexed { i, r -> if (r is String) m[r] = i }
+        m
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = state, contentPadding = PaddingValues(bottom = bottomPad)) {
             itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }) { _, r ->
-                if (r is Track) TrackRow(vm, r, r.id == ui.currentId, accent) { vm.player.playQueue(tracks, tracks.indexOf(r)) }
-                else LetterHeader(r as String, accent)
+                if (r is Track) TrackRow(vm, r, r.id == ui.currentId, Milo.amber) { vm.player.playQueue(tracks, tracks.indexOf(r)) }
+                else LetterHeader(r as String, Milo.amber)
             }
         }
         Column(
             Modifier.align(Alignment.CenterEnd).fillMaxHeight(0.7f).padding(end = 2.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly,
+            verticalArrangement = Arrangement.SpaceEvenly,
         ) {
             letterIndex.keys.forEach { l ->
                 Text(
-                    l, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    l, color = Milo.amber, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { scope.launch { state.scrollToItem(letterIndex[l] ?: 0) } }.padding(horizontal = 6.dp),
                 )
             }

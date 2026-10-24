@@ -13,16 +13,18 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 > authoring environment). The first run may fail on a small mistake. If it does, open the failed run, copy the red
 > error lines and send them over; fixes are quick.
 
-## What's in release 1
+## What's in this version
+- Looks like the web milo.: black header with the logo, rounded panel, amber accent, Figtree font, pill nav, bordered cards.
 - First screen explains and asks for audio access (and notifications on Android 13+). If Android stops asking, a button opens Settings.
-- Whole library scanned in place: songs on the phone, SD card and any USB drive Android has mounted; refreshes itself when you plug one in.
-- Songs A to Z with letter headers and a letter rail; Albums; Artists; Search.
-- Now Playing laid out like your mockup: edge-to-edge art, back chevron, four round buttons (Queue, Like, Speed, More/Sleep timer), big title/artist/album, progress bar, shuffle / previous / play / next / repeat, "Up next" handle. Swipe down or press Back to close.
-- Background playback with notification and lock-screen controls, headset buttons, pauses when headphones unplug.
-- Colour that follows the song's art; cards use a tiny stretched copy of the cover (no blur effect), so it stays smooth.
-- Likes, speed, sleep timer.
+- Whole library read in place from the phone, SD card and USB drives; refreshes itself when you plug one in.
+- Songs A to Z with letter headers and a letter rail; Albums; Artists; Playlists; Search.
+- **Playlists**: create, rename, delete, add any song from its "⋮" menu. **Liked songs** page. Play next / Add to queue / Share on every song.
+- **Now Playing** like your mockup: edge-to-edge art, four round buttons (Queue, Like, Sound, More), progress bar, shuffle / prev / play / next / repeat.
+- **Lyrics**: tap or drag up the handle. Synced lines follow the song and tap-to-seek (from lrclib.net, same as the web app; needs internet the first time per song).
+- **Sound**: speed, 8 equaliser presets, per-band sliders, bass boost and spatial (uses the phone's own audio effects).
+- Sleep timer (More menu), background playback with notification and lock-screen controls.
 
 ## Not yet (later releases)
-Accounts and miloCHAT, lyrics (the handle opens the queue for now), equaliser / sound, casting, sharing, playlists.
+Accounts and miloCHAT, casting, the welcome/sign-in screens.
 
 The web/PWA and TV apps are untouched and keep working.

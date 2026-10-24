@@ -1,6 +1,7 @@
 package com.ubayanda.milonative.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,16 +35,17 @@ import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.theme.Milo
 
 @Composable
-fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, accent: Color, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val soft = rememberSoft(vm, t).value
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
+    val shape = RoundedCornerShape(24.dp)
     Column(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(18.dp)).artBackdrop(soft, 0.5f)
+        modifier.fillMaxWidth().padding(horizontal = 14.dp)
+            .clip(shape).artBackdrop(soft, 0.5f).border(1.dp, Milo.line, shape)
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Cover(vm, t, 44.dp, 10.dp, px = 120)
+            Cover(vm, t, 44.dp, 12.dp, px = 120)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(t.title, color = Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -56,9 +58,9 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, accent: Color, onOpen:
                 Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
             }
         }
-        Box(Modifier.fillMaxWidth().height(2.dp).padding(horizontal = 14.dp)) {
+        Box(Modifier.fillMaxWidth().height(2.dp).padding(horizontal = 16.dp)) {
             Box(Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.2f)))
-            Box(Modifier.fillMaxWidth(frac).height(2.dp).background(accent))
+            Box(Modifier.fillMaxWidth(frac).height(2.dp).background(Milo.amber))
         }
         Spacer(Modifier.height(6.dp))
     }
