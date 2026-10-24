@@ -41,9 +41,9 @@ Your library, the YouTube Music catalogue, live radio and word-by-word karaoke l
 
 <div align="center">
 <img src="docs/a_m_Home.png" width="23%" alt="Home">
-<img src="docs/a_m_Library.png" width="23%" alt="Library">
-<img src="docs/a_m_Profile.png" width="23%" alt="Profile">
-<img src="docs/a_d_Discover.png" width="23%" alt="Discover">
+<img src="docs/library mobile.png" width="23%" alt="Library">
+<img src="docs/profile mobile.png" width="23%" alt="Profile">
+<img src="docs/library.png" width="23%" alt="Discover">
 </div>
 
 ## 📦 What's in the folder
