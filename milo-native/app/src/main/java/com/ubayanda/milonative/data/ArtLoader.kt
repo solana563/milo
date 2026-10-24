@@ -2,6 +2,8 @@ package com.ubayanda.milonative.data
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.LruCache
 import android.util.Size
@@ -9,26 +11,59 @@ import com.ubayanda.milonative.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Loads cover art from MediaStore and keeps a few in memory. Also makes the tiny 36px copy that the cards stretch up into a soft backdrop. */
+/**
+ * Loads cover art and keeps a few in memory. Sizes are cached separately (a tiny row thumbnail must never be
+ * reused for the full-screen cover, that is what made it look pixelated). Big covers come from the picture embedded
+ * in the file when there is one, because Android's own thumbnails are small.
+ */
 class ArtLoader(private val context: Context) {
-    private val big = object : LruCache<Long, Bitmap>(24) {}
+    private val cache = object : LruCache<String, Bitmap>(40) {}
     private val small = object : LruCache<Long, Bitmap>(64) {}
-    private val none = HashSet<Long>()
+    private val none = HashSet<String>()
 
     private fun key(t: Track): Long = if (t.albumId > 0) t.albumId else -t.id
 
+    private fun bucket(px: Int) = when {
+        px <= 160 -> 160
+        px <= 400 -> 400
+        else -> 1000
+    }
+
     /** Cover at roughly [px] pixels, or null when the song has no art. */
     suspend fun cover(t: Track, px: Int = 640): Bitmap? = withContext(Dispatchers.IO) {
-        val k = key(t)
-        big.get(k)?.let { return@withContext it }
+        val b = bucket(px)
+        val k = "${key(t)}:$b"
+        cache.get(k)?.let { return@withContext it }
         if (none.contains(k)) return@withContext null
-        val bmp = try {
-            context.contentResolver.loadThumbnail(Uri.parse(t.uri), Size(px, px), null)
+        var bmp: Bitmap? = null
+        if (b >= 1000) bmp = embedded(t, b)
+        if (bmp == null) {
+            bmp = try {
+                context.contentResolver.loadThumbnail(Uri.parse(t.uri), Size(b, b), null)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        if (bmp == null) none.add(k) else cache.put(k, bmp)
+        bmp
+    }
+
+    /** The picture stored inside the audio file, decoded down to about [target] pixels. */
+    private fun embedded(t: Track, target: Int): Bitmap? {
+        val r = MediaMetadataRetriever()
+        return try {
+            r.setDataSource(context, Uri.parse(t.uri))
+            val bytes = r.embeddedPicture ?: return null
+            val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o)
+            var sample = 1
+            while (o.outWidth / (sample * 2) >= target && o.outHeight / (sample * 2) >= target) sample *= 2
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
         } catch (e: Exception) {
             null
+        } finally {
+            try { r.release() } catch (_: Exception) {}
         }
-        if (bmp == null) none.add(k) else big.put(k, bmp)
-        bmp
     }
 
     /** 36px copy: stretched back up it is already soft, so no blur effect is needed (cheap on the GPU). */

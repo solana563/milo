@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,34 +34,51 @@ import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.theme.Milo
 
+/** Art-tinted glass bar: cover, title, a cream play/pause circle, thin progress line. */
 @Composable
 fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val soft = rememberSoft(vm, t).value
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(32.dp)
     Column(
         modifier.fillMaxWidth().padding(horizontal = 14.dp)
-            .clip(shape).artBackdrop(soft, 0.5f).border(1.dp, Milo.line, shape)
+            .clip(shape).artBackdrop(soft, 0.55f).border(1.dp, Milo.line, shape)
             .clickable(onClick = onOpen)
     ) {
-        Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Cover(vm, t, 44.dp, 12.dp, px = 120)
-            Spacer(Modifier.width(10.dp))
+        Row(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Cover(vm, t, 58.dp, 16.dp, px = 160)
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(t.title, color = Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(t.artist, color = Color(0xFFD0D0D0), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(t.title, color = Milo.text, fontSize = 19.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(t.artist, color = Color(0xFFD6D0C4), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconButton(onClick = { vm.player.toggle() }) {
-                Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Milo.text, modifier = Modifier.size(30.dp))
-            }
-            IconButton(onClick = { vm.player.next() }) {
-                Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier.size(56.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(30.dp))
             }
         }
-        Box(Modifier.fillMaxWidth().height(2.dp).padding(horizontal = 16.dp)) {
-            Box(Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.2f)))
-            Box(Modifier.fillMaxWidth(frac).height(2.dp).background(Milo.amber))
+        Box(Modifier.fillMaxWidth().height(3.dp).padding(horizontal = 18.dp)) {
+            Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)))
+            Box(Modifier.fillMaxWidth(frac).height(3.dp).clip(CircleShape).background(Milo.cream))
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+/** The small "Now playing" button that floats above the mini player on screens without the player card. */
+@Composable
+fun NowPlayingPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(30.dp)
+    Row(
+        modifier.clip(shape).background(Milo.card.copy(alpha = 0.97f), shape).border(1.dp, Milo.line, shape)
+            .clickable(onClick = onClick).padding(horizontal = 22.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.KeyboardArrowDown, null, tint = Milo.text, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(10.dp))
+        Text("Now playing", color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }
 }

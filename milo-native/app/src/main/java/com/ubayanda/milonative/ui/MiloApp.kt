@@ -19,6 +19,21 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.layout.fillMaxHeight
+import com.ubayanda.milonative.ui.theme.TintState
+import com.ubayanda.milonative.ui.components.NowPlayingPill
+import com.ubayanda.milonative.util.ColorMath
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.IntSize
+import com.ubayanda.milonative.ui.components.rememberSoft
+import kotlin.math.roundToInt
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,6 +62,7 @@ import com.ubayanda.milonative.ui.screens.HomeScreen
 import com.ubayanda.milonative.ui.screens.LibraryScreen
 import com.ubayanda.milonative.ui.screens.NowPlayingScreen
 import com.ubayanda.milonative.ui.screens.SearchScreen
+import com.ubayanda.milonative.ui.screens.ProfileScreen
 import com.ubayanda.milonative.ui.theme.Milo
 import androidx.compose.runtime.CompositionLocalProvider
 
@@ -67,6 +83,27 @@ fun MiloApp(vm: MainViewModel) {
     val ui by vm.player.state.collectAsState()
     val favs by vm.favs.collectAsState()
     val playlists by vm.playlists.collectAsState()
+    val acct by vm.account.collectAsState()
+    val tintInt by vm.tint.collectAsState()
+
+    // the whole app takes the playing song's colour, like the web milo.
+    val neutral = tintInt == 0
+    val hsl = if (neutral) doubleArrayOf(0.09, 0.05, 0.0) else ColorMath.rgbToHsl((tintInt shr 16) and 255, (tintInt shr 8) and 255, tintInt and 255)
+    fun hue(l: Double, sMul: Double): Color {
+        val sat = if (neutral || hsl[1] < 0.08) 0.04 else (hsl[1].coerceAtMost(0.7) * sMul)
+        val rgb = ColorMath.hslToRgb(hsl[0], sat, l)
+        return Color(rgb[0], rgb[1], rgb[2])
+    }
+    val panelT = if (neutral) Color(0xFF0B0A09) else hue(0.17, 0.95)
+    val panel by animateColorAsState(panelT, tween(300), label = "panel")
+    val white = Color.White
+    SideEffect {
+        TintState.panel = panel
+        TintState.card = lerp(panel, white, 0.075f)
+        TintState.card2 = lerp(panel, white, 0.13f)
+        TintState.line = lerp(panel, white, 0.2f)
+        TintState.art = !neutral
+    }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var section by rememberSaveable { mutableIntStateOf(0) }
@@ -78,7 +115,9 @@ fun MiloApp(vm: MainViewModel) {
     val byId = remember(tracks) { tracks.associateBy { it.id } }
     val current = byId[ui.currentId]
     val likedTracks = remember(tracks, favs) { tracks.filter { it.id in favs } }
-    val bottomPad = if (current != null) 190.dp else 110.dp
+    val bottomPad = if (current != null) 270.dp else 120.dp
+    val hours = remember(tracks) { (tracks.sumOf { it.durationMs } / 3_600_000L).toInt() }
+    val currentSoft = rememberSoft(vm, current).value
 
     val actions = remember {
         TrackActions(
@@ -98,14 +137,24 @@ fun MiloApp(vm: MainViewModel) {
 
     CompositionLocalProvider(LocalActions provides actions) {
         Box(Modifier.fillMaxSize().background(Milo.bg)) {
+            // the song's art, stretched soft, fills the screen behind the header and panel
+            if (currentSoft != null && !neutral) {
+                val img = currentSoft.asImageBitmap()
+                Box(
+                    Modifier.fillMaxSize().drawBehind {
+                        drawImage(img, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.High)
+                        drawRect(Color.Black.copy(alpha = 0.18f))
+                    }
+                )
+            }
             Column(Modifier.fillMaxSize()) {
                 // header: the milo. logo, centred, like the web app
-                Box(Modifier.fillMaxWidth().statusBarsPadding().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-                    Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(40.dp))
+                Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
+                    Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(46.dp))
                 }
-                val panelShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                val panelShape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
                 Box(
-                    Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
+                    Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel.copy(alpha = 0.96f), panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
@@ -129,23 +178,31 @@ fun MiloApp(vm: MainViewModel) {
                         }
                         null -> when (tab) {
                             Tab.Home -> HomeScreen(
-                                vm, tracks, albums, ui, scanning, bottomPad, likedTracks.size, playlists.size,
+                                vm, tracks, albums, artists, playlists, byId, ui, scanning, bottomPad,
+                                likedTracks.size, current != null && favs.contains(current.id), acct.username,
+                                (acct.username.firstOrNull() ?: 'G').uppercaseChar().toString(),
+                                onProfile = { tab = Tab.Profile },
                                 onSearch = { tab = Tab.Search },
                                 onOpenAlbum = { detail = Detail.AlbumD(it) },
+                                onOpenArtist = { detail = Detail.ArtistD(it) },
+                                onOpenPlaylist = { detail = Detail.PlaylistD(it.id) },
                                 onLiked = { detail = Detail.Liked },
-                                onPlaylists = { section = 3; tab = Tab.Library },
                             )
                             Tab.Library -> LibraryScreen(
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
                             )
-                            Tab.Search -> SearchScreen(vm, tracks, ui, bottomPad)
+                            Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) })
+                            Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
                     }
                 }
             }
 
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) {
+                if (current != null && tab != Tab.Home && detail == null) {
+                    NowPlayingPill({ playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
+                }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
                 BottomNav(tab, onSelect = { tab = it; detail = null })
             }

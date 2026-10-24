@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.ubayanda.milonative.ui.components.LeavesBackground
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,35 +42,11 @@ import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.R
 import com.ubayanda.milonative.ui.theme.Milo
 
-private class Leaf(val x: Float, val y: Float, val w: Int, val rot: Float, val a: Float, val phase: Float)
-
-private val leaves = listOf(
-    Leaf(0.06f, 0.05f, 120, -12f, 0.42f, 0f),
-    Leaf(0.70f, 0.02f, 90, 18f, 0.28f, 0.4f),
-    Leaf(0.38f, 0.17f, 130, 8f, 0.18f, 0.7f),
-    Leaf(-0.04f, 0.27f, 100, 24f, 0.30f, 0.2f),
-    Leaf(0.62f, 0.25f, 120, -6f, 0.34f, 0.9f),
-    Leaf(0.14f, 0.40f, 90, -18f, 0.20f, 0.5f),
-)
-
 /** First screen, in the same look as the web milo. welcome: drifting leaves, the logo, then one clear button. */
 @Composable
 fun PermissionScreen(blockedForever: Boolean, onAllow: () -> Unit, onOpenSettings: () -> Unit) {
-    val t = rememberInfiniteTransition(label = "leaves")
-    val drift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Reverse), label = "d")
-
     Box(Modifier.fillMaxSize().background(Color(0xFF050505))) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val w = maxWidth
-            val h = maxHeight
-            leaves.forEach { l ->
-                Image(
-                    painterResource(R.drawable.ic_leaf), null,
-                    Modifier.offset(x = w * l.x, y = h * l.y + (drift - 0.5f).times(24f * (0.6f + l.phase)).dp)
-                        .width(l.w.dp).rotate(l.rot + (drift - 0.5f) * 8f).alpha(l.a),
-                )
-            }
-        }
+        LeavesBackground(Modifier.fillMaxSize())
         Column(
             Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 28.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally,

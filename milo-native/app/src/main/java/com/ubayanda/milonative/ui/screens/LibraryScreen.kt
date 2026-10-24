@@ -69,10 +69,11 @@ fun LibraryScreen(
     onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit, onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Library")
-        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val labels = listOf("Songs", "Albums", "Artists", "Playlists")
-            items(labels.size) { i -> MiloChip(labels[i], i == section) { onSection(i) } }
+        ScreenTitle("Your library")
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Songs", "Albums", "Artists", "Playlists").forEachIndexed { i, label ->
+                MiloChip(label, i == section, Modifier.weight(1f)) { onSection(i) }
+            }
         }
         Spacer(Modifier.padding(top = 10.dp))
         when {
@@ -96,7 +97,7 @@ fun LibraryScreen(
 @Composable
 private fun ListRow(vm: MainViewModel, lead: Track, title: String, sub: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Cover(vm, lead, 52.dp, 14.dp, px = 120)
+        Cover(vm, lead, 54.dp, 14.dp, px = 160)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)

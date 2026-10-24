@@ -24,7 +24,9 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 - **Sound**: speed, 8 equaliser presets, per-band sliders, bass boost and spatial (uses the phone's own audio effects).
 - Sleep timer (More menu), background playback with notification and lock-screen controls.
 
+- **Accounts**: welcome screen (drifting leaves), sign up, log in, pick a username, terms, Profile tab and sign out. Same Supabase account as the web milo., so one login works in both. "Continue without an account" works too.
+
 ## Not yet (later releases)
-Accounts and miloCHAT, casting, the welcome/sign-in screens.
+Friends and miloCHAT, cloud sync of native playlists, casting.
 
 The web/PWA and TV apps are untouched and keep working.

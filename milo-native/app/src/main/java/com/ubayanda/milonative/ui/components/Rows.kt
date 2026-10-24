@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -58,19 +58,19 @@ fun TrackRow(
             Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Cover(vm, t, 48.dp, 12.dp, px = 120)
+            Cover(vm, t, 54.dp, 14.dp, px = 160)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    t.title, color = if (current) Milo.amber else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                    t.title, color = if (current) Milo.amber else Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
-                Text(t.artist, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(t.artist, color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Text(fmtTime(t.durationMs), color = Milo.dim, fontSize = 12.sp)
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Icons.Rounded.MoreVert, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Rounded.MoreHoriz, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Play next") }, onClick = { menu = false; vm.player.playNext(t) })
@@ -82,7 +82,6 @@ fun TrackRow(
                 }
             }
         }
-        Box(Modifier.fillMaxWidth().padding(start = 78.dp, end = 16.dp).height(1.dp).background(Milo.line))
     }
 }
 
@@ -97,8 +96,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun ScreenTitle(text: String) {
     Text(
-        text, color = Milo.text, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold,
-        modifier = Modifier.padding(start = 20.dp, top = 22.dp, bottom = 12.dp),
+        text, color = Milo.text, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 40.sp,
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 14.dp),
     )
 }
 
@@ -123,12 +122,13 @@ fun EmptyNote(title: String, body: String) {
 
 /** Amber when selected, dark pill with a hairline border otherwise: the web milo. chip. */
 @Composable
-fun MiloChip(label: String, on: Boolean, onClick: () -> Unit) {
+fun MiloChip(label: String, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Text(
         label, color = if (on) Color.Black else Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
+        textAlign = TextAlign.Center,
+        modifier = modifier.clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
             .border(1.dp, if (on) Milo.amber else Milo.line, shape).clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     )
 }

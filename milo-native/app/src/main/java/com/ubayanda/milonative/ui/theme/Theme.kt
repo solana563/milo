@@ -4,6 +4,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -12,14 +15,24 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import com.ubayanda.milonative.R
 
-/** The same palette as the web milo. (dark theme): near-black, warm cream text, amber accent. */
+/** Colours that follow the playing song (like the web milo.). MiloApp animates these; screens just read Milo.panel etc. */
+object TintState {
+    var panel by mutableStateOf(Color(0xFF0B0A09))
+    var card by mutableStateOf(Color(0xFF141210))
+    var card2 by mutableStateOf(Color(0xFF1D1A17))
+    var line by mutableStateOf(Color(0xFF2B2723))
+    var art by mutableStateOf(false)
+}
+
+/** The same palette as the web milo.: near-black, warm cream text, amber accent; panels, cards and lines pick up the song's colour. */
 object Milo {
     val bg = Color(0xFF000000)
-    val panel = Color(0xFF0B0A09)
-    val card = Color(0xFF141210)
-    val card2 = Color(0xFF1D1A17)
-    val line = Color(0xFF2B2723)
+    val panel: Color get() = TintState.panel
+    val card: Color get() = TintState.card
+    val card2: Color get() = TintState.card2
+    val line: Color get() = TintState.line
     val text = Color(0xFFF3EDE0)
+    val cream = Color(0xFFF4EFE4)
     val dim = Color(0xFFA8A194)
     val amber = Color(0xFFF99C00)
 }

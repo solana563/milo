@@ -28,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.MiloApp
+import com.ubayanda.milonative.ui.screens.GateScreen
 import com.ubayanda.milonative.ui.screens.PermissionScreen
 import com.ubayanda.milonative.ui.theme.MiloTheme
 
@@ -66,7 +67,10 @@ class MainActivity : ComponentActivity() {
         // coming back from Settings: pick up a permission granted there
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (hasAudio()) granted = true }
 
-        if (granted) {
+        val acct by vm.account.collectAsState()
+        if (acct.step.isNotEmpty()) {
+            GateScreen(vm, acct)
+        } else if (granted) {
             LaunchedEffect(Unit) { vm.start() }
             MiloApp(vm)
         } else {
