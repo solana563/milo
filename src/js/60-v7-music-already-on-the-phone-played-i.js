@@ -77,7 +77,7 @@ async function dvBoot(){
       /* the browser wants one tap to re-allow access: take it from the first tap anywhere */
       addEventListener("pointerup",async function f(){removeEventListener("pointerup",f);if(await dvPerm(true)){DV.need=0;dvLoadH()}},{once:true})}}catch(e){}}
 function dvBar(){
-  if(!DV||!DV.art)return"";const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
+  if(!DV||!DV.art)return"";if(window.usbBar&&S.tv&&!dvM())return usbBar();const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
   if(!DV.on)return M?'<button class="addb" data-dv="on">Play music on this phone</button>':'<button class="addb" data-dv="dir">'+(window.showDirectoryPicker?"Link a music folder":"Link music files")+'</button>';
   return (DV.need?'<button class="addb" data-dv="re">Reconnect music folder</button>':`<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button>`)+'<button class="ghost" data-dv="off">Turn off</button>'}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-dv]");if(!b)return;const k=b.dataset.dv;

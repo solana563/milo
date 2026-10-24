@@ -78,6 +78,7 @@
   "js/63-v9-native-audio-engine-android-app-plays-s.js",
   "js/64-mobile-now-playing-more-menu.js",
   "js/65-song-art-cards.js",
+  "js/66-tv-play-from-usb.js",
   "foot.html"
  ]
 }
