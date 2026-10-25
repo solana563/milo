@@ -90,7 +90,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val un = username.trim().lowercase().removePrefix("@")
         val e = email.trim()
         if (!UN_RE.matches(un)) return setAcct { it.copy(err = "Username: 3 to 20 letters, numbers or _.") }
-        if (!Regex("^\S+@\S+\.\S+$").matches(e)) return setAcct { it.copy(err = "Enter a valid email address.") }
+        if (!Regex("""^\S+@\S+\.\S+$""").matches(e)) return setAcct { it.copy(err = "Enter a valid email address.") }
         if (password.length < 6) return setAcct { it.copy(err = "Use a password with at least 6 characters.") }
         setAcct { it.copy(busy = true, err = "") }
         viewModelScope.launch {
@@ -110,7 +110,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signIn(email: String, password: String) {
         val e = email.trim()
-        if (!Regex("^\S+@\S+\.\S+$").matches(e)) return setAcct { it.copy(err = "Enter a valid email address.") }
+        if (!Regex("""^\S+@\S+\.\S+$""").matches(e)) return setAcct { it.copy(err = "Enter a valid email address.") }
         if (password.length < 6) return setAcct { it.copy(err = "Use a password with at least 6 characters.") }
         setAcct { it.copy(busy = true, err = "") }
         viewModelScope.launch {
