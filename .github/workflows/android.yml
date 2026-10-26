@@ -1,0 +1,40 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    paths: ["native/**", "index.html", "src/**", "manifest.webmanifest", "icons/**", "splash/**"]
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      FB_APP: ${{ secrets.FIREBASE_APP_ID }}
+    defaults: { run: { working-directory: native } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: index.html matches src/
+        run: node ../build.mjs --check
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm install
+      - run: npm run prepare:web
+      - run: npx cap add android
+      - run: npm run assets
+      - run: npm run sync
+      - run: npm run build:debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: milo-debug-apk
+          path: native/android/app/build/outputs/apk/debug/*.apk
+      # Optional: send the APK to testers through Firebase App Distribution.
+      # Runs only when the repo secrets FIREBASE_APP_ID and FIREBASE_SERVICE_ACCOUNT are set (see FIREBASE-DISTRIBUTION.md).
+      - name: Firebase App Distribution
+        if: ${{ env.FB_APP != '' }}
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: native/android/app/build/outputs/apk/debug/app-debug.apk
+          releaseNotes: "milo. debug build"
