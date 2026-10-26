@@ -64,7 +64,6 @@ class PlayerHolder(context: Context) {
                 .setTitle(t.title)
                 .setArtist(t.artist)
                 .setAlbumTitle(t.album)
-                .setArtworkUri(Uri.parse("content://media/external/audio/albumart/${t.albumId}"))
                 .build()
         )
         .build()

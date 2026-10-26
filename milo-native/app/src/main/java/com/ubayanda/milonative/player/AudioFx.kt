@@ -44,10 +44,25 @@ object AudioFx {
         "Acoustic" to { x: Float -> if (x < 0.3f) 3f else if (x > 0.75f) 2f else 0f },
     )
 
+    private var ctx: Context? = null
+    private var sessionId = 0
+
+    /**
+     * Remember the player's audio session. The effects themselves are only created once the person
+     * opens the Sound sheet (or already used it before), because on some phones the audio-effect
+     * drivers can crash the whole app while music is starting.
+     */
     fun attach(context: Context, sessionId: Int) {
         release()
-        if (sessionId == 0) return
+        ctx = context.applicationContext
+        this.sessionId = sessionId
         prefs = context.getSharedPreferences("milo_fx", Context.MODE_PRIVATE)
+        if (prefs?.getBoolean("used", false) == true) ensure()
+    }
+
+    /** Create the effects if they do not exist yet. Called when the Sound sheet opens. */
+    fun ensure() {
+        if (eq != null || sessionId == 0 || ctx == null) return
         try {
             val e = Equalizer(0, sessionId)
             e.enabled = true
@@ -86,7 +101,7 @@ object AudioFx {
 
     private fun persist() {
         val s = _state.value
-        prefs?.edit()?.putString("levels", s.levelsDb.joinToString(","))?.putInt("bass", s.bass)?.putInt("spatial", s.spatial)?.putString("preset", s.preset)?.apply()
+        prefs?.edit()?.putBoolean("used", true)?.putString("levels", s.levelsDb.joinToString(","))?.putInt("bass", s.bass)?.putInt("spatial", s.spatial)?.putString("preset", s.preset)?.apply()
     }
 
     fun setBand(i: Int, db: Float) {

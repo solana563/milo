@@ -252,6 +252,7 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
 @Composable
 private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
     val fx by AudioFx.state.collectAsState()
+    LaunchedEffect(Unit) { AudioFx.ensure() }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
         Text("Sound", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(20.dp))
 
