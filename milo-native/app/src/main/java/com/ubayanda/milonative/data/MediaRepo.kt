@@ -63,12 +63,6 @@ class MediaRepo(private val context: Context) {
         } catch (e: SecurityException) {
             // permission was revoked while we were reading: report an empty library, the UI asks again
             return@withContext emptyList()
-        } catch (_: IllegalArgumentException) {
-            // Some devices expose partial or inconsistent MediaStore columns; a non-crashing empty result is better than a crash.
-            return@withContext emptyList()
-        } catch (_: RuntimeException) {
-            // A bad cursor or transient device-level issue should not kill the app.
-            return@withContext emptyList()
         }
         out.sortedWith(trackByTitle)
     }

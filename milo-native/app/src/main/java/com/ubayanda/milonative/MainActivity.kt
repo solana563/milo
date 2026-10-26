@@ -43,8 +43,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val crashFile = java.io.File(filesDir, "crash.txt")
         setContent {
-            MiloTheme { Root() }
+            MiloTheme {
+                var trace by remember { mutableStateOf(if (crashFile.exists()) crashFile.readText() else null) }
+                val t = trace
+                if (t != null) CrashScreen(t) { crashFile.delete(); trace = null } else Root()
+            }
         }
     }
 
