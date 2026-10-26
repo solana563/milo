@@ -19,7 +19,8 @@ import kotlinx.coroutines.withContext
 class ArtLoader(private val context: Context) {
     private val cache = object : LruCache<String, Bitmap>(40) {}
     private val small = object : LruCache<Long, Bitmap>(64) {}
-    private val none = HashSet<String>()
+    /** keys that had no art, with the time we gave up; retried later so one hiccup never hides a cover for good */
+    private val none = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     private fun key(t: Track): Long = if (t.albumId > 0) t.albumId else -t.id
 
@@ -34,18 +35,28 @@ class ArtLoader(private val context: Context) {
         val b = bucket(px)
         val k = "${key(t)}:$b"
         cache.get(k)?.let { return@withContext it }
-        if (none.contains(k)) return@withContext null
+        val missed = none[k]
+        if (missed != null && System.currentTimeMillis() - missed < 30_000) return@withContext null
         var bmp: Bitmap? = null
         if (b >= 1000) bmp = embedded(t, b)
-        if (bmp == null) {
-            bmp = try {
-                context.contentResolver.loadThumbnail(Uri.parse(t.uri), Size(b, b), null)
-            } catch (e: Exception) {
-                null
-            }
+        if (bmp == null) bmp = thumb(Uri.parse(t.uri), b)
+        // the album's own cover (folder art such as cover.jpg is registered on the album, not the song)
+        if (bmp == null && t.albumId > 0) {
+            bmp = thumb(android.content.ContentUris.withAppendedId(android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, t.albumId), b)
         }
-        if (bmp == null) none.add(k) else cache.put(k, bmp)
+        // last try: the picture inside the file, whatever the size
+        if (bmp == null && b < 1000) bmp = embedded(t, b)
+        if (bmp == null) none[k] = System.currentTimeMillis() else {
+            none.remove(k)
+            cache.put(k, bmp)
+        }
         bmp
+    }
+
+    private fun thumb(uri: Uri, b: Int): Bitmap? = try {
+        context.contentResolver.loadThumbnail(uri, Size(b, b), null)
+    } catch (e: Exception) {
+        null
     }
 
     /** The picture stored inside the audio file, decoded down to about [target] pixels. */
