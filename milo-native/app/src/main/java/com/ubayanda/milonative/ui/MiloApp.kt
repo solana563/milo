@@ -94,14 +94,15 @@ fun MiloApp(vm: MainViewModel) {
         val rgb = ColorMath.hslToRgb(hsl[0], sat, l)
         return Color(rgb[0], rgb[1], rgb[2])
     }
-    val panelT = if (neutral) Color(0xFF0B0A09) else hue(0.17, 0.95)
+    // near-black like the web panel; colourful art lifts it a little, grey/dark art keeps it almost black
+    val panelT = if (neutral) Color(0xFF0B0A09) else if (hsl[1] < 0.2) hue(0.065, 1.0) else hue(0.105, 0.9)
     val panel by animateColorAsState(panelT, tween(300), label = "panel")
     val white = Color.White
     SideEffect {
         TintState.panel = panel
-        TintState.card = lerp(panel, white, 0.075f)
-        TintState.card2 = lerp(panel, white, 0.13f)
-        TintState.line = lerp(panel, white, 0.2f)
+        TintState.card = lerp(panel, white, 0.06f)
+        TintState.card2 = lerp(panel, white, 0.11f)
+        TintState.line = lerp(panel, white, 0.17f)
         TintState.art = !neutral
     }
 
@@ -150,11 +151,11 @@ fun MiloApp(vm: MainViewModel) {
             Column(Modifier.fillMaxSize()) {
                 // header: the milo. logo, centred, like the web app
                 Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
-                    Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(46.dp))
+                    Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(42.dp))
                 }
                 val panelShape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
                 Box(
-                    Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel.copy(alpha = 0.96f), panelShape).border(1.dp, Milo.line, panelShape)
+                    Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel.copy(alpha = 0.92f), panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })

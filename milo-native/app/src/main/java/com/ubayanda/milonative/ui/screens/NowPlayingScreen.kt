@@ -404,7 +404,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
 @Composable
 private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, onClick: () -> Unit) {
     Box(
-        modifier.size(52.dp).clip(CircleShape).background(Milo.card.copy(alpha = 0.78f)).clickable(onClick = onClick),
+        modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.32f)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp)) }
 }

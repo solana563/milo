@@ -70,7 +70,7 @@ fun LibraryScreen(
 ) {
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Your library")
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Songs", "Albums", "Artists", "Playlists").forEachIndexed { i, label ->
                 MiloChip(label, i == section, Modifier.weight(1f)) { onSection(i) }
             }
@@ -163,7 +163,7 @@ private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bott
         m
     }
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(state = state, contentPadding = PaddingValues(bottom = bottomPad)) {
+        LazyColumn(state = state, contentPadding = PaddingValues(end = 18.dp, bottom = bottomPad)) {
             itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }) { _, r ->
                 if (r is Track) TrackRow(vm, r, r.id == ui.currentId, Milo.amber) { vm.player.playQueue(tracks, tracks.indexOf(r)) }
                 else LetterHeader(r as String, Milo.amber)

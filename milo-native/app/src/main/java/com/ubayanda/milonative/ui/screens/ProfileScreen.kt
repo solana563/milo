@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,16 +37,20 @@ import com.ubayanda.milonative.ui.theme.Milo
 fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playlists: Int, hours: Int, bottomPad: Dp) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPad)) {
         ScreenTitle("Profile")
-        val shape = RoundedCornerShape(34.dp)
+        val shape = RoundedCornerShape(30.dp)
+        // the card takes the playing song's colour, fading to dark, like the web profile
+        val tint = vm.tint.collectAsState().value
+        val base = if (tint == 0) Milo.card2 else lerp(Color(tint), Color.Black, 0.45f)
+        val cardBrush = Brush.linearGradient(listOf(base, lerp(base, Color.Black, 0.55f), Milo.card))
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(26.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(cardBrush, shape).border(1.dp, Milo.line, shape).padding(22.dp),
         ) {
             Box(
-                Modifier.size(78.dp).clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))),
+                Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))),
                 contentAlignment = Alignment.Center,
-            ) { Text((a.username.firstOrNull() ?: 'G').uppercaseChar().toString(), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.SemiBold) }
-            Spacer(Modifier.height(26.dp))
-            Text(if (a.signedIn) a.username else "Guest", color = Milo.text, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 42.sp)
+            ) { Text((a.username.firstOrNull() ?: 'G').uppercaseChar().toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.SemiBold) }
+            Spacer(Modifier.height(22.dp))
+            Text(if (a.signedIn) a.username else "Guest", color = Milo.text, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 38.sp)
             Text(
                 if (a.signedIn) "@" + a.username + " · Signed in" else "Not signed in",
                 color = Milo.dim, fontSize = 16.sp, modifier = Modifier.padding(top = 4.dp),
@@ -75,7 +81,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
 @Composable
 private fun Stat(n: Int, label: String) {
     Column {
-        Text(n.toString(), color = Milo.text, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold)
+        Text(n.toString(), color = Milo.text, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
         Text(label, color = Milo.dim, fontSize = 16.sp)
     }
 }
