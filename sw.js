@@ -1,4 +1,4 @@
-const V="milo-v109";
+const V="milo-v110";
 const CORE=["./","index.html","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/maskable-512.png","icons/maskable-192.png","icons/apple-touch-icon.png","icons/favicon-32.png","icons/icon.svg","splash/splash.jpg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==V&&n!=="milo-share").map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
