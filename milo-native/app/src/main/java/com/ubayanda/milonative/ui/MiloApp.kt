@@ -175,7 +175,7 @@ fun MiloApp(vm: MainViewModel) {
                 val panelShape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)
                 val ownCards = detail == null && tab == Tab.Home
                 Box(
-                    if (ownCards) Modifier.weight(1f).fillMaxWidth()
+                    if (ownCards) Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.bg, panelShape)
                     else Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
                     when (val d = detail) {

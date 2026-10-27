@@ -199,7 +199,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
     val cover = rememberCover(vm, lead, 600).value
     val dark = Color(0xFF050505)
     val shape = RoundedCornerShape(30.dp)
-    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 17.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
         if (lead != null && cover != null) {
             Image(cover.asImageBitmap(), null, Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(0.75f), contentScale = ContentScale.Crop)
             Box(
@@ -211,7 +211,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                 )
             )
         }
-        Column(Modifier.padding(22.dp)) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(26.dp).clip(CircleShape).background(Milo.amber), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Check, null, tint = Color.Black, modifier = Modifier.size(16.dp))
@@ -219,9 +219,9 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                 Spacer(Modifier.width(12.dp))
                 Text(if (lead != null) "Now playing" else "Your player", color = Milo.text.copy(alpha = 0.75f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(8.dp))
             if (lead != null) {
-                Text(lead.title, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 34.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(0.68f))
+                Text(lead.title, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 31.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(0.68f))
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.82f)) {
                     Icon(Icons.Rounded.Headphones, null, tint = Milo.text.copy(alpha = 0.8f), modifier = Modifier.size(20.dp))
@@ -231,16 +231,16 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                         color = Milo.text.copy(alpha = 0.75f), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.size(54.dp).clip(CircleShape).background(Milo.amber).clickable { vm.player.toggle() },
+                        Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(30.dp)) }
+                    ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(26.dp)) }
                     val pill = RoundedCornerShape(30.dp)
                     Row(
                         Modifier.clip(pill).background(Color(0x55000000), pill).border(1.dp, Color.White.copy(alpha = 0.28f), pill)
-                            .clickable { vm.toggleFav(lead.id) }.padding(horizontal = 18.dp, vertical = 11.dp),
+                            .clickable { vm.toggleFav(lead.id) }.padding(horizontal = 16.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null, tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(20.dp))
