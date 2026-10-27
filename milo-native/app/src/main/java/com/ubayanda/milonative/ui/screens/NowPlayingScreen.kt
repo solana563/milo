@@ -440,13 +440,13 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
     ) {
         Canvas(Modifier.matchParentSize()) {
             val cy = size.height / 2
-            val th = 4.dp.toPx()
-            val r = 14.dp.toPx()
+            val th = 3.dp.toPx()
+            val r = 9.dp.toPx()
             drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
             val px = (size.width * shown).coerceIn(r, size.width - r)
             drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
             drawCircle(Color.White, r, Offset(px, cy))
-            drawCircle(ring, 4.5.dp.toPx(), Offset(px, cy), style = Stroke(2.dp.toPx()))
+            drawCircle(ring, 3.dp.toPx(), Offset(px, cy), style = Stroke(1.5.dp.toPx()))
         }
     }
 }

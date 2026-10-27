@@ -171,13 +171,12 @@ fun MiloApp(vm: MainViewModel) {
                 Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
                     Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(42.dp))
                 }
-                // like the web: every screen is a rounded card on the black canvas (Home draws its own two cards)
-                val panelShape = RoundedCornerShape(38.dp)
+                // like the web: solid cards, edge to edge. Other screens are one card with big top curves; Home draws its own two cards
+                val panelShape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)
                 val ownCards = detail == null && tab == Tab.Home
                 Box(
                     if (ownCards) Modifier.weight(1f).fillMaxWidth()
-                    else Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp).clip(panelShape)
-                        .background(Milo.panel.copy(alpha = 0.92f), panelShape).border(1.dp, Milo.line, panelShape)
+                    else Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })

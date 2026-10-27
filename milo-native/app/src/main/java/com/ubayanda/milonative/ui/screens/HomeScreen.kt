@@ -92,9 +92,9 @@ fun HomeScreen(
 
     val card = RoundedCornerShape(38.dp)
     // like the web mockup: separate rounded cards on the black canvas, with a small gap between them
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), contentPadding = PaddingValues(bottom = bottomPad)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
-            Column(Modifier.fillMaxWidth().clip(card).background(Milo.panel.copy(alpha = 0.92f), card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
+            Column(Modifier.fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 14.dp, top = 22.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -153,7 +153,7 @@ fun HomeScreen(
         }
         if (tracks.isNotEmpty()) {
             item {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel.copy(alpha = 0.92f), card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
                     SectionTitle("Recently added")
                     recent.forEach { t ->
                         TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.player.playQueue(recent, recent.indexOf(t)) }
