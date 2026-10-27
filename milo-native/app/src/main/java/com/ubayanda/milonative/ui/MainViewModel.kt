@@ -53,6 +53,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val lyricsRepo = LyricsRepo(app)
     private val store = PlaylistStore(app)
     private val cloud = CloudApi(app)
+    val social = com.ubayanda.milonative.data.SocialModel(cloud, viewModelScope)
 
     private val _account = MutableStateFlow(
         AccountUi(

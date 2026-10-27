@@ -131,7 +131,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         Column(Modifier.fillMaxSize()) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).background(Milo.card2).pointerInput(Unit) {
+                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp)).background(Milo.card2).pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onVerticalDrag = { _, dy -> drag += dy },
                         onDragEnd = { if (drag > 220f) onClose(); drag = 0f },
@@ -165,9 +165,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             }
 
+            Spacer(Modifier.height(8.dp)) // black canvas shows between the art and the control card, like the web
+
             // control card
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)).background(Milo.panel)
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)).background(Milo.panel)
                     .navigationBarsPadding().padding(top = 16.dp, bottom = 6.dp),
             ) {
                 Scrubber(ui, Modifier.padding(horizontal = 22.dp)) { vm.player.seekTo(it) }

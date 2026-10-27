@@ -60,24 +60,23 @@ fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 
 }
 
 /**
- * The art-adaptive card backdrop: the small, already blurred cover bitmap is stretched up with smooth filtering, so the
- * cards show the song's art softly (no blur effect needed). The stretch is always at screen scale, so every card shows
- * the same softness whatever its height.
+ * Cards are a SOLID colour that follows the song: its dominant colour mixed into the dark card colour.
+ * No art, no blur, no gradient, like the web cards.
  */
 @Composable
 fun Modifier.artBackdrop(bmp: Bitmap?, shade: Float = 0.42f): Modifier {
-    val screenH = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
-    if (bmp == null) return this.background(Milo.card)
-    val img = bmp.asImageBitmap()
-    return this.drawBehind {
-        drawImage(
-            img,
-            srcSize = IntSize(img.width, img.height),
-            dstSize = IntSize(size.width.roundToInt(), max(size.height, screenH).roundToInt()),
-            filterQuality = FilterQuality.High,
-        )
-        drawRect(Color.Black.copy(alpha = shade))
-    }
+    val glow: Color? = remember(bmp) { bmp?.let { glowOf(it) } }
+    if (glow == null) return this.background(Milo.card)
+    val solid = androidx.compose.ui.graphics.lerp(Color(0xFF141312), glow, 0.30f)
+    return this.background(solid)
+}
+
+/** The song's colour taken from the small cover bitmap, or null when it is plain grey/black/white. */
+fun glowOf(bmp: Bitmap): Color? {
+    val px = IntArray(bmp.width * bmp.height)
+    bmp.getPixels(px, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+    val dom = ColorMath.dominant(px)
+    return if (dom < 0) null else Color(0xFF000000.toInt() or dom)
 }
 
 fun fade(c: Color, a: Float) = c.copy(alpha = a)

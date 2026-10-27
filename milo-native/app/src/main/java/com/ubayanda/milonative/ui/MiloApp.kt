@@ -118,6 +118,8 @@ fun MiloApp(vm: MainViewModel) {
     var section by rememberSaveable { mutableIntStateOf(0) }
     var detail by remember { mutableStateOf<Detail?>(null) }
     var playerOpen by remember { mutableStateOf(false) }
+    var friendsOpen by remember { mutableStateOf(false) }
+    var chatWith by remember { mutableStateOf<com.ubayanda.milonative.data.Friend?>(null) }
     var pickFor by remember { mutableStateOf<Track?>(null) }
     var newFor by remember { mutableStateOf<Track?>(null) }
 
@@ -143,7 +145,8 @@ fun MiloApp(vm: MainViewModel) {
         )
     }
 
-    BackHandler(enabled = !playerOpen && detail != null) { detail = null }
+    BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
+    BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
 
     CompositionLocalProvider(LocalActions provides actions) {
         Box(Modifier.fillMaxSize().background(Milo.bg)) {
@@ -168,9 +171,13 @@ fun MiloApp(vm: MainViewModel) {
                 Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
                     Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(42.dp))
                 }
-                val panelShape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
+                // like the web: every screen is a rounded card on the black canvas (Home draws its own two cards)
+                val panelShape = RoundedCornerShape(38.dp)
+                val ownCards = detail == null && tab == Tab.Home
                 Box(
-                    Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel.copy(alpha = 0.92f), panelShape).border(1.dp, Milo.line, panelShape)
+                    if (ownCards) Modifier.weight(1f).fillMaxWidth()
+                    else Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp).clip(panelShape)
+                        .background(Milo.panel.copy(alpha = 0.92f), panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
@@ -203,6 +210,7 @@ fun MiloApp(vm: MainViewModel) {
                                 onOpenArtist = { detail = Detail.ArtistD(it) },
                                 onOpenPlaylist = { detail = Detail.PlaylistD(it.id) },
                                 onLiked = { detail = Detail.Liked },
+                                onFriends = { friendsOpen = true },
                             )
                             Tab.Library -> LibraryScreen(
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
@@ -221,6 +229,14 @@ fun MiloApp(vm: MainViewModel) {
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
                 BottomNav(tab, onSelect = { tab = it; detail = null })
+            }
+
+            if (friendsOpen) {
+                Box(Modifier.fillMaxSize()) {
+                    val cw = chatWith
+                    if (cw != null) com.ubayanda.milonative.ui.screens.ChatScreen(vm, cw) { chatWith = null }
+                    else com.ubayanda.milonative.ui.screens.FriendsScreen(vm, acct, { friendsOpen = false }) { chatWith = it }
+                }
             }
 
             AnimatedVisibility(

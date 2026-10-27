@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Favorite
@@ -79,7 +80,7 @@ fun HomeScreen(
     byId: Map<Long, Track>, ui: PlayerUi, scanning: Boolean, bottomPad: Dp,
     likedCount: Int, liked: Boolean, name: String, initial: String,
     onProfile: () -> Unit, onSearch: () -> Unit, onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit,
-    onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit,
+    onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onFriends: () -> Unit = {},
 ) {
     val recent = tracks.sortedByDescending { it.addedSec }.take(15)
     val tiles = ArrayList<TileData>()
@@ -89,9 +90,12 @@ fun HomeScreen(
     playlists.take(2).forEach { p -> tiles.add(TileData(p.name, p.trackIds.firstNotNullOfOrNull { byId[it] }, Icons.Rounded.QueueMusic, false, emptyList()) { onOpenPlaylist(p) }) }
     albums.take(8 - tiles.size).forEach { a -> tiles.add(TileData(a.title, a.tracks.first(), null, false, emptyList()) { onOpenAlbum(a) }) }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+    val card = RoundedCornerShape(38.dp)
+    // like the web mockup: separate rounded cards on the black canvas, with a small gap between them
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
-            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 26.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.fillMaxWidth().clip(card).background(Milo.panel.copy(alpha = 0.92f), card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 14.dp, top = 22.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
                         SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()).uppercase(),
@@ -108,50 +112,53 @@ fun HomeScreen(
                     Modifier.size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onSearch),
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Outlined.Search, "Search", tint = Milo.text, modifier = Modifier.size(24.dp)) }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onFriends),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Outlined.People, "Friends", tint = Milo.text, modifier = Modifier.size(24.dp)) }
+                Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))).clickable(onClick = onProfile),
                     contentAlignment = Alignment.Center,
                 ) { Text(initial, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold) }
             }
-        }
-        item { PlayerCard(vm, tracks, ui, scanning, liked) }
-        if (tracks.isEmpty()) {
-            item {
-                if (!scanning) EmptyNote(
+                PlayerCard(vm, tracks, ui, scanning, liked)
+                if (tracks.isEmpty() && !scanning) EmptyNote(
                     "No music found",
                     "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
                 )
-            }
-        }
-        item {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                tiles.chunked(2).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { t -> Tile(vm, t, Modifier.weight(1f)) }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-        if (artists.isNotEmpty()) {
-            item { SectionTitle("Your artists") }
-            item {
-                LazyRow(contentPadding = PaddingValues(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    items(artists.take(20), key = { "ar" + it.name }) { a ->
-                        Column(Modifier.width(96.dp).clickable { onOpenArtist(a) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                            Cover(vm, a.tracks.first(), 96.dp, 32.dp, px = 300)
-                            Spacer(Modifier.height(6.dp))
-                            Text(a.name, color = Milo.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    tiles.chunked(2).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { t -> Tile(vm, t, Modifier.weight(1f)) }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
+                }
+                if (artists.isNotEmpty()) {
+                    SectionTitle("Your artists")
+                    LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        items(artists.take(20), key = { "ar" + it.name }) { a ->
+                            Column(Modifier.width(96.dp).clickable { onOpenArtist(a) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Cover(vm, a.tracks.first(), 96.dp, 32.dp, px = 300)
+                                Spacer(Modifier.height(6.dp))
+                                Text(a.name, color = Milo.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
                 }
             }
         }
         if (tracks.isNotEmpty()) {
-            item { SectionTitle("Recently added") }
-            items(recent, key = { "r" + it.id }) { t ->
-                TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.player.playQueue(recent, recent.indexOf(t)) }
+            item {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel.copy(alpha = 0.92f), card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+                    SectionTitle("Recently added")
+                    recent.forEach { t ->
+                        TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.player.playQueue(recent, recent.indexOf(t)) }
+                    }
+                }
             }
         }
     }
@@ -192,7 +199,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
     val cover = rememberCover(vm, lead, 600).value
     val dark = Color(0xFF050505)
     val shape = RoundedCornerShape(30.dp)
-    Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
         if (lead != null && cover != null) {
             Image(cover.asImageBitmap(), null, Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(0.75f), contentScale = ContentScale.Crop)
             Box(
