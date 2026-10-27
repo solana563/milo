@@ -77,13 +77,34 @@ class ArtLoader(private val context: Context) {
         }
     }
 
-    /** 36px copy: stretched back up it is already soft, so no blur effect is needed (cheap on the GPU). */
+    /** 48px copy, blurred by hand: stretched back up it is smooth (no blocks) and needs no blur effect on the GPU. */
     suspend fun soft(t: Track): Bitmap? = withContext(Dispatchers.IO) {
         val k = key(t)
         small.get(k)?.let { return@withContext it }
         val src = cover(t, 160) ?: return@withContext null
-        val s = Bitmap.createScaledBitmap(src, 36, 36, true)
+        val n = 48
+        val s = Bitmap.createScaledBitmap(src, n, n, true).copy(Bitmap.Config.ARGB_8888, true)
+        val px = IntArray(n * n)
+        s.getPixels(px, 0, n, 0, 0, n, n)
+        var cur = px
+        repeat(3) { cur = boxBlur(cur, n, 2) }
+        s.setPixels(cur, 0, n, 0, 0, n, n)
         small.put(k, s)
         s
+    }
+
+    private fun boxBlur(src: IntArray, n: Int, r: Int): IntArray {
+        val out = IntArray(src.size)
+        for (y in 0 until n) for (x in 0 until n) {
+            var a = 0; var rr = 0; var g = 0; var b = 0; var c = 0
+            for (dy in -r..r) for (dx in -r..r) {
+                val yy = y + dy; val xx = x + dx
+                if (yy < 0 || xx < 0 || yy >= n || xx >= n) continue
+                val p = src[yy * n + xx]
+                a += p ushr 24; rr += (p shr 16) and 255; g += (p shr 8) and 255; b += p and 255; c++
+            }
+            out[y * n + x] = ((a / c) shl 24) or ((rr / c) shl 16) or ((g / c) shl 8) or (b / c)
+        }
+        return out
     }
 }

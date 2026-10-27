@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
+import com.ubayanda.milonative.util.ColorMath
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,9 +60,9 @@ fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 
 }
 
 /**
- * The art-adaptive card backdrop: the tiny (36px) bitmap is stretched up with smooth filtering, which is a blur
- * without any blur effect, so it costs almost nothing. The stretch is always at screen scale, so every card shows the
- * same blur density whatever its height.
+ * The art-adaptive card backdrop: the small, already blurred cover bitmap is stretched up with smooth filtering, so the
+ * cards show the song's art softly (no blur effect needed). The stretch is always at screen scale, so every card shows
+ * the same softness whatever its height.
  */
 @Composable
 fun Modifier.artBackdrop(bmp: Bitmap?, shade: Float = 0.42f): Modifier {

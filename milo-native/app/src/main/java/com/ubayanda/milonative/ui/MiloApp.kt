@@ -22,6 +22,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.layout.ContentScale
+import com.ubayanda.milonative.ui.components.rememberCover
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -119,6 +127,7 @@ fun MiloApp(vm: MainViewModel) {
     val bottomPad = if (current != null) 270.dp else 120.dp
     val hours = remember(tracks) { (tracks.sumOf { it.durationMs } / 3_600_000L).toInt() }
     val currentSoft = rememberSoft(vm, current).value
+    val headerArt = rememberCover(vm, current, 600).value
 
     val actions = remember {
         TrackActions(
@@ -139,14 +148,20 @@ fun MiloApp(vm: MainViewModel) {
     CompositionLocalProvider(LocalActions provides actions) {
         Box(Modifier.fillMaxSize().background(Milo.bg)) {
             // the song's art, stretched soft, fills the screen behind the header and panel
-            if (currentSoft != null && !neutral) {
-                val img = currentSoft.asImageBitmap()
+            if (current != null && headerArt != null) {
+                // the art behind the logo stays crisp and fully visible, fading out down the screen (like the web)
+                val img = headerArt.asImageBitmap()
                 Box(
-                    Modifier.fillMaxSize().drawBehind {
-                        drawImage(img, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.High)
-                        drawRect(Color.Black.copy(alpha = 0.18f))
-                    }
-                )
+                    Modifier.fillMaxWidth().fillMaxHeight(0.6f)
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(Brush.verticalGradient(0.5f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
+                        }
+                ) {
+                    Image(img, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.15f), Color.Black.copy(alpha = 0.5f)))))
+                }
             }
             Column(Modifier.fillMaxSize()) {
                 // header: the milo. logo, centred, like the web app
