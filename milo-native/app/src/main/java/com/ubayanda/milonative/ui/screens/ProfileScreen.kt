@@ -18,6 +18,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +81,70 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
                 }
             }
         }
+        Spacer(Modifier.height(16.dp))
+        ServerCard(vm)
+    }
+}
+
+@Composable
+private fun ServerCard(vm: MainViewModel) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var url by rememberSaveable { mutableStateOf(vm.server.url) }
+    var user by rememberSaveable { mutableStateOf(vm.server.user) }
+    var pass by rememberSaveable { mutableStateOf("") }
+    var status by remember { mutableStateOf(if (vm.server.configured) "Connected to " + vm.server.url else "") }
+    var busy by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(30.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
+        Text("My server", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        Text(
+            "Stream your own library from Navidrome or any Subsonic server. It shows up under Discover.",
+            color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        ServerField(url, "Server address (http://192.168.1.5:4533)", false) { url = it }
+        Spacer(Modifier.height(10.dp))
+        ServerField(user, "Username", false) { user = it }
+        Spacer(Modifier.height(10.dp))
+        ServerField(pass, "Password", true) { pass = it }
+        if (status.isNotEmpty()) Text(status, color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp))
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Pill(if (busy) "Connecting..." else "Connect", null, true) {
+                if (busy || url.isBlank() || user.isBlank()) return@Pill
+                busy = true; status = ""
+                scope.launch {
+                    val pw = if (pass.isEmpty()) vm.server.password() else pass
+                    vm.server.save(url, user, pw)
+                    val err = vm.server.check()
+                    if (err != null) vm.server.clear()
+                    status = err ?: "Connected. Open Discover, then My server."
+                    busy = false
+                }
+            }
+            if (vm.server.configured) Pill("Disconnect", null, false) {
+                vm.server.clear(); url = ""; user = ""; pass = ""; status = "Disconnected."
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServerField(value: String, hint: String, secret: Boolean, onChange: (String) -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Milo.card2).padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        if (value.isEmpty()) Text(hint, color = Milo.dim, fontSize = 16.sp)
+        androidx.compose.foundation.text.BasicTextField(
+            value = value, onValueChange = onChange, singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = Milo.text, fontSize = 16.sp),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Milo.text),
+            visualTransformation = if (secret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = if (secret) androidx.compose.ui.text.input.KeyboardType.Password else androidx.compose.ui.text.input.KeyboardType.Uri,
+                autoCorrect = false,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

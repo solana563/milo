@@ -123,7 +123,8 @@ fun MiloApp(vm: MainViewModel) {
     var pickFor by remember { mutableStateOf<Track?>(null) }
     var newFor by remember { mutableStateOf<Track?>(null) }
 
-    val byId = remember(tracks) { tracks.associateBy { it.id } }
+    val remoteById by vm.remote.collectAsState()
+    val byId = remember(tracks, remoteById) { tracks.associateBy { it.id } + remoteById }
     val current = byId[ui.currentId]
     val likedTracks = remember(tracks, favs) { tracks.filter { it.id in favs } }
     val bottomPad = if (current != null) 270.dp else 120.dp
@@ -215,6 +216,7 @@ fun MiloApp(vm: MainViewModel) {
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
                             )
+                            Tab.Discover -> DiscoverScreen(vm, ui, bottomPad)
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) })
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }

@@ -38,19 +38,39 @@ class ArtLoader(private val context: Context) {
         val missed = none[k]
         if (missed != null && System.currentTimeMillis() - missed < 30_000) return@withContext null
         var bmp: Bitmap? = null
-        if (b >= 1000) bmp = embedded(t, b)
-        if (bmp == null) bmp = thumb(Uri.parse(t.uri), b)
+        if (t.artUrl.isNotEmpty()) bmp = remote(t.artUrl, b)
+        if (bmp == null && t.uri.startsWith("content:") && b >= 1000) bmp = embedded(t, b)
+        if (bmp == null && t.uri.startsWith("content:")) bmp = thumb(Uri.parse(t.uri), b)
         // the album's own cover (folder art such as cover.jpg is registered on the album, not the song)
-        if (bmp == null && t.albumId > 0) {
+        if (bmp == null && t.uri.startsWith("content:") && t.albumId > 0) {
             bmp = thumb(android.content.ContentUris.withAppendedId(android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, t.albumId), b)
         }
         // last try: the picture inside the file, whatever the size
-        if (bmp == null && b < 1000) bmp = embedded(t, b)
+        if (bmp == null && t.uri.startsWith("content:") && b < 1000) bmp = embedded(t, b)
         if (bmp == null) none[k] = System.currentTimeMillis() else {
             none.remove(k)
             cache.put(k, bmp)
         }
         bmp
+    }
+
+    private val http = okhttp3.OkHttpClient.Builder().connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS).readTimeout(10, java.util.concurrent.TimeUnit.SECONDS).build()
+
+    /** A cover picture from the web (radio logos, iTunes artwork), decoded down to about [target] pixels. */
+    private fun remote(url: String, target: Int): Bitmap? = try {
+        val req = okhttp3.Request.Builder().url(url).header("User-Agent", "milo-native/1.0").build()
+        http.newCall(req).execute().use { r ->
+            val bytes = r.body?.bytes()
+            if (!r.isSuccessful || bytes == null) null else {
+                val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o)
+                var sample = 1
+                while (o.outWidth / (sample * 2) >= target && o.outHeight / (sample * 2) >= target) sample *= 2
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
+        }
+    } catch (e: Exception) {
+        null
     }
 
     private fun thumb(uri: Uri, b: Int): Bitmap? = try {

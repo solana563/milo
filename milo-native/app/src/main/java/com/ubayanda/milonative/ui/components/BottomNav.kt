@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.Search
@@ -32,6 +33,7 @@ import com.ubayanda.milonative.ui.theme.Milo
 enum class Tab(val label: String, val icon: ImageVector) {
     Home("Home", Icons.Outlined.Home),
     Search("Search", Icons.Outlined.Search),
+    Discover("Discover", Icons.Outlined.Explore),
     Library("Library", Icons.Outlined.BookmarkBorder),
     Profile("Profile", Icons.Outlined.PersonOutline),
 }
@@ -49,7 +51,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifi
             val on = tab == current
             val pill = RoundedCornerShape(32.dp)
             Box(
-                Modifier.width(78.dp).height(58.dp).clip(pill)
+                Modifier.width(64.dp).height(54.dp).clip(pill)
                     .then(
                         if (on) Modifier.background(Brush.verticalGradient(listOf(lerp(Milo.card2, Color.White, 0.10f), Milo.card2)), pill)
                             .border(1.dp, Milo.line, pill) else Modifier

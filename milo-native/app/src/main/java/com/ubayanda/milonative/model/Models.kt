@@ -12,6 +12,8 @@ data class Track(
     val trackNo: Int,
     val year: Int,
     val addedSec: Long,
+    /** For online tracks (radio, previews): where the cover picture comes from. Empty for songs on the phone. */
+    val artUrl: String = "",
 )
 
 data class Album(val id: Long, val title: String, val artist: String, val year: Int, val tracks: List<Track>)

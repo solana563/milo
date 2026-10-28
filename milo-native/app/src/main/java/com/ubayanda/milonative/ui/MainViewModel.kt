@@ -266,7 +266,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
     }
 
-    fun trackById(id: Long?): Track? = if (id == null) null else _tracks.value.firstOrNull { it.id == id }
+    /** Online tracks (radio, previews) that were played this session, so the player screens can find them by id. */
+    private val _remote = MutableStateFlow<Map<Long, Track>>(emptyMap())
+    val remote: StateFlow<Map<Long, Track>> = _remote.asStateFlow()
+    val discover = com.ubayanda.milonative.data.DiscoverRepo()
+    val server = com.ubayanda.milonative.data.SubsonicRepo(app)
+
+    fun playRemote(list: List<Track>, index: Int) {
+        if (list.isEmpty()) return
+        _remote.value = _remote.value + list.associateBy { it.id }
+        player.playQueue(list, index)
+    }
+
+    fun trackById(id: Long?): Track? =
+        if (id == null) null else _tracks.value.firstOrNull { it.id == id } ?: _remote.value[id]
 
     override fun onCleared() {
         observer?.let { getApplication<Application>().contentResolver.unregisterContentObserver(it) }
