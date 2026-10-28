@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -141,7 +144,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
                     if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp))
                     val liked = favs.contains(t.id)
                     androidx.compose.material3.Icon(
-                        if (liked) androidx.compose.material.icons.Icons.Rounded.Favorite else androidx.compose.material.icons.Icons.Rounded.FavoriteBorder,
+                        if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         contentDescription = if (liked) "Remove from Liked" else "Save",
                         tint = if (liked) Milo.amber else Milo.dim,
                         modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
