@@ -77,7 +77,8 @@ class SubsonicRepo(context: Context) {
         val out = ArrayList<Track>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            val sid = o.optString("id").ifEmpty { continue }
+            val sid = o.optString("id")
+            if (sid.isEmpty()) continue
             val id = idOf("sub:$sid")
             val cover = o.optString("coverArt")
             out.add(

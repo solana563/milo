@@ -44,7 +44,8 @@ class DiscoverRepo {
             val o = arr.getJSONObject(i)
             val stream = o.optString("url_resolved").ifBlank { o.optString("url") }
             if (stream.isBlank() || !stream.startsWith("http")) continue
-            val name = o.optString("name").trim().ifEmpty { continue }
+            val name = o.optString("name").trim()
+            if (name.isEmpty()) continue
             val id = idOf("radio:$stream")
             val sub = listOf(o.optString("country"), o.optString("tags").split(",").firstOrNull().orEmpty()).filter { it.isNotBlank() }.joinToString(" · ")
             out.add(

@@ -65,6 +65,7 @@ import com.ubayanda.milonative.ui.components.NameDialog
 import com.ubayanda.milonative.ui.components.PlaylistPicker
 import com.ubayanda.milonative.ui.components.RowAction
 import com.ubayanda.milonative.ui.components.Tab
+import com.ubayanda.milonative.ui.screens.DiscoverScreen
 import com.ubayanda.milonative.ui.screens.DetailScreen
 import com.ubayanda.milonative.ui.screens.HomeScreen
 import com.ubayanda.milonative.ui.screens.LibraryScreen
