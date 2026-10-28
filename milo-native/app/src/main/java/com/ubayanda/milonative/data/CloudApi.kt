@@ -152,6 +152,15 @@ class CloudApi(context: Context) {
         )
     }
 
+    suspend fun updateProfile(name: String, username: String) {
+        val s = session ?: return
+        if (!fresh()) throw CloudError(401, "Please log in again first.")
+        request(
+            "/rest/v1/profiles?id=eq.${s.userId}", "PATCH", JSONObject().put("name", name).put("username", username),
+            headers = mapOf("Prefer" to "return=minimal"),
+        )
+    }
+
     suspend fun agreeTerms() {
         val s = session ?: return
         val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date())

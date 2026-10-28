@@ -125,9 +125,10 @@ fun MiloApp(vm: MainViewModel) {
     var newFor by remember { mutableStateOf<Track?>(null) }
 
     val remoteById by vm.remote.collectAsState()
-    val byId = remember(tracks, remoteById) { tracks.associateBy { it.id } + remoteById }
+    val savedById by vm.saved.collectAsState()
+    val byId = remember(tracks, remoteById, savedById) { tracks.associateBy { it.id } + savedById + remoteById }
     val current = byId[ui.currentId]
-    val likedTracks = remember(tracks, favs) { tracks.filter { it.id in favs } }
+    val likedTracks = remember(tracks, favs, savedById) { tracks.filter { it.id in favs } + savedById.values.filter { it.id in favs } }
     val bottomPad = if (current != null) 270.dp else 120.dp
     val hours = remember(tracks) { (tracks.sumOf { it.durationMs } / 3_600_000L).toInt() }
     val currentSoft = rememberSoft(vm, current).value

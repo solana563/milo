@@ -2,6 +2,7 @@ package com.ubayanda.milonative.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,9 @@ import com.ubayanda.milonative.ui.theme.Milo
 
 @Composable
 fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playlists: Int, hours: Int, bottomPad: Dp) {
+    var editing by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    val syncMsg by vm.syncMsg.collectAsState()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPad)) {
         ScreenTitle("Profile")
         val shape = RoundedCornerShape(30.dp)
@@ -74,6 +78,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (a.signedIn) {
+                    Pill("Edit profile", null, true) { editing = true }
                     Pill("Sign out", null, false) { vm.signOut() }
                 } else {
                     Pill("Sign up free", null, true) { vm.openGate("up") }
@@ -81,9 +86,73 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
                 }
             }
         }
+        if (a.signedIn && syncMsg.isNotEmpty()) Text(syncMsg, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 10.dp))
         Spacer(Modifier.height(16.dp))
         ServerCard(vm)
+        if (a.signedIn) {
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "Delete account", color = Color(0xFFFF8A80), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp)).clickable { deleting = true }.padding(vertical = 10.dp),
+            )
+        }
     }
+    if (editing) EditProfileDialog(vm, a) { editing = false }
+    if (deleting) DeleteAccountDialog(vm) { deleting = false }
+}
+
+@Composable
+private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Unit) {
+    var name by remember { mutableStateOf(a.name.ifEmpty { a.username }) }
+    var user by remember { mutableStateOf(a.username) }
+    var err by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) onClose() },
+        containerColor = Milo.card, titleContentColor = Milo.text, textContentColor = Milo.text,
+        title = { Text("Edit profile") },
+        text = {
+            Column {
+                ServerField(name, "Display name", false) { name = it }
+                Spacer(Modifier.height(10.dp))
+                ServerField(user, "Username", false) { user = it }
+                if (err.isNotEmpty()) Text(err, color = Color(0xFFFF8A80), fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                if (busy) return@TextButton
+                busy = true; err = ""
+                vm.editProfile(name, user) { e -> busy = false; if (e == null) onClose() else err = e }
+            }) { Text(if (busy) "Saving..." else "Save", color = Milo.amber) }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onClose() }) { Text("Cancel", color = Milo.dim) } },
+    )
+}
+
+@Composable
+private fun DeleteAccountDialog(vm: MainViewModel, onClose: () -> Unit) {
+    var err by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) onClose() },
+        containerColor = Milo.card, titleContentColor = Milo.text, textContentColor = Milo.text,
+        title = { Text("Delete your account?") },
+        text = {
+            Column {
+                Text("This permanently deletes your account, friends, messages and cloud backup. Songs on this phone are not touched.", color = Milo.dim, fontSize = 15.sp)
+                if (err.isNotEmpty()) Text(err, color = Color(0xFFFF8A80), fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                if (busy) return@TextButton
+                busy = true; err = ""
+                vm.deleteAccount { e -> busy = false; if (e == null) onClose() else err = e }
+            }) { Text(if (busy) "Deleting..." else "Delete", color = Color(0xFFFF8A80)) }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onClose() }) { Text("Cancel", color = Milo.dim) } },
+    )
 }
 
 @Composable

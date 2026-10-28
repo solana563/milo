@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -59,6 +61,7 @@ private val PREVIEW_TERMS = listOf("Trending" to "top hits", "Pop" to "pop", "Hi
 /** Online listening: live radio and 30-second previews. Nothing is downloaded or saved. */
 @Composable
 fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
+    val favs by vm.favs.collectAsState()
     var mode by rememberSaveable { mutableIntStateOf(0) } // 0 = live radio, 1 = previews, 2 = my server
     var query by rememberSaveable { mutableStateOf("") }
     var tag by rememberSaveable { mutableIntStateOf(0) }
@@ -135,7 +138,15 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
                             color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(34.dp))
+                    if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp))
+                    val liked = favs.contains(t.id)
+                    androidx.compose.material3.Icon(
+                        if (liked) androidx.compose.material.icons.Icons.Rounded.Favorite else androidx.compose.material.icons.Icons.Rounded.FavoriteBorder,
+                        contentDescription = if (liked) "Remove from Liked" else "Save",
+                        tint = if (liked) Milo.amber else Milo.dim,
+                        modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .clickable { vm.playRemoteKeep(t); vm.toggleFav(t.id) }.padding(9.dp),
+                    )
                 }
             }
         }
