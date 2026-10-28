@@ -5,8 +5,6 @@
 #app{--cv:rgba(255,255,255,.42)}
 #app[data-theme=dark]{--cv:rgba(10,9,8,.42)}
 #app main#view .mcard{position:relative;isolation:isolate;background:var(--mc)}
-#app main#view .mcard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(var(--cv),var(--cv)),var(--cardart,none) center top/100% max(100dvh,100%) no-repeat}
+#app main#view .mcard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:color-mix(in srgb,rgb(var(--cc,120,110,100)) 30%,var(--mc))}
 /* fallback (web covers the browser won't let us read): real image, live blur, visible cards only */
-#app.cardlive main#view .mcard:not(.av)::before{background:linear-gradient(var(--cv),var(--cv)),var(--mc)}
-#app.cardlive main#view .mcard.av::before{inset:-20px;filter:blur(16px) saturate(1.3)}
 }
