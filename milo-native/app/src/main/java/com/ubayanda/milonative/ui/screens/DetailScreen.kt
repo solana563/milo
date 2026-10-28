@@ -12,7 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import com.ubayanda.milonative.ui.components.ReorderState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -49,16 +59,35 @@ fun DetailScreen(
     vm: MainViewModel, title: String, subtitle: String, tracks: List<Track>, ui: PlayerUi,
     bottomPad: Dp, onBack: () -> Unit,
     headerAction: Pair<String, () -> Unit>? = null,
+    /** When set, rows get a drag handle and this runs (from, to) after a drop. */
+    onMove: ((Int, Int) -> Unit)? = null,
     rowExtra: (Track) -> List<RowAction> = { emptyList() },
 ) {
     val lead = tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
     val shape = RoundedCornerShape(30.dp)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+    val listState = rememberLazyListState()
+    var local by remember(tracks) { mutableStateOf(tracks) }
+    val moveNow by rememberUpdatedState(onMove)
+    val reorder = if (onMove != null) remember(listState) {
+        ReorderState(
+            listState, 1,
+            { f, t -> local = local.toMutableList().also { it.add(t, it.removeAt(f)) } },
+            { f, t -> moveNow?.invoke(f, t) },
+        )
+    } else null
+    LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBackIosNew, "Back", tint = Milo.text) }
                 Spacer(Modifier.weight(1f))
+                if (tracks.isNotEmpty()) {
+                    Text(
+                        "Select", color = Milo.dim, fontSize = 14.sp,
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { vm.selectAll(tracks.map { it.id }) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
                 if (headerAction != null) {
                     Text(
                         headerAction.first, color = Milo.dim, fontSize = 14.sp,
@@ -84,8 +113,16 @@ fun DetailScreen(
             Spacer(Modifier.height(8.dp))
             if (tracks.isEmpty()) EmptyNote("Nothing here yet", "Use the ⋮ menu on any song to add it.")
         }
-        itemsIndexed(tracks, key = { _, t -> "d" + t.id }) { i, t ->
-            TrackRow(vm, t, t.id == ui.currentId, Milo.amber, rowExtra(t)) { vm.player.playQueue(tracks, i) }
+        itemsIndexed(local, key = { _, t -> "d" + t.id }) { i, t ->
+            val key = "d" + t.id
+            val idx by rememberUpdatedState(i)
+            val dragging = reorder?.isDragging(key) == true
+            Box(
+                if (dragging) Modifier.zIndex(1f).graphicsLayer { translationY = reorder?.offset ?: 0f }
+                else Modifier.animateItem()
+            ) {
+                TrackRow(vm, t, t.id == ui.currentId, Milo.amber, rowExtra(t), handle = reorder?.handle({ idx }, key)) { vm.player.playQueue(local, i) }
+            }
         }
     }
 }

@@ -461,6 +461,37 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _accent.value = 0xFF000000.toInt() or ColorMath.accent(dom)
     }
 
+    // ---- multi-select ----
+    private val _selection = MutableStateFlow<Set<Long>>(emptySet())
+    val selection: StateFlow<Set<Long>> = _selection.asStateFlow()
+    fun toggleSelect(id: Long) { _selection.value = _selection.value.toMutableSet().also { if (!it.add(id)) it.remove(id) } }
+    fun selectAll(ids: List<Long>) { _selection.value = ids.toSet() }
+    fun clearSelection() { _selection.value = emptySet() }
+
+    fun movePlaylistItem(id: String, from: Int, to: Int) = savePlaylists(_playlists.value.map { p ->
+        if (p.id != id || from !in p.trackIds.indices || to !in p.trackIds.indices) p
+        else p.copy(trackIds = p.trackIds.toMutableList().also { it.add(to, it.removeAt(from)) })
+    })
+
+    /** Create a playlist holding all of [ids] (the multi-select "new playlist"). */
+    fun createPlaylistWith(name: String, ids: List<Long>): String {
+        ids.forEach { ensureSaved(it) }
+        val pid = "p" + System.currentTimeMillis()
+        savePlaylists(_playlists.value + Playlist(pid, name.trim().ifEmpty { "New playlist" }, ids.distinct()))
+        return pid
+    }
+    fun addManyToPlaylist(pid: String, ids: List<Long>) {
+        ids.forEach { ensureSaved(it) }
+        savePlaylists(_playlists.value.map { if (it.id == pid) it.copy(trackIds = it.trackIds + ids.filter { x -> x !in it.trackIds }.distinct()) else it })
+    }
+    fun likeMany(ids: List<Long>) {
+        val n = _favs.value.toMutableSet().also { it.addAll(ids) }
+        ids.forEach { ensureSaved(it) }
+        _favs.value = n
+        prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
+        touch()
+    }
+
     fun toggleFav(id: Long) {
         val n = _favs.value.toMutableSet()
         val added = n.add(id)
@@ -483,7 +514,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun playRemote(list: List<Track>, index: Int) {
         if (list.isEmpty()) return
         _remote.value = _remote.value + list.associateBy { it.id }
-        player.playQueue(list, index)
+        val t = list[index.coerceIn(0, list.size - 1)]
+        if (t.durationMs == 0L && t.uri.startsWith("http")) {
+            // live stream: make sure it answers before handing it to the player
+            viewModelScope.launch {
+                if (discover.reachable(t.uri)) player.playQueue(list, index)
+                else android.widget.Toast.makeText(getApplication(), "That station isn't responding. Try another.", android.widget.Toast.LENGTH_LONG).show()
+            }
+        } else player.playQueue(list, index)
     }
 
     fun trackById(id: Long?): Track? =

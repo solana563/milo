@@ -41,6 +41,11 @@ class PlayerHolder(context: Context) {
             controller = c
             c.addListener(object : Player.Listener {
                 override fun onEvents(player: Player, events: Player.Events) = refresh()
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    // a stream that won't play: tell the person and empty the queue so the player isn't left half-broken
+                    android.widget.Toast.makeText(app, "That one won't play right now.", android.widget.Toast.LENGTH_SHORT).show()
+                    controller?.let { it.stop(); it.clearMediaItems() }
+                }
             })
             refresh()
             startTicker()
@@ -55,6 +60,8 @@ class PlayerHolder(context: Context) {
         controller?.release()
         controller = null
     }
+
+    private companion object { const val QUEUE_MAX = 120; const val QUEUE_BEHIND = 20 }
 
     private fun item(t: Track): MediaItem = MediaItem.Builder()
         .setMediaId(t.id.toString())
@@ -76,7 +83,11 @@ class PlayerHolder(context: Context) {
     /** Play [tracks] as the queue, starting at [index]. */
     fun playQueue(tracks: List<Track>, index: Int) = withController { c ->
         if (tracks.isEmpty()) return@withController
-        c.setMediaItems(tracks.map { item(it) }, index.coerceIn(0, tracks.size - 1), 0L)
+        // Media3 1.4 can crash while syncing a very long queue to the notification/controller, so keep the queue to a window around the song.
+        val i = index.coerceIn(0, tracks.size - 1)
+        val from = (i - QUEUE_BEHIND).coerceAtLeast(0)
+        val part = tracks.subList(from, (from + QUEUE_MAX).coerceAtMost(tracks.size))
+        c.setMediaItems(part.map { item(it) }, i - from, 0L)
         c.prepare()
         c.play()
     }
@@ -84,9 +95,24 @@ class PlayerHolder(context: Context) {
     fun playShuffled(tracks: List<Track>) = withController { c ->
         if (tracks.isEmpty()) return@withController
         c.shuffleModeEnabled = true
-        c.setMediaItems(tracks.map { item(it) }, (tracks.indices).random(), 0L)
+        val part = if (tracks.size > QUEUE_MAX) tracks.shuffled().take(QUEUE_MAX) else tracks
+        c.setMediaItems(part.map { item(it) }, part.indices.random(), 0L)
         c.prepare()
         c.play()
+    }
+
+    fun playNextMany(list: List<Track>) = withController { c ->
+        if (list.isEmpty()) return@withController
+        if (c.mediaItemCount == 0) { c.setMediaItems(list.map { item(it) }); c.prepare(); c.play() }
+        else c.addMediaItems(c.currentMediaItemIndex + 1, list.map { item(it) })
+    }
+    fun addManyToQueue(list: List<Track>) = withController { c ->
+        if (list.isEmpty()) return@withController
+        if (c.mediaItemCount == 0) { c.setMediaItems(list.map { item(it) }); c.prepare(); c.play() }
+        else c.addMediaItems(list.map { item(it) })
+    }
+    fun moveInQueue(from: Int, to: Int) = withController { c ->
+        if (from in 0 until c.mediaItemCount && to in 0 until c.mediaItemCount) c.moveMediaItem(from, to)
     }
 
     fun playNext(t: Track) = withController { c ->

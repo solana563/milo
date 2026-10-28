@@ -3,6 +3,21 @@ package com.ubayanda.milonative.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,21 +60,63 @@ import com.ubayanda.milonative.util.fmtTime
 
 class RowAction(val label: String, val run: () -> Unit)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrackRow(
     vm: MainViewModel, t: Track, current: Boolean, accent: Color,
-    extra: List<RowAction> = emptyList(), onClick: () -> Unit,
+    extra: List<RowAction> = emptyList(),
+    /** When set, a drag handle is shown (queue / playlists) and swiping is turned off. */
+    handle: Modifier? = null,
+    onClick: () -> Unit,
 ) {
     val actions = LocalActions.current
+    val ctx = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val liked = vm.favs.collectAsState().value.contains(t.id)
+    val selection by vm.selection.collectAsState()
+    val selecting = selection.isNotEmpty()
+    val picked = t.id in selection
     var menu by remember { mutableStateOf(false) }
-    Column {
+    var dx by remember { mutableFloatStateOf(0f) }
+    val limit = with(LocalDensity.current) { 96.dp.toPx() }
+    val swipeOn = handle == null && !selecting
+    Box(Modifier.fillMaxWidth().clipToBounds()) {
+        // what the swipe will do, shown behind the row
+        if (dx > 8f) Text("Play next", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterStart).padding(start = 22.dp))
+        if (dx < -8f) Text(if (liked) "Unlike" else "Like", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp))
         val hot = Modifier.padding(horizontal = 8.dp).clip(RoundedCornerShape(20.dp)).background(Milo.card)
         Row(
-            (if (current) hot else Modifier).fillMaxWidth().clickable(onClick = onClick)
-                .padding(start = if (current) 12.dp else 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.graphicsLayer { translationX = dx * 0.55f }
+                .then(if (current || picked) hot else Modifier).fillMaxWidth()
+                .then(
+                    if (swipeOn) Modifier.pointerInput(t.id) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                if (dx > limit) { vm.player.playNext(t); haptic.performHapticFeedback(HapticFeedbackType.LongPress); Toast.makeText(ctx, "Playing next", Toast.LENGTH_SHORT).show() }
+                                else if (dx < -limit) { vm.toggleFav(t.id); haptic.performHapticFeedback(HapticFeedbackType.LongPress); Toast.makeText(ctx, if (liked) "Removed from Liked songs" else "Added to Liked songs", Toast.LENGTH_SHORT).show() }
+                                dx = 0f
+                            },
+                            onDragCancel = { dx = 0f },
+                            onHorizontalDrag = { change, d -> change.consume(); dx = (dx + d).coerceIn(-limit * 1.3f, limit * 1.3f) },
+                        )
+                    } else Modifier
+                )
+                .combinedClickable(
+                    onClick = { if (selecting) vm.toggleSelect(t.id) else onClick() },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (selecting) vm.toggleSelect(t.id) else menu = true
+                    },
+                )
+                .padding(start = if (current || picked) 12.dp else 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (selecting) {
+                Icon(
+                    if (picked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, if (picked) "Selected" else "Not selected",
+                    tint = if (picked) Milo.amber else Milo.dim, modifier = Modifier.padding(end = 12.dp).size(24.dp),
+                )
+            }
             Cover(vm, t, 52.dp, 12.dp, px = 160)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
@@ -73,7 +130,10 @@ fun TrackRow(
                 )
             }
             Text(fmtTime(t.durationMs), color = Milo.dim, fontSize = 12.sp)
-            Box {
+            if (handle != null) {
+                Icon(Icons.Rounded.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
+            }
+            if (!selecting) Box {
                 IconButton(onClick = { menu = true }) {
                     Icon(Icons.Rounded.MoreHoriz, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
                 }
@@ -82,6 +142,7 @@ fun TrackRow(
                     DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menu = false; vm.player.addToQueue(t) })
                     DropdownMenuItem(text = { Text(if (liked) "Remove from Liked songs" else "Add to Liked songs") }, onClick = { menu = false; vm.toggleFav(t.id) })
                     DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { menu = false; actions.addToPlaylist(t) })
+                    DropdownMenuItem(text = { Text("Select multiple") }, onClick = { menu = false; vm.toggleSelect(t.id) })
                     DropdownMenuItem(text = { Text("Share") }, onClick = { menu = false; actions.share(t) })
                     extra.forEach { a -> DropdownMenuItem(text = { Text(a.label) }, onClick = { menu = false; a.run() }) }
                 }

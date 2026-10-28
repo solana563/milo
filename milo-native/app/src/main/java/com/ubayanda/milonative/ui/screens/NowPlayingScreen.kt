@@ -64,6 +64,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import com.ubayanda.milonative.ui.components.ReorderState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -131,7 +135,16 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         Column(Modifier.fillMaxSize()) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp)).background(Milo.card2).pointerInput(Unit) {
+                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp)).background(Milo.card2).pointerInput("swipe-skip") {
+                    // swipe the art sideways: left = next song, right = previous
+                    var hx = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { hx = 0f },
+                        onHorizontalDrag = { _, d -> hx += d },
+                        onDragEnd = { if (hx < -160f) vm.player.next() else if (hx > 160f) vm.player.previous(); hx = 0f },
+                        onDragCancel = { hx = 0f },
+                    )
+                }.pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onVerticalDrag = { _, dy -> drag += dy },
                         onDragEnd = { if (drag > 220f) onClose(); drag = 0f },
@@ -242,11 +255,35 @@ private fun Sheet(frac: Float, backdrop: Bitmap?, onClose: () -> Unit, content: 
 
 @Composable
 private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
-    val items = ui.queueIds.mapNotNull { vm.trackById(it) }
-    Text("Up next", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(20.dp))
-    LazyColumn {
-        itemsIndexed(items, key = { i, t -> "q$i-${t.id}" }) { i, t ->
-            TrackRow(vm, t, i == ui.queueIndex, Milo.amber, listOf(RowAction("Remove from queue") { vm.player.removeFromQueue(i) })) { vm.player.playQueueIndex(i) }
+    val listState = rememberLazyListState()
+    var local by remember(ui.queueIds) { mutableStateOf(ui.queueIds.mapNotNull { vm.trackById(it) }) }
+    // same song twice in the queue still needs distinct keys
+    val keys = remember(local) {
+        val seen = HashMap<Long, Int>()
+        local.map { t -> val n = seen.getOrDefault(t.id, 0); seen[t.id] = n + 1; "q${t.id}#$n" }
+    }
+    val reorder = remember(listState) {
+        ReorderState(
+            listState, 1,
+            { f, t -> local = local.toMutableList().also { it.add(t, it.removeAt(f)) } },
+            { f, t -> vm.player.moveInQueue(f, t) },
+        )
+    }
+    LazyColumn(state = listState) {
+        item { Text("Up next", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(20.dp)) }
+        itemsIndexed(local, key = { i, _ -> keys.getOrElse(i) { "q$i" } }) { i, t ->
+            val key = keys.getOrElse(i) { "q$i" }
+            val idx by rememberUpdatedState(i)
+            val dragging = reorder.isDragging(key)
+            Box(
+                if (dragging) Modifier.zIndex(1f).graphicsLayer { translationY = reorder.offset }
+                else Modifier.animateItem()
+            ) {
+                TrackRow(
+                    vm, t, t.id == ui.currentId, Milo.amber, listOf(RowAction("Remove from queue") { vm.player.removeFromQueue(i) }),
+                    handle = reorder.handle({ idx }, key),
+                ) { vm.player.playQueueIndex(i) }
+            }
         }
     }
 }

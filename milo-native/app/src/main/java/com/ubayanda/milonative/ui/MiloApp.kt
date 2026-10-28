@@ -148,6 +148,10 @@ fun MiloApp(vm: MainViewModel) {
         )
     }
 
+    val selection by vm.selection.collectAsState()
+    var pickMany by remember { mutableStateOf(false) }
+    var newMany by remember { mutableStateOf(false) }
+    BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
     BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
     BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
 
@@ -196,6 +200,7 @@ fun MiloApp(vm: MainViewModel) {
                                 DetailScreen(
                                     vm, p.name, "Playlist", list, ui, bottomPad, { detail = null },
                                     headerAction = "Rename" to { renaming = true },
+                                    onMove = { f, t -> vm.movePlaylistItem(p.id, f, t) },
                                     rowExtra = { t -> listOf(RowAction("Remove from this playlist") { vm.removeFromPlaylist(p.id, t.id) }) },
                                 )
                                 if (renaming) NameDialog("Rename playlist", p.name, "Save", { n -> vm.renamePlaylist(p.id, n); renaming = false }, { renaming = false })
@@ -227,7 +232,16 @@ fun MiloApp(vm: MainViewModel) {
             }
 
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) {
-                if (current != null && tab != Tab.Home && detail == null) {
+                if (selection.isNotEmpty()) {
+                    val chosen = selection.mapNotNull { byId[it] }
+                    com.ubayanda.milonative.ui.components.SelectionBar(
+                        selection.size, onClose = { vm.clearSelection() },
+                        onPlayNext = { vm.player.playNextMany(chosen); vm.clearSelection() },
+                        onQueue = { vm.player.addManyToQueue(chosen); vm.clearSelection() },
+                        onLike = { vm.likeMany(selection.toList()); vm.clearSelection() },
+                        onPlaylist = { pickMany = true },
+                    )
+                } else if (current != null && tab != Tab.Home && detail == null) {
                     NowPlayingPill({ playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
@@ -259,6 +273,17 @@ fun MiloApp(vm: MainViewModel) {
                 onNew = { newFor = t; pickFor = null },
                 onDismiss = { pickFor = null },
             )
+        }
+        if (pickMany) {
+            PlaylistPicker(
+                playlists,
+                onPick = { p -> vm.addManyToPlaylist(p.id, selection.toList()); pickMany = false; vm.clearSelection() },
+                onNew = { newMany = true; pickMany = false },
+                onDismiss = { pickMany = false },
+            )
+        }
+        if (newMany) {
+            NameDialog("New playlist", "", "Create", { n -> vm.createPlaylistWith(n, selection.toList()); newMany = false; vm.clearSelection() }, { newMany = false })
         }
         newFor?.let { t ->
             NameDialog("New playlist", "", "Create", { n -> vm.createPlaylist(n, t.id); newFor = null }, { newFor = null })

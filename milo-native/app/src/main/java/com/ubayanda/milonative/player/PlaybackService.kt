@@ -31,6 +31,10 @@ class PlaybackService : MediaSessionService() {
         session = MediaSession.Builder(this, player).build()
         AudioFx.attach(this, player.audioSessionId)
         player.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // dead stream: drop it right here so the session never carries a broken timeline
+                player.stop(); player.clearMediaItems()
+            }
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 AudioFx.attach(this@PlaybackService, audioSessionId)
             }

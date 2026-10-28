@@ -30,6 +30,22 @@ class DiscoverRepo {
         }
     }
 
+    /** Quick check that a stream answers with audio before it is queued; a dead one would otherwise upset the player. */
+    suspend fun reachable(url: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url(url).header("User-Agent", "milo-native/1.0").header("Icy-MetaData", "0").build()
+            http.newCall(req).execute().use { r ->
+                if (!r.isSuccessful) return@use false
+                val type = r.header("Content-Type").orEmpty().lowercase()
+                !type.startsWith("text/html")
+            }
+        } catch (e: java.net.ProtocolException) {
+            true // Shoutcast servers answer "ICY 200 OK", which OkHttp rejects but the player accepts
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     /** Stable, unique id for an online item: negative so it never clashes with a MediaStore id. */
     private fun idOf(key: String): Long = -(1L + (key.hashCode().toLong() and 0x7fffffffL))
     private fun albumKey(id: Long): Long = 4_000_000_000_000L + (-id)
