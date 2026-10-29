@@ -1,5 +1,20 @@
 package com.ubayanda.milonative.ui.screens
 
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.graphics.asImageBitmap
+import com.ubayanda.milonative.data.ChatMedia
+import com.ubayanda.milonative.data.ChatMsg
+import com.ubayanda.milonative.data.VoicePlayer
+import com.ubayanda.milonative.data.VoiceRecorder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -198,19 +213,49 @@ private fun PersonRow(f: Friend, sub: String, dot: Boolean, onClick: (() -> Unit
     }
 }
 
+private val REACTIONS = listOf("❤️", "😂", "😮", "😢", "👍", "🔥")
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ChatScreen(vm: MainViewModel, f: Friend, onBack: () -> Unit) {
     val msgs by vm.social.msgs.collectAsState()
     val s by vm.social.ui.collectAsState()
     val ui by vm.player.state.collectAsState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var text by remember { mutableStateOf("") }
+    var replyTo by remember { mutableStateOf<ChatMsg?>(null) }
+    var menuFor by remember { mutableStateOf<ChatMsg?>(null) }
+    var viewing by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var recording by remember { mutableStateOf(false) }
+    val recorder = remember { VoiceRecorder(ctx) }
     val list = rememberLazyListState()
     LaunchedEffect(f.id) { vm.social.openChat(f) }
-    androidx.compose.runtime.DisposableEffect(f.id) { onDispose { vm.social.closeChat() } }
+    androidx.compose.runtime.DisposableEffect(f.id) { onDispose { vm.social.closeChat(); VoicePlayer.stop(); recorder.cancel() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) list.scrollToItem(msgs.size - 1) }
     val current = vm.trackById(ui.currentId)
+    val me = vm.social.me
 
-    fun go() { if (text.isNotBlank()) { vm.social.send(f.id, "text", text.trim()); text = "" } }
+    fun go() { if (text.isNotBlank()) { vm.social.send(f.id, "text", text.trim(), replyTo?.id); text = ""; replyTo = null } }
+    fun finishVoice() {
+        recording = false
+        val d = recorder.finish()
+        if (d == null) android.widget.Toast.makeText(ctx, "Voice note too short or too long.", android.widget.Toast.LENGTH_SHORT).show()
+        else { vm.social.send(f.id, "voice", d, replyTo?.id); replyTo = null }
+    }
+
+    val photo = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch {
+            val d = withContext(Dispatchers.IO) { ChatMedia.photoToData(ctx, uri) }
+            if (d == null) android.widget.Toast.makeText(ctx, "Couldn't use that photo.", android.widget.Toast.LENGTH_SHORT).show()
+            else { vm.social.send(f.id, "img", d, replyTo?.id); replyTo = null }
+        }
+    }
+    val mic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) recording = recorder.start() else android.widget.Toast.makeText(ctx, "Allow the microphone to send voice notes.", android.widget.Toast.LENGTH_SHORT).show()
+    }
+    LaunchedEffect(recording) { if (recording) { delay(45_000); if (recording) finishVoice() } }
+    var tick by remember { mutableIntStateOf(0) }
 
     Column(Modifier.fillMaxSize().background(Milo.panel).imePadding()) {
         TopBar(f.name, onBack)
@@ -220,10 +265,52 @@ fun ChatScreen(vm: MainViewModel, f: Friend, onBack: () -> Unit) {
             items(msgs, key = { it.id }) { m ->
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
                     val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = if (m.mine) 20.dp else 6.dp, bottomEnd = if (m.mine) 6.dp else 20.dp)
-                    Text(
-                        m.shown, color = if (m.mine) Color.Black else Milo.text, fontSize = 16.sp,
-                        modifier = Modifier.widthIn(max = 290.dp).clip(shape).background(if (m.mine) Milo.amber else Milo.card2, shape).padding(horizontal = 14.dp, vertical = 10.dp),
-                    )
+                    val fg = if (m.mine) Color.Black else Milo.text
+                    Column(
+                        Modifier.widthIn(max = 290.dp).clip(shape).background(if (m.mine) Milo.amber else Milo.card2, shape)
+                            .combinedClickable(onClick = {}, onLongClick = { menuFor = m })
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        val q = m.replyTo?.let { id -> msgs.firstOrNull { it.id == id } }
+                        if (m.replyTo != null) {
+                            Text(
+                                if (q != null) (if (q.mine) "You: " else "") + q.shown else "Message expired",
+                                color = fg.copy(alpha = 0.7f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(bottom = 6.dp).clip(RoundedCornerShape(8.dp)).background(fg.copy(alpha = 0.1f)).padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                        when (m.kind) {
+                            "img" -> {
+                                val bmp by androidx.compose.runtime.produceState<android.graphics.Bitmap?>(null, m.id) { value = withContext(Dispatchers.Default) { ChatMedia.photoBitmap(m.body) } }
+                                val b = bmp
+                                if (b != null) androidx.compose.foundation.Image(
+                                    b.asImageBitmap(), "Photo", Modifier.widthIn(max = 250.dp).clip(RoundedCornerShape(14.dp)).clickable { viewing = b },
+                                    contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                                ) else Text("📷 Loading photo...", color = fg, fontSize = 15.sp)
+                            }
+                            "voice" -> {
+                                val playing = tick >= 0 && VoicePlayer.playingId == m.id
+                                Row(Modifier.clickable { VoicePlayer.toggle(ctx, m.id, m.body) { tick++ } }, verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(if (playing) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, if (playing) "Stop" else "Play", tint = fg, modifier = Modifier.size(30.dp))
+                                    Text("Voice message", color = fg, fontSize = 16.sp, modifier = Modifier.padding(start = 6.dp))
+                                }
+                            }
+                            else -> Text(m.shown, color = fg, fontSize = 16.sp)
+                        }
+                    }
+                    if (m.rx.isNotEmpty()) {
+                        val grouped = m.rx.values.groupingBy { it }.eachCount()
+                        Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            grouped.forEach { (e, n) ->
+                                val mineRx = m.rx[me] == e
+                                Text(
+                                    if (n > 1) "$e $n" else e, fontSize = 13.sp, color = Milo.text,
+                                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (mineRx) Milo.amber.copy(alpha = 0.35f) else Milo.card2)
+                                        .clickable { vm.social.react(f.id, m, e) }.padding(horizontal = 8.dp, vertical = 3.dp),
+                                )
+                            }
+                        }
+                    }
                     Text(
                         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(m.at)) + if (m.mine && m.read) " · Seen" else "",
                         color = Milo.dim, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -232,16 +319,76 @@ fun ChatScreen(vm: MainViewModel, f: Friend, onBack: () -> Unit) {
             }
         }
         if (s.err.isNotEmpty()) Text(s.err, color = Color(0xFFFF8A80), fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (current != null) {
-                IconButton(onClick = {
-                    vm.social.send(f.id, "song", JSONObject().put("t", current.title).put("a", current.artist).put("al", current.album).toString())
-                }) { Icon(Icons.Rounded.MusicNote, "Share what's playing", tint = Milo.amber) }
+        replyTo?.let { r ->
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(14.dp)).background(Milo.card2).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Replying to " + r.shown, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                IconButton(onClick = { replyTo = null }) { Icon(Icons.Rounded.Close, "Cancel reply", tint = Milo.dim) }
             }
-            Field(text, { text = it; vm.social.clearErr() }, "Message", Modifier.weight(1f), ImeAction.Send) { go() }
-            Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { go() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Send, "Send", tint = Color.Black, modifier = Modifier.size(22.dp))
+        }
+        if (recording) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = { recorder.cancel(); recording = false }) { Icon(Icons.Rounded.Close, "Cancel", tint = Milo.dim) }
+                Text("● Recording... tap send when done", color = Color(0xFFFF8A80), fontSize = 15.sp, modifier = Modifier.weight(1f))
+                Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { finishVoice() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Send, "Send voice note", tint = Color.Black, modifier = Modifier.size(22.dp))
+                }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = { photo.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+                    Icon(Icons.Rounded.Image, "Send a photo", tint = Milo.amber)
+                }
+                if (current != null) {
+                    IconButton(onClick = {
+                        vm.social.send(f.id, "song", JSONObject().put("t", current.title).put("a", current.artist).put("al", current.album).toString(), replyTo?.id); replyTo = null
+                    }) { Icon(Icons.Rounded.MusicNote, "Share what's playing", tint = Milo.amber) }
+                }
+                Field(text, { text = it; vm.social.clearErr() }, "Message", Modifier.weight(1f), ImeAction.Send) { go() }
+                if (text.isBlank()) {
+                    Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.card2).clickable {
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) recording = recorder.start()
+                        else mic.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Mic, "Record a voice note", tint = Milo.amber, modifier = Modifier.size(22.dp)) }
+                } else {
+                    Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { go() }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Send, "Send", tint = Color.Black, modifier = Modifier.size(22.dp))
+                    }
+                }
             }
         }
     }
+
+    menuFor?.let { m ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = { menuFor = null }) {
+            Column(Modifier.clip(RoundedCornerShape(24.dp)).background(Milo.card).padding(16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    REACTIONS.forEach { e ->
+                        Text(e, fontSize = 26.sp, modifier = Modifier.clip(CircleShape).background(if (m.rx[me] == e) Milo.amber.copy(alpha = 0.35f) else Color.Transparent)
+                            .clickable { vm.social.react(f.id, m, e); menuFor = null }.padding(6.dp))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                MenuLine("Reply") { replyTo = m; menuFor = null }
+                if (m.kind == "text") MenuLine("Copy") {
+                    (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("message", m.body))
+                    menuFor = null
+                }
+                if (m.mine) MenuLine("Unsend", danger = true) { vm.social.unsend(f.id, m); menuFor = null }
+            }
+        }
+    }
+    viewing?.let { b ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = { viewing = null }) {
+            androidx.compose.foundation.Image(b.asImageBitmap(), "Photo", Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { viewing = null }, contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+        }
+    }
+}
+
+@Composable
+private fun MenuLine(label: String, danger: Boolean = false, onClick: () -> Unit) {
+    Text(
+        label, color = if (danger) Color(0xFFFF8A80) else Milo.text, fontSize = 16.sp,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 12.dp),
+    )
 }

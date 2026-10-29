@@ -15,7 +15,7 @@ class CloudError(val status: Int, message: String) : Exception(message)
 
 data class CloudSession(val accessToken: String, val refreshToken: String, val expiresAt: Long, val userId: String, val email: String)
 
-data class CloudProfile(val id: String, val username: String, val name: String, val termsV: Int)
+data class CloudProfile(val id: String, val username: String, val name: String, val termsV: Int, val avatar: String = "", val cover: String = "")
 
 /**
  * Talks to the same Supabase project as the web milo., so one account works in both.
@@ -137,7 +137,12 @@ class CloudApi(context: Context) {
         return try {
             val arr = JSONArray(request("/rest/v1/profiles?select=*&id=eq.${s.userId}"))
             if (arr.length() == 0) null else arr.getJSONObject(0).let {
-                CloudProfile(s.userId, it.optString("username"), it.optString("name"), it.optInt("terms_v", 0))
+                val av = it.optJSONObject("av")
+                CloudProfile(
+                    s.userId, it.optString("username"), it.optString("name"), it.optInt("terms_v", 0),
+                    if (av != null && av.optString("t") == "img") av.optString("u") else "",
+                    if (it.isNull("cover")) "" else it.optString("cover"),
+                )
             }
         } catch (e: CloudError) {
             null
@@ -159,6 +164,20 @@ class CloudApi(context: Context) {
             "/rest/v1/profiles?id=eq.${s.userId}", "PATCH", JSONObject().put("name", name).put("username", username),
             headers = mapOf("Prefer" to "return=minimal"),
         )
+    }
+
+    /** Profile picture, in the same shape the web milo. uses ({"t":"img","u":data}); null puts the plain colour back. */
+    suspend fun setAvatar(data: String?) {
+        val s = session ?: return
+        if (!fresh()) throw CloudError(401, "Please log in again first.")
+        val av = if (data != null) JSONObject().put("t", "img").put("u", data) else JSONObject().put("t", "color").put("c", "249,156,0")
+        request("/rest/v1/profiles?id=eq.${s.userId}", "PATCH", JSONObject().put("av", av), headers = mapOf("Prefer" to "return=minimal"))
+    }
+
+    suspend fun setCover(data: String?) {
+        val s = session ?: return
+        if (!fresh()) throw CloudError(401, "Please log in again first.")
+        request("/rest/v1/profiles?id=eq.${s.userId}", "PATCH", JSONObject().put("cover", data ?: JSONObject.NULL), headers = mapOf("Prefer" to "return=minimal"))
     }
 
     suspend fun agreeTerms() {

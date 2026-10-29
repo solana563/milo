@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
@@ -109,6 +110,8 @@ private enum class Panel { None, Queue, Sound, Lyrics }
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
+    var castOpen by remember { mutableStateOf(false) }
+    if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
     val cover = rememberCover(vm, t, 1000).value
     val soft = rememberSoft(vm, t).value
 
@@ -165,6 +168,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     RoundBtn(Icons.Rounded.QueueMusic, "Queue") { panel = Panel.Queue }
                     RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White) { vm.toggleFav(t.id) }
                     RoundBtn(Icons.Rounded.Tune, "Sound") { panel = Panel.Sound }
+                    RoundBtn(Icons.Rounded.Cast, "Cast") { castOpen = true }
                     MoreMenu(vm, t, ui)
                 }
 
@@ -301,6 +305,17 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
                 MiloChip(if (s == 1f) "Normal" else "${s}x", ui.speed == s) { vm.player.setSpeed(s) }
             }
         }
+
+        Label("Crossfade")
+        var xf by remember { mutableStateOf(vm.player.crossfade().toFloat()) }
+        Text(
+            if (xf < 1f) "Off. Songs play gaplessly back to back." else "${xf.roundToInt()} s: the song fades out and the next one fades in.",
+            color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        Slider(
+            value = xf, onValueChange = { xf = it; vm.player.setCrossfade(it.roundToInt()) }, valueRange = 0f..12f, steps = 11,
+            colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
+        )
 
         Label("Equaliser")
         if (!fx.available) {

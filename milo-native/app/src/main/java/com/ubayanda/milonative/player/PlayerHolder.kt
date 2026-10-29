@@ -101,6 +101,18 @@ class PlayerHolder(context: Context) {
         c.play()
     }
 
+    /** Crossfade length in seconds (0 = off). The service reads the same setting. */
+    fun crossfade(): Int = app.getSharedPreferences("milo_fx", Context.MODE_PRIVATE).getInt("xfade", 0)
+    fun setCrossfade(sec: Int) { app.getSharedPreferences("milo_fx", Context.MODE_PRIVATE).edit().putInt("xfade", sec.coerceIn(0, 12)).apply() }
+
+    /** Put the previous session's queue back, paused, at the place it was left. Does nothing if something is already queued. */
+    fun restore(tracks: List<Track>, index: Int, posMs: Long) = withController { c ->
+        if (c.mediaItemCount == 0 && tracks.isNotEmpty()) {
+            c.setMediaItems(tracks.map { item(it) }, index.coerceIn(0, tracks.size - 1), posMs.coerceAtLeast(0L))
+            c.prepare()
+        }
+    }
+
     fun playNextMany(list: List<Track>) = withController { c ->
         if (list.isEmpty()) return@withController
         if (c.mediaItemCount == 0) { c.setMediaItems(list.map { item(it) }); c.prepare(); c.play() }

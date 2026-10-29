@@ -17,7 +17,10 @@ import java.time.temporal.ChronoUnit
 /** "friend" = accepted, "incoming" = they asked you, "outgoing" = you asked them. */
 data class Friend(val id: String, val username: String, val name: String, val status: String)
 
-data class ChatMsg(val id: Long, val mine: Boolean, val kind: String, val body: String, val at: Long, val read: Boolean) {
+data class ChatMsg(
+    val id: Long, val mine: Boolean, val kind: String, val body: String, val at: Long, val read: Boolean,
+    val replyTo: Long? = null, val rx: Map<String, String> = emptyMap(),
+) {
     /** What to show: text as is, a shared song as "♪ title · artist". */
     val shown: String
         get() = when (kind) {
@@ -26,8 +29,8 @@ data class ChatMsg(val id: Long, val mine: Boolean, val kind: String, val body: 
                 val o = JSONObject(body)
                 "♪ " + o.optString("t", "Song") + o.optString("a").let { if (it.isNotEmpty()) " · $it" else "" }
             } catch (e: Exception) { "♪ Song" }
-            "img" -> "📷 Photo (open it in the web app)"
-            "voice" -> "🎤 Voice note (open it in the web app)"
+            "img" -> "📷 Photo"
+            "voice" -> "🎤 Voice message"
             else -> body
         }
 }
@@ -54,7 +57,7 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
     private var poll: Job? = null
     private var chatWith: String? = null
 
-    private val me get() = cloud.session?.userId.orEmpty()
+    val me get() = cloud.session?.userId.orEmpty()
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
     private fun chatId(f: String) = if (me < f) "$me:$f" else "$f:$me"
     private fun dayAgo() = enc(Instant.now().minus(24, ChronoUnit.HOURS).toString())
@@ -170,7 +173,7 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
         try {
             if (!cloud.fresh()) return
             val r = JSONArray(
-                cloud.request("/rest/v1/messages?select=id,sender,rcpt,kind,body,created_at,read_at&chat=eq.${enc(chatId(fid))}&created_at=gt.${dayAgo()}&order=created_at.asc&limit=300")
+                cloud.request("/rest/v1/messages?select=id,sender,rcpt,kind,body,created_at,read_at,reply_to,rx&chat=eq.${enc(chatId(fid))}&created_at=gt.${dayAgo()}&order=created_at.asc&limit=300")
             )
             val out = ArrayList<ChatMsg>()
             var unreadFromThem = false
@@ -179,7 +182,11 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
                 val mine = o.getString("sender") == me
                 val read = !o.isNull("read_at")
                 if (!mine && !read) unreadFromThem = true
-                out.add(ChatMsg(o.getLong("id"), mine, o.optString("kind"), o.optString("body"), ms(o.optString("created_at")), read))
+                val rxo = o.optJSONObject("rx")
+                val rx = HashMap<String, String>()
+                rxo?.keys()?.forEach { k -> rx[k] = rxo.optString(k) }
+                val rt = if (o.isNull("reply_to")) null else o.optLong("reply_to")
+                out.add(ChatMsg(o.getLong("id"), mine, o.optString("kind"), o.optString("body"), ms(o.optString("created_at")), read, rt, rx))
             }
             if (chatWith == fid) _msgs.value = out
             if (unreadFromThem) {
@@ -194,11 +201,40 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
         } catch (_: Exception) { /* a missed check is fine, the next one retries */ }
     }
 
-    fun send(fid: String, kind: String, body: String) {
+    /** Add, change or remove your own emoji on a message (tap the same one again to remove it). */
+    fun react(fid: String, m: ChatMsg, emoji: String) {
+        val mine = me
+        val rx = HashMap(m.rx)
+        if (rx[mine] == emoji) rx.remove(mine) else rx[mine] = emoji
+        _msgs.value = _msgs.value.map { if (it.id == m.id) it.copy(rx = rx) else it }
+        scope.launch {
+            try {
+                val o = JSONObject(); rx.forEach { (k, v) -> o.put(k, v) }
+                cloud.request("/rest/v1/messages?id=eq.${m.id}", "PATCH", JSONObject().put("rx", o), headers = mapOf("Prefer" to "return=minimal"))
+            } catch (e: Exception) {
+                _ui.value = _ui.value.copy(err = "Couldn't react.")
+                loadChat(fid)
+            }
+        }
+    }
+
+    /** Take back a message you sent. */
+    fun unsend(fid: String, m: ChatMsg) {
+        _msgs.value = _msgs.value.filterNot { it.id == m.id }
+        scope.launch {
+            try { cloud.request("/rest/v1/messages?id=eq.${m.id}", "DELETE", headers = mapOf("Prefer" to "return=minimal")) }
+            catch (e: Exception) { _ui.value = _ui.value.copy(err = "Couldn't unsend.") }
+            loadChat(fid)
+        }
+    }
+
+    fun send(fid: String, kind: String, body: String, replyTo: Long? = null) {
         if (body.isBlank()) return
         scope.launch {
             try {
-                cloud.request("/rest/v1/messages", "POST", JSONObject().put("rcpt", fid).put("kind", kind).put("body", body), headers = mapOf("Prefer" to "return=minimal"))
+                val b = JSONObject().put("rcpt", fid).put("kind", kind).put("body", body)
+                if (replyTo != null) b.put("reply_to", replyTo)
+                cloud.request("/rest/v1/messages", "POST", b, headers = mapOf("Prefer" to "return=minimal"))
                 loadChat(fid)
             } catch (e: Exception) {
                 val m = e.message.orEmpty()

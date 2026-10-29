@@ -7,6 +7,13 @@ import java.io.File
 class MiloApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        try {
+            androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "milo_chat_check", androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                androidx.work.PeriodicWorkRequestBuilder<com.ubayanda.milonative.data.ChatNotifyWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+                    .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build()).build(),
+            )
+        } catch (_: Throwable) {}
         val old = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             try {

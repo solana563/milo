@@ -2,6 +2,9 @@ package com.ubayanda.milonative.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.ui.graphics.asImageBitmap
+import com.ubayanda.milonative.data.ChatMedia
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,13 +55,21 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         val tint = vm.tint.collectAsState().value
         val base = if (tint == 0) Milo.card2 else lerp(Color(tint), Color.Black, 0.45f)
         val cardBrush = Brush.linearGradient(listOf(base, lerp(base, Color.Black, 0.55f), Milo.card))
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(cardBrush, shape).border(1.dp, Milo.line, shape).padding(22.dp),
-        ) {
+        val coverBmp = remember(a.cover) { if (a.cover.isEmpty()) null else ChatMedia.photoBitmap(a.cover) }
+        val avatarBmp = remember(a.avatar) { if (a.avatar.isEmpty()) null else ChatMedia.photoBitmap(a.avatar) }
+        Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(cardBrush, shape).border(1.dp, Milo.line, shape)) {
+        if (coverBmp != null) {
+            androidx.compose.foundation.Image(coverBmp.asImageBitmap(), null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Black.copy(alpha = 0.8f)))))
+        }
+        Column(Modifier.padding(22.dp)) {
             Box(
                 Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))),
                 contentAlignment = Alignment.Center,
-            ) { Text((a.username.firstOrNull() ?: 'G').uppercaseChar().toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.SemiBold) }
+            ) {
+                if (avatarBmp != null) androidx.compose.foundation.Image(avatarBmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                else Text((a.username.firstOrNull() ?: 'G').uppercaseChar().toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
+            }
             Spacer(Modifier.height(22.dp))
             Text(if (a.signedIn) a.username else "Guest", color = Milo.text, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 38.sp)
             Text(
@@ -86,6 +97,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
                 }
             }
         }
+        }
         if (a.signedIn && syncMsg.isNotEmpty()) Text(syncMsg, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 10.dp))
         Spacer(Modifier.height(16.dp))
         ServerCard(vm)
@@ -107,6 +119,29 @@ private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Un
     var user by remember { mutableStateOf(a.username) }
     var err by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var forCover by remember { mutableStateOf(false) }
+    fun setPhoto(cover: Boolean, data: String?) {
+        busy = true; err = ""
+        vm.setPhoto(cover, data) { e -> busy = false; if (e != null) err = e }
+    }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            val cover = forCover
+            busy = true; err = ""
+            scope.launch {
+                val d = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    if (cover) ChatMedia.cropToData(ctx, uri, 640, 360, 68_000) else ChatMedia.cropToData(ctx, uri, 256, 256, 58_000)
+                }
+                if (d == null) { busy = false; err = "Couldn't use that photo." } else setPhoto(cover, d)
+            }
+        }
+    }
+    fun pick(cover: Boolean) {
+        forCover = cover
+        picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!busy) onClose() },
         containerColor = Milo.card, titleContentColor = Milo.text, textContentColor = Milo.text,
@@ -116,6 +151,10 @@ private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Un
                 ServerField(name, "Display name", false) { name = it }
                 Spacer(Modifier.height(10.dp))
                 ServerField(user, "Username", false) { user = it }
+                Spacer(Modifier.height(14.dp))
+                PhotoRow("Profile picture", a.avatar.isNotEmpty(), { pick(false) }) { setPhoto(false, null) }
+                Spacer(Modifier.height(8.dp))
+                PhotoRow("Cover photo", a.cover.isNotEmpty(), { pick(true) }) { setPhoto(true, null) }
                 if (err.isNotEmpty()) Text(err, color = Color(0xFFFF8A80), fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
             }
         },
@@ -128,6 +167,15 @@ private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Un
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onClose() }) { Text("Cancel", color = Milo.dim) } },
     )
+}
+
+@Composable
+private fun PhotoRow(label: String, has: Boolean, onChange: () -> Unit, onRemove: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Milo.text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text("Change", color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onChange).padding(8.dp))
+        if (has) Text("Remove", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onRemove).padding(8.dp))
+    }
 }
 
 @Composable

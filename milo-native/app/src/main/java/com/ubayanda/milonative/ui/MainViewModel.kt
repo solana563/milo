@@ -47,6 +47,8 @@ data class AccountUi(
     val err: String = "",
     val busy: Boolean = false,
     val name: String = "",
+    val avatar: String = "",
+    val cover: String = "",
 )
 
 private val UN_RE = Regex("^[a-z0-9_]{3,20}$")
@@ -86,7 +88,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             pr == null -> setAcct { it.copy(signedIn = true, email = email, step = "claim", busy = false, err = "") }
             pr.termsV < CloudApi.TERMS_V -> setAcct { it.copy(signedIn = true, username = pr.username, email = email, step = "terms", busy = false, err = "") }
             else -> {
-                seen(); setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, step = "", busy = false, err = "") }
+                seen(); setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, avatar = pr.avatar, cover = pr.cover, step = "", busy = false, err = "") }
                 syncNow()
             }
         }
@@ -102,6 +104,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 if (un != _account.value.username && !cloud.usernameFree(un)) throw CloudError(0, "That username is taken. Try another.")
                 cloud.updateProfile(nm, un)
                 setAcct { it.copy(username = un, name = nm) }
+                done(null)
+            } catch (x: Exception) { done(cloud.friendly(x)) }
+        }
+    }
+
+    /** Set (or clear, with null) the profile picture or cover photo. [done] gets null or a message. */
+    fun setPhoto(cover: Boolean, data: String?, done: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (cover) { cloud.setCover(data); setAcct { it.copy(cover = data.orEmpty()) } }
+                else { cloud.setAvatar(data); setAcct { it.copy(avatar = data.orEmpty()) } }
                 done(null)
             } catch (x: Exception) { done(cloud.friendly(x)) }
         }
@@ -406,6 +419,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (started) return
         started = true
         player.connect()
+        restoreLast()
+        viewModelScope.launch { saveLoop() }
         scan()
         val o = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -423,6 +438,42 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val t = trackById(id)
                 if (t != null) computeColours(t) else _tint.value = 0
             }
+        }
+    }
+
+    // ---- remember what was playing ----
+    private val lastPrefs = app.getSharedPreferences("milo_last", Context.MODE_PRIVATE)
+
+    private fun restoreLast() {
+        try {
+            val arr = JSONArray(lastPrefs.getString("queue", "[]"))
+            if (arr.length() == 0) return
+            val list = (0 until arr.length()).map { SavedStore.fromJson(arr.getJSONObject(it)) }
+            val idx = lastPrefs.getInt("index", 0).coerceIn(0, list.size - 1)
+            val cur = list[idx]
+            if (cur.durationMs == 0L && cur.uri.startsWith("http")) return // a live station: don't start it on its own
+            _remote.value = _remote.value + list.associateBy { it.id }
+            player.restore(list, idx, lastPrefs.getLong("pos", 0L))
+        } catch (_: Exception) {}
+    }
+
+    private suspend fun saveLoop() {
+        var lastIds: List<Long> = emptyList()
+        while (true) {
+            delay(3000)
+            val st = player.state.value
+            val cid = st.currentId ?: continue
+            if (st.queueIds != lastIds) {
+                val list = st.queueIds.mapNotNull { trackById(it) }
+                if (list.isEmpty()) continue
+                val arr = JSONArray()
+                list.forEach { arr.put(SavedStore.toJson(it)) }
+                lastPrefs.edit().putString("queue", arr.toString()).apply()
+                lastIds = st.queueIds
+            }
+            val order = lastIds.mapNotNull { trackById(it) }
+            val idx = order.indexOfFirst { it.id == cid }.coerceAtLeast(0)
+            lastPrefs.edit().putInt("index", idx).putLong("pos", st.positionMs).apply()
         }
     }
 
