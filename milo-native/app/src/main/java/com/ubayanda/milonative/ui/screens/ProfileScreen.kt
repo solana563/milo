@@ -2,7 +2,6 @@ package com.ubayanda.milonative.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.ui.graphics.asImageBitmap
 import com.ubayanda.milonative.data.ChatMedia
 import androidx.compose.foundation.clickable
