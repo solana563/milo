@@ -52,7 +52,7 @@ fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 
     Box(modifier.size(size).clip(shape).background(Milo.card2), contentAlignment = Alignment.Center) {
         val b = bmp
         if (b != null) {
-            Image(b.asImageBitmap(), null, Modifier.size(size), contentScale = ContentScale.Crop)
+            Image(remember(b) { b.asImageBitmap() }, null, Modifier.size(size), contentScale = ContentScale.Crop)
         } else {
             Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.size(size / 2))
         }

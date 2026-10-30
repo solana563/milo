@@ -113,7 +113,7 @@ fun DetailScreen(
             Spacer(Modifier.height(8.dp))
             if (tracks.isEmpty()) EmptyNote("Nothing here yet", "Use the ⋮ menu on any song to add it.")
         }
-        itemsIndexed(local, key = { _, t -> "d" + t.id }) { i, t ->
+        itemsIndexed(local, key = { _, t -> "d" + t.id }, contentType = { _, _ -> "track" }) { i, t ->
             val key = "d" + t.id
             val idx by rememberUpdatedState(i)
             val dragging = reorder?.isDragging(key) == true

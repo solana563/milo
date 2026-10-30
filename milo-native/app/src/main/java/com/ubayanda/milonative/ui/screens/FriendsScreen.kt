@@ -26,7 +26,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import com.ubayanda.milonative.data.SharedPlaylist
+import com.ubayanda.milonative.data.SharedSong
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -178,11 +181,26 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
             }
             items(fr, key = { "f" + it.id }) { f ->
                 var menu by remember { mutableStateOf(false) }
-                PersonRow(f, if (f.id in s.unread) "New message" else "Tap to chat", f.id in s.unread, onClick = { onChat(f) }) {
+                var showPl by remember { mutableStateOf(false) }
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val sh = s.shared[f.id]
+                val now = sh?.now
+                val sub = when {
+                    f.id in s.unread -> "New message"
+                    now != null -> "♪ " + now.title + if (now.artist.isNotEmpty()) " · " + now.artist else ""
+                    else -> "Tap to chat"
+                }
+                if (showPl && sh != null) FriendPlaylistsDialog(vm, f.name, sh.playlists) { showPl = false }
+                PersonRow(f, sub, f.id in s.unread || now != null, onClick = { onChat(f) }) {
+                    if (now != null && !now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) {
+                        SmallBtn("Listen", true) { playShared(vm, ctx, now) }
+                        Spacer(Modifier.size(4.dp))
+                    }
                     Box {
                         IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, "More", tint = Milo.dim) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(text = { Text("Open chat") }, onClick = { menu = false; onChat(f) })
+                            if (sh != null && sh.playlists.isNotEmpty()) DropdownMenuItem(text = { Text("Their playlists") }, onClick = { menu = false; showPl = true })
                             DropdownMenuItem(text = { Text("Remove friend (deletes the chat)") }, onClick = { menu = false; vm.social.remove(f) })
                         }
                     }
@@ -196,6 +214,59 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
             }
         }
     }
+}
+
+private fun sharedTrack(s: SharedSong): com.ubayanda.milonative.model.Track {
+    val id = -(1L + (("shr:" + s.id + s.url).hashCode().toLong() and 0x7fffffffL))
+    return com.ubayanda.milonative.model.Track(
+        id = id, uri = s.url, title = s.title, artist = s.artist, album = "Shared", albumId = 4_000_000_000_000L + (-id),
+        durationMs = if (s.durSec > 0) s.durSec * 1000L else 1L, trackNo = 0, year = 0, addedSec = 0L, artUrl = s.img,
+    )
+}
+
+/** Plays a friend's shared song: from its web address, or opens it on YouTube when that is where it comes from. */
+private fun playShared(vm: MainViewModel, ctx: android.content.Context, s: SharedSong) {
+    if (s.url.startsWith("https://")) vm.playRemote(listOf(sharedTrack(s)), 0)
+    else if (s.yt.isNotEmpty()) ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://youtu.be/" + s.yt)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+@Composable
+private fun FriendPlaylistsDialog(vm: MainViewModel, who: String, lists: List<SharedPlaylist>, onClose: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var open by remember { mutableStateOf<String?>(null) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onClose, containerColor = Milo.card,
+        title = { Text("$who's playlists", color = Milo.text) },
+        text = {
+            LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                lists.forEach { p ->
+                    item(key = "h" + p.id) {
+                        Text(
+                            p.name + "  ·  " + p.songs.size, color = Milo.amber, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.fillMaxWidth().clickable { open = if (open == p.id) null else p.id }.padding(vertical = 10.dp),
+                        )
+                    }
+                    if (open == p.id) {
+                        val playable = p.songs.filter { !it.local && it.url.startsWith("https://") }
+                        items(p.songs.size, key = { "s" + p.id + it }) { i ->
+                            val sg = p.songs[i]
+                            val can = !sg.local && (sg.url.startsWith("https://") || sg.yt.isNotEmpty())
+                            Text(
+                                sg.title + (if (sg.artist.isNotEmpty()) " · " + sg.artist else "") + (if (sg.local) "  (on their phone)" else ""),
+                                color = if (can) Milo.text else Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth().then(
+                                    if (can) Modifier.clickable {
+                                        if (sg.url.startsWith("https://")) vm.playRemote(playable.map { sharedTrack(it) }, playable.indexOf(sg).coerceAtLeast(0)) else playShared(vm, ctx, sg)
+                                    } else Modifier
+                                ).padding(vertical = 8.dp, horizontal = 8.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onClose) { Text("Close", color = Milo.amber) } },
+    )
 }
 
 @Composable
@@ -262,7 +333,7 @@ fun ChatScreen(vm: MainViewModel, f: Friend, onBack: () -> Unit) {
         Text("@${f.username} · messages disappear after 24 hours", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(start = 20.dp, bottom = 6.dp))
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (msgs.isEmpty()) item { Text("Say hi 👋", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(20.dp)) }
-            items(msgs, key = { it.id }) { m ->
+            items(msgs, key = { it.id }, contentType = { it.kind }) { m ->
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
                     val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = if (m.mine) 20.dp else 6.dp, bottomEnd = if (m.mine) 6.dp else 20.dp)
                     val fg = if (m.mine) Color.Black else Milo.text

@@ -70,7 +70,7 @@ fun SearchScreen(
         LazyColumn(contentPadding = PaddingValues(top = 6.dp, bottom = bottomPad)) {
             if (s.isNotEmpty() && hits.isEmpty() && albumHits.isEmpty() && artistHits.isEmpty()) item { EmptyNote("Nothing found", "Try a different spelling.") }
             if (hits.isNotEmpty()) item { SectionTitle("Songs") }
-            items(hits.take(if (s.isEmpty()) 200 else 50), key = { "s" + it.id }) { t ->
+            items(hits.take(if (s.isEmpty()) 200 else 50), key = { "s" + it.id }, contentType = { "track" }) { t ->
                 TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.player.playQueue(hits, hits.indexOf(t)) }
             }
             if (albumHits.isNotEmpty()) item { SectionTitle("Albums") }

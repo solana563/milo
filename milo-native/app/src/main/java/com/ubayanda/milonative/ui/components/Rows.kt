@@ -72,10 +72,11 @@ fun TrackRow(
     val actions = LocalActions.current
     val ctx = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val liked = vm.favs.collectAsState().value.contains(t.id)
-    val selection by vm.selection.collectAsState()
-    val selecting = selection.isNotEmpty()
-    val picked = t.id in selection
+    val favState = vm.favs.collectAsState()
+    val liked by remember(t.id) { androidx.compose.runtime.derivedStateOf { favState.value.contains(t.id) } }
+    val selState = vm.selection.collectAsState()
+    val selecting by remember { androidx.compose.runtime.derivedStateOf { selState.value.isNotEmpty() } }
+    val picked by remember(t.id) { androidx.compose.runtime.derivedStateOf { t.id in selState.value } }
     var menu by remember { mutableStateOf(false) }
     var dx by remember { mutableFloatStateOf(0f) }
     val limit = with(LocalDensity.current) { 96.dp.toPx() }

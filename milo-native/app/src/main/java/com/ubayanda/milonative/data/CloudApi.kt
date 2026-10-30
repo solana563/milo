@@ -15,7 +15,7 @@ class CloudError(val status: Int, message: String) : Exception(message)
 
 data class CloudSession(val accessToken: String, val refreshToken: String, val expiresAt: Long, val userId: String, val email: String)
 
-data class CloudProfile(val id: String, val username: String, val name: String, val termsV: Int, val avatar: String = "", val cover: String = "")
+data class CloudProfile(val id: String, val username: String, val name: String, val termsV: Int, val avatar: String = "", val cover: String = "", val shareNp: Boolean = true, val sharePl: Boolean = true)
 
 /**
  * Talks to the same Supabase project as the web milo., so one account works in both.
@@ -142,6 +142,7 @@ class CloudApi(context: Context) {
                     s.userId, it.optString("username"), it.optString("name"), it.optInt("terms_v", 0),
                     if (av != null && av.optString("t") == "img") av.optString("u") else "",
                     if (it.isNull("cover")) "" else it.optString("cover"),
+                    it.optBoolean("share_np", true), it.optBoolean("share_pl", true),
                 )
             }
         } catch (e: CloudError) {
@@ -167,6 +168,15 @@ class CloudApi(context: Context) {
     }
 
     /** Profile picture, in the same shape the web milo. uses ({"t":"img","u":data}); null puts the plain colour back. */
+    suspend fun setShare(np: Boolean?, pl: Boolean?) {
+        val s = session ?: return
+        if (!fresh()) throw CloudError(401, "Please log in again first.")
+        val b = JSONObject()
+        if (np != null) b.put("share_np", np)
+        if (pl != null) b.put("share_pl", pl)
+        request("/rest/v1/profiles?id=eq.${s.userId}", "PATCH", b, headers = mapOf("Prefer" to "return=minimal"))
+    }
+
     suspend fun setAvatar(data: String?) {
         val s = session ?: return
         if (!fresh()) throw CloudError(401, "Please log in again first.")

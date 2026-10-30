@@ -35,6 +35,12 @@ class PlaybackService : MediaSessionService() {
                     if (pos < x) v = minOf(v, (pos.toFloat() / x).coerceIn(0f, 1f))
                 }
             }
+            // sleep timer: ease the volume down over the last 30 seconds
+            val se = fxPrefs.getLong("sleep_end", 0L)
+            if (se > 0L) {
+                val left = se - System.currentTimeMillis()
+                if (left in 1..30_000L) v = minOf(v, left / 30_000f)
+            }
             if (p.volume != v) p.volume = v
             handler.postDelayed(this, 100)
         }

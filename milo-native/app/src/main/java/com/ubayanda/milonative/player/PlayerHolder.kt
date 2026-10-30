@@ -155,8 +155,10 @@ class PlayerHolder(context: Context) {
     /** Pause after [minutes] (0 cancels). */
     fun sleepIn(minutes: Int) {
         sleepJob?.cancel()
-        if (minutes <= 0) { _state.value = _state.value.copy(sleepLeftMs = 0L); return }
+        val fx = app.getSharedPreferences("milo_fx", Context.MODE_PRIVATE)
+        if (minutes <= 0) { fx.edit().putLong("sleep_end", 0L).apply(); _state.value = _state.value.copy(sleepLeftMs = 0L); return }
         val end = System.currentTimeMillis() + minutes * 60_000L
+        fx.edit().putLong("sleep_end", end).apply()
         sleepJob = scope.launch {
             while (true) {
                 val left = end - System.currentTimeMillis()
@@ -166,6 +168,7 @@ class PlayerHolder(context: Context) {
             }
             _state.value = _state.value.copy(sleepLeftMs = 0L)
             controller?.pause()
+            fx.edit().putLong("sleep_end", 0L).apply()
         }
     }
 

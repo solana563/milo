@@ -120,6 +120,8 @@ fun MiloApp(vm: MainViewModel) {
     var detail by remember { mutableStateOf<Detail?>(null) }
     var playerOpen by remember { mutableStateOf(false) }
     var friendsOpen by remember { mutableStateOf(false) }
+    var car by remember { mutableStateOf(false) }
+    var yt by remember { mutableStateOf<Pair<List<Track>, Int>?>(null) }
     var chatWith by remember { mutableStateOf<com.ubayanda.milonative.data.Friend?>(null) }
     var pickFor by remember { mutableStateOf<Track?>(null) }
     var newFor by remember { mutableStateOf<Track?>(null) }
@@ -145,12 +147,14 @@ fun MiloApp(vm: MainViewModel) {
                 }
                 ctx.startActivity(Intent.createChooser(send, "Share song").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             },
+            carMode = { car = true },
         )
     }
 
     val selection by vm.selection.collectAsState()
     var pickMany by remember { mutableStateOf(false) }
     var newMany by remember { mutableStateOf(false) }
+    BackHandler(enabled = car) { car = false }
     BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
     BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
     BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
@@ -223,7 +227,7 @@ fun MiloApp(vm: MainViewModel) {
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
                             )
-                            Tab.Discover -> DiscoverScreen(vm, ui, bottomPad)
+                            Tab.Discover -> DiscoverScreen(vm, ui, bottomPad) { l, i -> yt = l to i }
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) })
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
@@ -256,6 +260,8 @@ fun MiloApp(vm: MainViewModel) {
                 }
             }
 
+            yt?.let { (l, i) -> Box(Modifier.fillMaxSize()) { com.ubayanda.milonative.ui.screens.YouTubeScreen(vm, l, i) { yt = null } } }
+
             AnimatedVisibility(
                 visible = playerOpen && current != null,
                 enter = slideInVertically { it }, exit = slideOutVertically { it },
@@ -263,6 +269,10 @@ fun MiloApp(vm: MainViewModel) {
                 if (current != null) {
                     NowPlayingScreen(vm, current, ui, favs.contains(current.id)) { playerOpen = false }
                 }
+            }
+
+            AnimatedVisibility(visible = car, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.CarScreen(vm, current, ui, current != null && favs.contains(current.id)) { car = false }
             }
         }
 

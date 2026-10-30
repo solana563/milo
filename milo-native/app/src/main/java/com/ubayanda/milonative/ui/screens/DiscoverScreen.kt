@@ -58,12 +58,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 private val RADIO_TAGS = listOf("Top" to "", "Pop" to "pop", "Hip-hop" to "hip hop", "Jazz" to "jazz", "Rock" to "rock", "News" to "news")
+private val YT_TERMS = listOf("Trending" to "official music video", "Pop" to "pop music", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "Amapiano" to "amapiano", "Rock" to "rock music", "Lo-fi" to "lofi hip hop", "Jazz" to "jazz")
 private val SERVER_VIEWS = listOf("Random mix", "Starred")
 private val PREVIEW_TERMS = listOf("Trending" to "top hits", "Pop" to "pop", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "R&B" to "r&b", "Amapiano" to "amapiano")
 
 /** Online listening: live radio and 30-second previews. Nothing is downloaded or saved. */
 @Composable
-fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
+fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (List<Track>, Int) -> Unit) {
     val favs by vm.favs.collectAsState()
     var mode by rememberSaveable { mutableIntStateOf(0) } // 0 = live radio, 1 = previews, 2 = my server
     var query by rememberSaveable { mutableStateOf("") }
@@ -80,6 +81,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
             items = when (mode) {
                 0 -> vm.discover.radio(query, RADIO_TAGS[tag.coerceIn(0, RADIO_TAGS.lastIndex)].second)
                 1 -> vm.discover.previews(query.ifBlank { PREVIEW_TERMS[tag.coerceIn(0, PREVIEW_TERMS.lastIndex)].second })
+                3 -> vm.youtube.search(query.ifBlank { YT_TERMS[tag.coerceIn(0, YT_TERMS.lastIndex)].second })
                 else -> if (!vm.server.configured) emptyList()
                 else if (query.isNotBlank()) vm.server.search(query)
                 else if (tag == 1) vm.server.starred() else vm.server.random()
@@ -88,7 +90,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
             throw e
         } catch (e: Exception) {
             items = emptyList()
-            err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else "Couldn't load that. Check your internet connection and try again."
+            err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else if (mode == 3) (e.message ?: "Couldn't reach YouTube.") else "Couldn't load that. Check your internet connection and try again."
         }
         loading = false
     }
@@ -98,12 +100,13 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MiloChip("Radio", mode == 0, Modifier.weight(1f)) { mode = 0; tag = 0 }
             MiloChip("Previews", mode == 1, Modifier.weight(1f)) { mode = 1; tag = 0 }
-            MiloChip("My server", mode == 2, Modifier.weight(1f)) { mode = 2; tag = 0 }
+            MiloChip("YouTube", mode == 3, Modifier.weight(1f)) { mode = 3; tag = 0 }
+            MiloChip("Server", mode == 2, Modifier.weight(1f)) { mode = 2; tag = 0 }
         }
         Spacer(Modifier.height(12.dp))
         val shape = RoundedCornerShape(24.dp)
         Box(Modifier.padding(horizontal = 18.dp).fillMaxWidth().clip(shape).background(Color.Black.copy(alpha = 0.3f), shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 14.dp)) {
-            if (query.isEmpty()) Text(when (mode) { 0 -> "Search radio stations"; 1 -> "Search songs to preview"; else -> "Search your server" }, color = Milo.dim, fontSize = 16.sp)
+            if (query.isEmpty()) Text(when (mode) { 0 -> "Search radio stations"; 1 -> "Search songs to preview"; 3 -> "Search YouTube"; else -> "Search your server" }, color = Milo.dim, fontSize = 16.sp)
             BasicTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
                 textStyle = TextStyle(color = Milo.text, fontSize = 16.sp), cursorBrush = SolidColor(Milo.amber),
@@ -112,13 +115,13 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
             )
         }
         Spacer(Modifier.height(10.dp))
-        val chips = when (mode) { 0 -> RADIO_TAGS.map { it.first }; 1 -> PREVIEW_TERMS.map { it.first }; else -> SERVER_VIEWS }
+        val chips = when (mode) { 0 -> RADIO_TAGS.map { it.first }; 1 -> PREVIEW_TERMS.map { it.first }; 3 -> YT_TERMS.map { it.first }; else -> SERVER_VIEWS }
         LazyRow(contentPadding = PaddingValues(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(chips) { i, label -> MiloChip(label, i == tag && query.isEmpty()) { query = ""; tag = i } }
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
+            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 3 -> "Songs from YouTube, played in YouTube's own player. Audio stops when you leave the app or lock the screen."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
             color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp),
         )
         when {
@@ -127,10 +130,10 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
             items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(20.dp))
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
-            itemsIndexed(items, key = { _, t -> t.id }) { i, t ->
+            itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
                 val on = t.id == ui.currentId
                 Row(
-                    Modifier.fillMaxWidth().clickable { vm.playRemote(items, i) }.padding(horizontal = 20.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().clickable { if (mode == 3) onYouTube(items, i) else vm.playRemote(items, i) }.padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Cover(vm, t, 52.dp, 12.dp, px = 160)
@@ -143,7 +146,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp) {
                     }
                     if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp))
                     val liked = favs.contains(t.id)
-                    androidx.compose.material3.Icon(
+                    if (mode != 3) androidx.compose.material3.Icon(
                         if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         contentDescription = if (liked) "Remove from Liked" else "Save",
                         tint = if (liked) Milo.amber else Milo.dim,

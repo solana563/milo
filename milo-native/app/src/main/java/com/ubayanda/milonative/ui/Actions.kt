@@ -7,6 +7,7 @@ import com.ubayanda.milonative.model.Track
 class TrackActions(
     val addToPlaylist: (Track) -> Unit,
     val share: (Track) -> Unit,
+    val carMode: () -> Unit = {},
 )
 
 val LocalActions = staticCompositionLocalOf { TrackActions({}, {}) }

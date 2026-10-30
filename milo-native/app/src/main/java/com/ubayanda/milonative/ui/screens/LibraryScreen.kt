@@ -164,7 +164,7 @@ private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bott
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = state, contentPadding = PaddingValues(end = 18.dp, bottom = bottomPad)) {
-            itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }) { _, r ->
+            itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }, contentType = { _, r -> if (r is Track) "track" else "header" }) { _, r ->
                 if (r is Track) TrackRow(vm, r, r.id == ui.currentId, Milo.amber) { vm.player.playQueue(tracks, tracks.indexOf(r)) }
                 else LetterHeader(r as String, Milo.amber)
             }

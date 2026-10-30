@@ -3,6 +3,7 @@ package com.ubayanda.milonative.ui.screens
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -362,14 +363,43 @@ private fun Label(text: String) {
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics: Lyrics?, loading: Boolean, onBack: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val fx = remember { ctx.getSharedPreferences("milo_fx", 0) }
+    var lang by remember { mutableStateOf(fx.getString("lylang", "") ?: "") }
+    var langMenu by remember { mutableStateOf(false) }
+    val translator = remember { com.ubayanda.milonative.data.LyricsTranslator(ctx) }
+    val srcLines = remember(lyrics) { lyrics?.let { if (it.synced.isNotEmpty()) it.synced.map { l -> l.text } else it.plain.lines() } ?: emptyList() }
+    val tr by androidx.compose.runtime.produceState<List<String>?>(null, lyrics, lang) {
+        value = null
+        if (lang.isNotEmpty() && srcLines.isNotEmpty()) {
+            val r = translator.translate(srcLines, lang)
+            if (r == null) android.widget.Toast.makeText(ctx, "Couldn't translate right now. Check your connection.", android.widget.Toast.LENGTH_SHORT).show()
+            value = r
+        }
+    }
+    val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 400)
+    val tintNow = vm.tint.collectAsState().value
+    fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
     Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
                 Spacer(Modifier.weight(1f))
                 if (lyrics != null) {
+                    Box {
+                        Box(Modifier.size(48.dp).clip(CircleShape).clickable { langMenu = true }, contentAlignment = Alignment.Center) {
+                            Text("A文", color = if (lang.isEmpty()) Milo.dim else Milo.amber, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
+                        DropdownMenu(expanded = langMenu, onDismissRequest = { langMenu = false }) {
+                            DropdownMenuItem(text = { Text("Translation off") }, onClick = { langMenu = false; lang = ""; fx.edit().putString("lylang", "").apply() })
+                            com.ubayanda.milonative.data.LyricsTranslator.languages.forEach { (code, name) ->
+                                DropdownMenuItem(text = { Text("Translate to $name") }, onClick = { langMenu = false; lang = code; fx.edit().putString("lylang", code).apply() })
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(4.dp))
                     Box(
                         Modifier.size(48.dp).clip(CircleShape).clickable {
                             val text = if (lyrics.synced.isNotEmpty()) lyrics.synced.joinToString("\n") { it.text } else lyrics.plain
@@ -410,21 +440,36 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         val idx = lyrics.synced.indexOfLast { it.timeMs <= ui.positionMs + 250 }
                         LaunchedEffect(idx) { if (idx >= 0) state.animateScrollToItem((idx - 2).coerceAtLeast(0)) }
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
-                            itemsIndexed(lyrics.synced) { i, line ->
+                            itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
                                 val on = i == idx
-                                Text(
-                                    line.text.ifEmpty { "•   •   •" },
-                                    color = Color.White.copy(alpha = if (on) 1f else 0.38f),
-                                    fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
-                                    modifier = Modifier.fillMaxWidth().clickable { vm.player.seekTo(line.timeMs) }.padding(vertical = 12.dp),
-                                )
+                                Column(
+                                    Modifier.fillMaxWidth().combinedClickable(
+                                        onClick = { vm.player.seekTo(line.timeMs) },
+                                        onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
+                                    ).padding(vertical = 12.dp),
+                                ) {
+                                    Text(
+                                        line.text.ifEmpty { "•   •   •" },
+                                        color = Color.White.copy(alpha = if (on) 1f else 0.38f),
+                                        fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
+                                    )
+                                    val tl = tr?.getOrNull(i).orEmpty()
+                                    if (tl.isNotBlank() && !tl.equals(line.text, ignoreCase = true)) {
+                                        Text(tl, color = Milo.amber.copy(alpha = if (on) 1f else 0.5f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 4.dp))
+                                    }
+                                }
                             }
                         }
                     }
-                    else -> Text(
-                        lyrics.plain, color = Color.White, fontSize = 22.sp, lineHeight = 32.sp,
-                        modifier = Modifier.verticalScroll(rememberScrollState()).padding(vertical = 20.dp),
-                    )
+                    else -> Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 20.dp)) {
+                        val ls = lyrics.plain.lines()
+                        ls.forEachIndexed { i, l ->
+                            Text(l, color = Color.White, fontSize = 22.sp, lineHeight = 32.sp,
+                                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = { card(ls.drop(i).take(3)) }))
+                            val tl = tr?.getOrNull(i).orEmpty()
+                            if (tl.isNotBlank() && !tl.equals(l, ignoreCase = true)) Text(tl, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp)
+                        }
+                    }
                 }
             }
             Scrubber(ui, Modifier) { vm.player.seekTo(it) }
@@ -445,6 +490,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
+            DropdownMenuItem(text = { Text("Car mode") }, onClick = { open = false; actions.carMode() })
             if (ui.sleepLeftMs > 0) {
                 DropdownMenuItem(text = { Text("Sleep timer: ${fmtTime(ui.sleepLeftMs)} left. Cancel") }, onClick = { vm.player.sleepIn(0); open = false })
             }

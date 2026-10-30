@@ -35,12 +35,18 @@ data class ChatMsg(
         }
 }
 
+/** A song a friend shares: just its description. [local] ones only exist on their phone, so they can be seen but not played. */
+data class SharedSong(val title: String, val artist: String, val id: String, val url: String, val img: String, val local: Boolean, val durSec: Int, val yt: String)
+data class SharedPlaylist(val id: String, val name: String, val songs: List<SharedSong>)
+data class FriendShare(val now: SharedSong?, val playlists: List<SharedPlaylist>)
+
 data class SocialUi(
     val loading: Boolean = false,
     val friends: List<Friend> = emptyList(),
     val err: String = "",
     val note: String = "",
     val unread: Set<String> = emptySet(),
+    val shared: Map<String, FriendShare> = emptyMap(),
 )
 
 /**
@@ -100,9 +106,52 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
                     val r = JSONArray(cloud.request("/rest/v1/messages?select=sender&rcpt=eq.$me&read_at=is.null&created_at=gt.${dayAgo()}&limit=200"))
                     for (i in 0 until r.length()) un.add(r.getJSONObject(i).getString("sender"))
                 } catch (_: Exception) {}
-                _ui.value = _ui.value.copy(loading = false, friends = list, unread = un, err = "")
+                val shared = HashMap<String, FriendShare>()
+                val acc = list.filter { it.status == "friend" }.map { it.id }
+                if (acc.isNotEmpty()) try {
+                    val rows = JSONArray(cloud.request("/rest/v1/shared?select=user_id,np,np_at,pl,pl_at&user_id=in.(${acc.joinToString(",")})"))
+                    for (i in 0 until rows.length()) {
+                        val r = rows.getJSONObject(i)
+                        val np = r.optJSONObject("np")
+                        val live = np != null && np.optInt("p") == 1 && !r.isNull("np_at") && System.currentTimeMillis() - ms(r.optString("np_at")) < 240_000
+                        val pls = ArrayList<SharedPlaylist>()
+                        r.optJSONArray("pl")?.let { a ->
+                            for (j in 0 until a.length()) {
+                                val p = a.getJSONObject(j)
+                                val ts = p.optJSONArray("t") ?: JSONArray()
+                                pls.add(SharedPlaylist(p.optString("id"), p.optString("name"), (0 until ts.length()).map { song(ts.getJSONObject(it)) }))
+                            }
+                        }
+                        shared[r.getString("user_id")] = FriendShare(if (live) song(np!!) else null, pls)
+                    }
+                } catch (_: Exception) {}
+                _ui.value = _ui.value.copy(loading = false, friends = list, unread = un, shared = shared, err = "")
             } catch (e: Exception) { fail(e) }
         }
+    }
+
+    private fun song(o: JSONObject) = SharedSong(
+        o.optString("t"), o.optString("a"), o.optString("id"), o.optString("url"), o.optString("img"),
+        o.optInt("local", 0) == 1 || o.optBoolean("local", false), o.optInt("d", 0), o.optString("yt"),
+    )
+
+    /** Publish (or with null, clear) what is playing, so friends see it. Same table and shape as the web milo. */
+    suspend fun pushNp(np: JSONObject?) {
+        val now = Instant.now().toString()
+        cloud.request(
+            "/rest/v1/shared?on_conflict=user_id", "POST",
+            JSONObject().put("user_id", me).put("np", np ?: JSONObject.NULL).put("np_at", now),
+            headers = mapOf("Prefer" to "resolution=merge-duplicates,return=minimal"),
+        )
+    }
+
+    suspend fun pushPl(pl: JSONArray?) {
+        val now = Instant.now().toString()
+        cloud.request(
+            "/rest/v1/shared?on_conflict=user_id", "POST",
+            JSONObject().put("user_id", me).put("pl", pl ?: JSONObject.NULL).put("pl_at", now),
+            headers = mapOf("Prefer" to "resolution=merge-duplicates,return=minimal"),
+        )
     }
 
     fun addByUsername(name: String) {

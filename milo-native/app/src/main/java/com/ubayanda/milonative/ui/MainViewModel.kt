@@ -49,6 +49,8 @@ data class AccountUi(
     val name: String = "",
     val avatar: String = "",
     val cover: String = "",
+    val shareNp: Boolean = true,
+    val sharePl: Boolean = true,
 )
 
 private val UN_RE = Regex("^[a-z0-9_]{3,20}$")
@@ -88,8 +90,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             pr == null -> setAcct { it.copy(signedIn = true, email = email, step = "claim", busy = false, err = "") }
             pr.termsV < CloudApi.TERMS_V -> setAcct { it.copy(signedIn = true, username = pr.username, email = email, step = "terms", busy = false, err = "") }
             else -> {
-                seen(); setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, avatar = pr.avatar, cover = pr.cover, step = "", busy = false, err = "") }
+                seen(); setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, avatar = pr.avatar, cover = pr.cover, shareNp = pr.shareNp, sharePl = pr.sharePl, step = "", busy = false, err = "") }
                 syncNow()
+                plSig = ""; schedulePlPush()
             }
         }
     }
@@ -353,6 +356,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Something changed on this phone: remember when, and upload shortly after (if signed in). */
     private fun touch() {
         prefs.edit().putLong("sync_ts", System.currentTimeMillis()).apply()
+        if (cloud.session != null) schedulePlPush()
         if (cloud.session == null) return
         pushJob?.cancel()
         pushJob = viewModelScope.launch { delay(3000); syncNow() }
@@ -421,6 +425,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         player.connect()
         restoreLast()
         viewModelScope.launch { saveLoop() }
+        viewModelScope.launch { shareLoop() }
+        viewModelScope.launch { statsLoop() }
+        viewModelScope.launch { autoLoop() }
         scan()
         val o = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -438,6 +445,78 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val t = trackById(id)
                 if (t != null) computeColours(t) else _tint.value = 0
             }
+        }
+    }
+
+    // ---- share what I'm listening to / my playlists with friends ----
+    private var plSig = ""
+    private var plJob: Job? = null
+
+    private fun dna(t: Track): JSONObject {
+        val o = JSONObject().put("t", t.title).put("a", t.artist)
+        if (t.id < 0 && t.uri.startsWith("https://")) {
+            o.put("id", "nat" + t.id).put("src", t.album).put("url", t.uri).put("d", (t.durationMs / 1000).toInt())
+            if (t.artUrl.startsWith("https://")) o.put("img", t.artUrl)
+        } else o.put("local", 1)
+        return o
+    }
+
+    private fun shareable(t: Track?) = t != null && !t.uri.startsWith("yt:") && !(t.durationMs == 0L && t.uri.startsWith("http")) && LibrarySync.syncable(t.uri)
+
+    private suspend fun shareLoop() {
+        var sig = ""; var at = 0L
+        while (true) {
+            delay(4000)
+            val a = _account.value
+            if (!a.signedIn || a.step.isNotEmpty() || cloud.session == null) continue
+            val st = player.state.value
+            val t = trackById(st.currentId)
+            val np = if (t != null && st.isPlaying && a.shareNp && shareable(t)) {
+                val o = dna(t).put("p", 1)
+                val tint = _tint.value
+                if (tint != 0) o.put("c", "${(tint shr 16) and 255},${(tint shr 8) and 255},${tint and 255}")
+                o
+            } else null
+            val s = if (np != null) np.optString("id").ifEmpty { np.optString("t") + "|" + np.optString("a") } else "off"
+            if (s == sig && (np == null || System.currentTimeMillis() - at < 90_000)) continue
+            sig = s; at = System.currentTimeMillis()
+            try { if (cloud.fresh()) social.pushNp(np) } catch (e: Exception) { sig = "" }
+        }
+    }
+
+    private fun schedulePlPush() {
+        plJob?.cancel()
+        plJob = viewModelScope.launch { delay(1500); pushPl() }
+    }
+
+    private suspend fun pushPl() {
+        val a = _account.value
+        if (!a.signedIn || cloud.session == null) return
+        var pl: JSONArray? = null
+        if (a.sharePl) {
+            pl = JSONArray()
+            val liked = JSONArray()
+            _favs.value.mapNotNull { trackById(it) }.filter { shareable(it) }.take(150).forEach { liked.put(dna(it)) }
+            if (liked.length() > 0) pl.put(JSONObject().put("id", "liked").put("name", "Liked songs").put("t", liked))
+            _playlists.value.take(40).forEach { p ->
+                val ts = JSONArray()
+                p.trackIds.mapNotNull { trackById(it) }.filter { shareable(it) }.take(150).forEach { ts.put(dna(it)) }
+                pl.put(JSONObject().put("id", p.id).put("name", p.name).put("t", ts))
+            }
+        }
+        val s = pl?.toString().orEmpty()
+        if (s == plSig || s.length > 380_000) return
+        plSig = s
+        try { if (cloud.fresh()) social.pushPl(pl) } catch (e: Exception) { plSig = "" }
+    }
+
+    fun setShare(np: Boolean? = null, pl: Boolean? = null) {
+        viewModelScope.launch {
+            try {
+                cloud.setShare(np, pl)
+                setAcct { it.copy(shareNp = np ?: it.shareNp, sharePl = pl ?: it.sharePl) }
+                if (pl != null) { plSig = "#"; schedulePlPush() }
+            } catch (_: Exception) {}
         }
     }
 
@@ -543,6 +622,87 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         touch()
     }
 
+    // ---- listening insights ----
+    private val statsStore = com.ubayanda.milonative.data.StatsStore(app)
+    class StatsUi(val totalMs: Long = 0L, val plays: Int = 0, val songs: List<com.ubayanda.milonative.data.StatsStore.Row> = emptyList(), val artists: List<Pair<String, Int>> = emptyList())
+    private val _stats = MutableStateFlow(StatsUi())
+    val stats: StateFlow<StatsUi> = _stats.asStateFlow()
+    private fun refreshStats() {
+        _stats.value = StatsUi(statsStore.totalMs, statsStore.plays(), statsStore.topSongs(5), statsStore.topArtists(5))
+    }
+
+    private suspend fun statsLoop() {
+        refreshStats()
+        var cur: Long? = null; var acc = 0L; var counted = false; var n = 0
+        while (true) {
+            delay(1000)
+            val st = player.state.value
+            if (st.currentId != cur) { cur = st.currentId; acc = 0L; counted = false }
+            val t = trackById(cur)
+            if (t != null && st.isPlaying) {
+                acc += 1000
+                val need = if (t.durationMs in 1..59_999L) t.durationMs / 2 else 30_000L
+                val play = !counted && acc >= need
+                if (play) counted = true
+                statsStore.add(t, 1000L, play)
+            }
+            if (++n >= 10) { n = 0; statsStore.save(); refreshStats() }
+        }
+    }
+
+    // ---- smart autoplay: when the queue runs out, line up songs that fit ----
+    private val fxPrefs = app.getSharedPreferences("milo_fx", Context.MODE_PRIVATE)
+    private val _autoplay = MutableStateFlow(fxPrefs.getBoolean("autoplay", true))
+    val autoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
+    fun setAutoplay(on: Boolean) { _autoplay.value = on; fxPrefs.edit().putBoolean("autoplay", on).apply() }
+
+    private suspend fun autoLoop() {
+        var lastSig = ""
+        while (true) {
+            delay(2000)
+            if (!_autoplay.value) continue
+            val st = player.state.value
+            if (!st.isPlaying || st.shuffle || st.repeat != 0 || st.queueIds.isEmpty()) continue
+            if (st.queueIndex < st.queueIds.size - 1) continue
+            val cur = trackById(st.currentId) ?: continue
+            if (cur.id < 0) continue // only for songs from this phone
+            val sig = st.queueIds.size.toString() + ":" + cur.id
+            if (sig == lastSig) continue
+            lastSig = sig
+            val inQueue = st.queueIds.toHashSet()
+            val queueArtists = st.queueIds.mapNotNull { trackById(it)?.artist }.toHashSet()
+            val favs = _favs.value
+            val rnd = kotlin.random.Random(System.nanoTime())
+            val picks = withContext(Dispatchers.Default) {
+                _tracks.value.asSequence().filter { it.id !in inQueue && it.durationMs > 30_000L }.map { t ->
+                    var sc = rnd.nextFloat() * 1.6f
+                    if (t.artist == cur.artist && cur.artist != "Unknown artist") sc += 3f
+                    if (t.albumId == cur.albumId) sc += 1.5f
+                    if (t.id in favs) sc += 1f
+                    if (t.artist in queueArtists) sc += 0.7f
+                    t to sc
+                }.sortedByDescending { it.second }.take(10).map { it.first }.toList()
+            }
+            if (picks.isNotEmpty()) player.addManyToQueue(picks)
+        }
+    }
+
+    // ---- backup file (likes, playlists, listening stats) ----
+    fun exportBackup(): String = snapshot().put("stats", statsStore.json()).put("app", "milo-native").put("v", 1).toString(2)
+
+    fun importBackup(text: String, done: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val o = JSONObject(text)
+                if (!o.has("favs") && !o.has("playlists")) throw IllegalArgumentException("not a backup")
+                applyRemote(o, union = true)
+                o.optJSONObject("stats")?.let { statsStore.merge(it); refreshStats() }
+                touch()
+                done("Backup restored. Songs that aren't on this phone stay pending until they appear.")
+            } catch (e: Exception) { done("That file isn't a milo. backup.") }
+        }
+    }
+
     fun toggleFav(id: Long) {
         val n = _favs.value.toMutableSet()
         val added = n.add(id)
@@ -558,6 +718,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val remote: StateFlow<Map<Long, Track>> = _remote.asStateFlow()
     val discover = com.ubayanda.milonative.data.DiscoverRepo()
     val server = com.ubayanda.milonative.data.SubsonicRepo(app)
+    val youtube = com.ubayanda.milonative.data.YouTubeRepo(app)
 
     /** Make a listed online song known (so it can be liked) without playing it. */
     fun playRemoteKeep(t: Track) { _remote.value = _remote.value + (t.id to t) }

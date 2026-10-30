@@ -99,7 +99,17 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         }
         if (a.signedIn && syncMsg.isNotEmpty()) Text(syncMsg, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 10.dp))
         Spacer(Modifier.height(16.dp))
+        InsightsCard(vm)
+        Spacer(Modifier.height(16.dp))
+        ToolsCard(vm)
+        Spacer(Modifier.height(16.dp))
         ServerCard(vm)
+        Spacer(Modifier.height(16.dp))
+        YouTubeKeyCard(vm)
+        if (a.signedIn) {
+            Spacer(Modifier.height(16.dp))
+            SharingCard(vm, a)
+        }
         if (a.signedIn) {
             Spacer(Modifier.height(18.dp))
             Text(
@@ -245,6 +255,48 @@ private fun ServerCard(vm: MainViewModel) {
 }
 
 @Composable
+private fun SharingCard(vm: MainViewModel, a: AccountUi) {
+    val shape = RoundedCornerShape(30.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
+        Text("Sharing with friends", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
+        ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
+    }
+}
+
+@Composable
+private fun ShareRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Milo.text, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            checked = on, onCheckedChange = onChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber),
+        )
+    }
+}
+
+@Composable
+private fun YouTubeKeyCard(vm: MainViewModel) {
+    var key by rememberSaveable { mutableStateOf(vm.youtube.key) }
+    var saved by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(30.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
+        Text("YouTube", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        Text(
+            "Search uses milo.'s built-in YouTube key. If YouTube search ever says it was refused, paste your own YouTube Data API key here (free from Google Cloud).",
+            color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        ServerField(key, "Your YouTube Data API key (optional)", false) { key = it; saved = false }
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Pill("Save", null, true) { vm.youtube.setKey(key); saved = true }
+            if (saved) Text(if (key.isBlank()) "Using the built-in key." else "Saved.", color = Milo.dim, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
 private fun ServerField(value: String, hint: String, secret: Boolean, onChange: (String) -> Unit) {
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Milo.card2).padding(horizontal = 16.dp, vertical = 14.dp),
@@ -269,5 +321,72 @@ private fun Stat(n: Int, label: String) {
     Column {
         Text(n.toString(), color = Milo.text, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
         Text(label, color = Milo.dim, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun InsightsCard(vm: MainViewModel) {
+    val st by vm.stats.collectAsState()
+    val shape = RoundedCornerShape(30.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
+        Text("Your listening", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        if (st.plays == 0) {
+            Text("Play a few songs and your favourites will show up here.", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp))
+        } else {
+            val mins = st.totalMs / 60_000L
+            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                Column { Text(if (mins >= 120) "${mins / 60}h" else "${mins}m", color = Milo.text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold); Text("listened", color = Milo.dim, fontSize = 14.sp) }
+                Column { Text(st.plays.toString(), color = Milo.text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold); Text("plays", color = Milo.dim, fontSize = 14.sp) }
+            }
+            Text("Top songs", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+            st.songs.forEachIndexed { i, r ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                    Text("${i + 1}", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(end = 12.dp))
+                    Text(r.title + " · " + r.artist, color = Milo.text, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text("${r.plays}×", color = Milo.dim, fontSize = 14.sp)
+                }
+            }
+            if (st.artists.isNotEmpty()) {
+                Text("Top artists", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
+                st.artists.forEachIndexed { i, (n, c) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Text("${i + 1}", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(end = 12.dp))
+                        Text(n, color = Milo.text, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Text("${c}×", color = Milo.dim, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolsCard(vm: MainViewModel) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val auto by vm.autoplay.collectAsState()
+    val actions = com.ubayanda.milonative.ui.LocalActions.current
+    var msg by remember { mutableStateOf("") }
+    val save = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) msg = try {
+            ctx.contentResolver.openOutputStream(uri)?.use { it.write(vm.exportBackup().toByteArray()) }; "Backup saved."
+        } catch (e: Exception) { "Couldn't save the backup." }
+    }
+    val open = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val text = try { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) } } catch (e: Exception) { null }
+            if (text == null) msg = "Couldn't read that file." else vm.importBackup(text) { msg = it }
+        }
+    }
+    val shape = RoundedCornerShape(30.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
+        Text("Tools", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        ShareRow("Smart autoplay (keep similar songs coming)", auto) { vm.setAutoplay(it) }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Pill("Car mode", null, true) { actions.carMode() }
+            Pill("Save backup", null, false) { save.launch("milo-backup.json") }
+            Pill("Restore", null, false) { open.launch(arrayOf("application/json", "text/plain", "*/*")) }
+        }
+        if (msg.isNotEmpty()) Text(msg, color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
     }
 }
