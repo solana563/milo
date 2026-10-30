@@ -16,6 +16,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
       - run: gradle assembleDebug --stacktrace
+      - name: Build smooth release APK (minified, much faster scrolling)
+        id: rel
+        continue-on-error: true
+        run: gradle assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: steps.rel.outcome == 'success'
+        with:
+          name: milo-native-release-apk
+          path: milo-native/app/build/outputs/apk/release/*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: milo-native-debug-apk
