@@ -15,7 +15,10 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 /** "friend" = accepted, "incoming" = they asked you, "outgoing" = you asked them. */
-data class Friend(val id: String, val username: String, val name: String, val status: String)
+data class Friend(val id: String, val username: String, val name: String, val status: String, val avatar: String = "")
+
+/** The newest message of a conversation, for the chat list. */
+data class LastMsg(val text: String, val at: Long, val mine: Boolean)
 
 data class ChatMsg(
     val id: Long, val mine: Boolean, val kind: String, val body: String, val at: Long, val read: Boolean,
@@ -47,6 +50,7 @@ data class SocialUi(
     val note: String = "",
     val unread: Set<String> = emptySet(),
     val shared: Map<String, FriendShare> = emptyMap(),
+    val last: Map<String, LastMsg> = emptyMap(),
 )
 
 /**
@@ -60,6 +64,8 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
     private val _msgs = MutableStateFlow<List<ChatMsg>>(emptyList())
     val msgs: StateFlow<List<ChatMsg>> = _msgs.asStateFlow()
 
+    private val avatars = HashMap<String, String>()
+    private var avAt = 0L
     private var poll: Job? = null
     private var chatWith: String? = null
 
@@ -96,15 +102,41 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
                         profiles[p.getString("id")] = p.optString("username") to p.optString("name")
                     }
                 }
+                // profile pictures: fetched once per person and kept for a few minutes
+                if (System.currentTimeMillis() - avAt > 300_000L) { avatars.clear(); avAt = System.currentTimeMillis() }
+                val missing = others.keys.filter { it !in avatars }
+                if (missing.isNotEmpty()) try {
+                    val ps = JSONArray(cloud.request("/rest/v1/profiles?select=id,av&id=in.(${missing.joinToString(",")})"))
+                    for (i in 0 until ps.length()) {
+                        val p = ps.getJSONObject(i)
+                        val av = p.optJSONObject("av")
+                        avatars[p.getString("id")] = if (av != null && av.optString("t") == "img") av.optString("u") else ""
+                    }
+                    missing.forEach { avatars.putIfAbsent(it, "") }
+                } catch (_: Exception) {}
                 val list = others.map { (id, st) ->
                     val p = profiles[id]
-                    Friend(id, p?.first ?: "someone", p?.second.orEmpty().ifEmpty { p?.first ?: "someone" }, st)
+                    Friend(id, p?.first ?: "someone", p?.second.orEmpty().ifEmpty { p?.first ?: "someone" }, st, avatars[id].orEmpty())
                 }.sortedWith(compareBy({ it.status != "incoming" }, { it.status != "friend" }, { it.username }))
                 // who has written to me that I have not read
                 val un = HashSet<String>()
                 try {
                     val r = JSONArray(cloud.request("/rest/v1/messages?select=sender&rcpt=eq.$me&read_at=is.null&created_at=gt.${dayAgo()}&limit=200"))
                     for (i in 0 until r.length()) un.add(r.getJSONObject(i).getString("sender"))
+                } catch (_: Exception) {}
+                val last = HashMap<String, LastMsg>()
+                val accepted = list.filter { it.status == "friend" }.map { it.id }
+                if (accepted.isNotEmpty()) try {
+                    val chats = accepted.joinToString(",") { "\"" + chatId(it) + "\"" }
+                    val r = JSONArray(cloud.request("/rest/v1/messages?select=chat,sender,kind,body,created_at&chat=in.${enc("($chats)")}&created_at=gt.${dayAgo()}&order=created_at.desc&limit=120"))
+                    val byChat = accepted.associateBy { chatId(it) }
+                    for (i in 0 until r.length()) {
+                        val o = r.getJSONObject(i)
+                        val fid = byChat[o.getString("chat")] ?: continue
+                        if (fid in last) continue
+                        val m = ChatMsg(0, o.getString("sender") == me, o.optString("kind"), o.optString("body"), ms(o.optString("created_at")), true)
+                        last[fid] = LastMsg(m.shown, m.at, m.mine)
+                    }
                 } catch (_: Exception) {}
                 val shared = HashMap<String, FriendShare>()
                 val acc = list.filter { it.status == "friend" }.map { it.id }
@@ -125,7 +157,7 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
                         shared[r.getString("user_id")] = FriendShare(if (live) song(np!!) else null, pls)
                     }
                 } catch (_: Exception) {}
-                _ui.value = _ui.value.copy(loading = false, friends = list, unread = un, shared = shared, err = "")
+                _ui.value = _ui.value.copy(loading = false, friends = list, unread = un, shared = shared, last = last, err = "")
             } catch (e: Exception) { fail(e) }
         }
     }
@@ -297,6 +329,12 @@ class SocialModel(private val cloud: CloudApi, private val scope: CoroutineScope
             }
         }
     }
+
+    /** A friend's cover photo (data URL), or "" if they have none. Fetched when their profile is opened. */
+    suspend fun fetchCover(id: String): String = try {
+        val a = JSONArray(cloud.request("/rest/v1/profiles?select=cover&id=eq.$id"))
+        if (a.length() == 0 || a.getJSONObject(0).isNull("cover")) "" else a.getJSONObject(0).optString("cover")
+    } catch (e: Exception) { "" }
 
     fun clearErr() { _ui.value = _ui.value.copy(err = "", note = "") }
 }
