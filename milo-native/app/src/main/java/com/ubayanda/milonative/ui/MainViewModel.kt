@@ -78,19 +78,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun seen() { prefs0(getApplication()).edit().putBoolean("gate_seen", true).apply() }
 
     init {
-        if (cloud.session != null) viewModelScope.launch { resolveProfile() }
+        if (cloud.session != null) viewModelScope.launch {
+            resolveProfile()
+            // started offline: quietly try again until the server answers
+            var n = 0
+            while (!profileOk && cloud.session != null && n++ < 40) { delay(30_000); resolveProfile() }
+        }
     }
 
     /** After sign-in (or on launch with a saved session): find out which step comes next. */
+    private var profileOk = false
     private suspend fun resolveProfile() {
         val pr = cloud.loadProfile()
         val email = cloud.session?.email.orEmpty()
         when {
             cloud.session == null -> setAcct { it.copy(signedIn = false, step = "", busy = false) }
+            // offline or the server didn't answer: keep the person signed in with what we last knew, never show the username screen
+            pr == null && !cloud.profileMissing -> {
+                val p0 = prefs0(getApplication())
+                val un = p0.getString("prof_un", "").orEmpty()
+                setAcct { it.copy(signedIn = true, email = email, username = if (it.username.isEmpty()) un else it.username, name = if (it.name.isEmpty()) p0.getString("prof_nm", un).orEmpty() else it.name, step = "", busy = false, err = "") }
+            }
             pr == null -> setAcct { it.copy(signedIn = true, email = email, step = "claim", busy = false, err = "") }
             pr.termsV < CloudApi.TERMS_V -> setAcct { it.copy(signedIn = true, username = pr.username, email = email, step = "terms", busy = false, err = "") }
             else -> {
-                seen(); setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, avatar = pr.avatar, cover = pr.cover, shareNp = pr.shareNp, sharePl = pr.sharePl, step = "", busy = false, err = "") }
+                seen(); profileOk = true
+                prefs0(getApplication()).edit().putString("prof_un", pr.username).putString("prof_nm", pr.name.ifEmpty { pr.username }).apply()
+                setAcct { it.copy(signedIn = true, username = pr.username, email = email, name = pr.name.ifEmpty { pr.username }, avatar = pr.avatar, cover = pr.cover, shareNp = pr.shareNp, sharePl = pr.sharePl, step = "", busy = false, err = "") }
                 syncNow()
                 plSig = ""; schedulePlPush()
             }

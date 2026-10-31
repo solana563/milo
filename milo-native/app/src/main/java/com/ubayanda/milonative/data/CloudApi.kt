@@ -131,12 +131,16 @@ class CloudApi(context: Context) {
         storeSession(JSONObject(r), email)
     }
 
+    /** True only when the server answered and said this account has no profile yet (not when we're offline). */
+    @Volatile var profileMissing = false
+
     suspend fun loadProfile(): CloudProfile? {
+        profileMissing = false
         val s = session ?: return null
         if (!fresh()) return null
         return try {
             val arr = JSONArray(request("/rest/v1/profiles?select=*&id=eq.${s.userId}"))
-            if (arr.length() == 0) null else arr.getJSONObject(0).let {
+            if (arr.length() == 0) { profileMissing = true; null } else arr.getJSONObject(0).let {
                 val av = it.optJSONObject("av")
                 CloudProfile(
                     s.userId, it.optString("username"), it.optString("name"), it.optInt("terms_v", 0),

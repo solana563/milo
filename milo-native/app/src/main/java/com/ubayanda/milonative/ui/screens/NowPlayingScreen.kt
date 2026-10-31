@@ -310,7 +310,7 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         Label("Crossfade")
         var xf by remember { mutableStateOf(vm.player.crossfade().toFloat()) }
         Text(
-            if (xf < 1f) "Off. Songs play gaplessly back to back." else "${xf.roundToInt()} s: the song fades out and the next one fades in.",
+            if (xf < 1f) "Off. Songs play gaplessly back to back." else "${xf.roundToInt()} s: the end of one song overlaps the start of the next, fading out while the next fades in.",
             color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
         )
         Slider(
