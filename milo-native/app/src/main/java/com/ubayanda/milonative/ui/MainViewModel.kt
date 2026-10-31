@@ -87,6 +87,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** After sign-in (or on launch with a saved session): find out which step comes next. */
+    /** Set by whichever list screen is on top: scrolls to the playing song and returns true, or false if it isn't in that list. */
+    var jumper: (() -> Boolean)? = null
     private var profileOk = false
     private suspend fun resolveProfile() {
         val pr = cloud.loadProfile()

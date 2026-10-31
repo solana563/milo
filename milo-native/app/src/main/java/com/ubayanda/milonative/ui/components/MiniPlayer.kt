@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
@@ -77,7 +77,7 @@ fun NowPlayingPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .clickable(onClick = onClick).padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.KeyboardArrowDown, null, tint = Milo.text, modifier = Modifier.size(22.dp))
+        Icon(Icons.Rounded.MyLocation, null, tint = Milo.text, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(10.dp))
         Text("Now playing", color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }

@@ -46,7 +46,7 @@ class PlaybackService : MediaSessionService() {
             try {
                 tick(p, now, dt)
             } catch (_: Throwable) { endGhost(); if (p.volume != 1f) p.volume = 1f }
-            handler.postDelayed(this, 50)
+            handler.postDelayed(this, 25)
         }
     }
 
@@ -72,6 +72,7 @@ class PlaybackService : MediaSessionService() {
                 if (toEnd <= x + 4000L && primedKey != key) {
                     val g = ghostPlayer()
                     g.stop()
+                    g.setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT)
                     g.setMediaItem(item, (dur - x).coerceAtLeast(0L))
                     g.volume = 0f
                     g.playWhenReady = false
@@ -81,7 +82,8 @@ class PlaybackService : MediaSessionService() {
                 }
                 if (toEnd <= x && primedKey == key) {
                     val g = ghostPlayer()
-                    g.seekTo(p.currentPosition)
+                    // already waiting at the right spot; only nudge it if the two clocks disagree
+                    if (Math.abs(g.currentPosition - p.currentPosition) > 300L) g.seekTo(p.currentPosition)
                     g.volume = 1f
                     g.playWhenReady = true
                     xfLen = toEnd.coerceIn(500L, x)

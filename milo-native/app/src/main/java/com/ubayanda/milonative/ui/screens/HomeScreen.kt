@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -199,9 +200,11 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
     val cover = rememberCover(vm, lead, 600).value
     val dark = Color(0xFF050505)
     val shape = RoundedCornerShape(30.dp)
-    Box(Modifier.fillMaxWidth().padding(horizontal = 17.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 17.dp).height(252.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
         if (lead != null && cover != null) {
-            Image(cover.asImageBitmap(), null, Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(0.75f), contentScale = ContentScale.Crop)
+            Box(Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
+                Image(remember(cover) { cover.asImageBitmap() }, null, Modifier.fillMaxHeight().fillMaxWidth(0.75f), contentScale = ContentScale.Crop)
+            }
             Box(
                 Modifier.matchParentSize().background(
                     Brush.linearGradient(

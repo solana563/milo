@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.graphicsLayer
@@ -76,6 +77,16 @@ fun DetailScreen(
             { f, t -> moveNow?.invoke(f, t) },
         )
     } else null
+    val curId by androidx.compose.runtime.rememberUpdatedState(ui.currentId)
+    val jumpScope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val j: () -> Boolean = {
+            val i = local.indexOfFirst { it.id == curId }
+            if (i >= 0) { jumpScope.launch { listState.animateScrollToItem(i + 1) }; true } else false
+        }
+        vm.jumper = j
+        onDispose { if (vm.jumper === j) vm.jumper = null }
+    }
     LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {

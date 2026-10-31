@@ -162,6 +162,15 @@ private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bott
         rows.forEachIndexed { i, r -> if (r is String) m[r] = i }
         m
     }
+    val curId by androidx.compose.runtime.rememberUpdatedState(ui.currentId)
+    androidx.compose.runtime.DisposableEffect(rows) {
+        val j: () -> Boolean = {
+            val i = rows.indexOfFirst { it is Track && it.id == curId }
+            if (i >= 0) { scope.launch { state.animateScrollToItem((i - 2).coerceAtLeast(0)) }; true } else false
+        }
+        vm.jumper = j
+        onDispose { if (vm.jumper === j) vm.jumper = null }
+    }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = state, contentPadding = PaddingValues(end = 18.dp, bottom = bottomPad)) {
             itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }, contentType = { _, r -> if (r is Track) "track" else "header" }) { _, r ->
