@@ -111,9 +111,10 @@ private fun sub(s: WidgetState) = if (s.empty) "Tap to open milo." else s.artist
 class PlayerWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val s = WidgetState.read(context)
+        val open = actionStartActivity(android.content.Intent(context, MainActivity::class.java))
         provideContent {
             Column(
-                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(28.dp).padding(14.dp).clickable(actionStartActivity<MainActivity>()),
+                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(28.dp).padding(14.dp).clickable(open),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -144,9 +145,10 @@ class PlayerWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppW
 class PillWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val s = WidgetState.read(context)
+        val open = actionStartActivity(android.content.Intent(context, MainActivity::class.java))
         provideContent {
             Row(
-                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(40.dp).padding(horizontal = 10.dp, vertical = 6.dp).clickable(actionStartActivity<MainActivity>()),
+                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(40.dp).padding(horizontal = 10.dp, vertical = 6.dp).clickable(open),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Cover(s, 44.dp, 22.dp)
@@ -168,8 +170,9 @@ class PillWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWid
 class ArtWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val s = WidgetState.read(context)
+        val open = actionStartActivity(android.content.Intent(context, MainActivity::class.java))
         provideContent {
-            Box(GlanceModifier.fillMaxSize().cornerRadius(24.dp).background(Color(0xFF2A2623)).clickable(actionStartActivity<MainActivity>())) {
+            Box(GlanceModifier.fillMaxSize().cornerRadius(24.dp).background(Color(0xFF2A2623)).clickable(open)) {
                 val art = s.art
                 if (art != null) Image(ImageProvider(art), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom) {
