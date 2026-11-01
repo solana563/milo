@@ -71,6 +71,7 @@ class PlayerHolder(context: Context) {
                 .setTitle(t.title)
                 .setArtist(t.artist)
                 .setAlbumTitle(t.album)
+                .also { b -> if (t.artUrl.startsWith("http")) b.setArtworkUri(Uri.parse(t.artUrl)) }
                 .build()
         )
         .build()

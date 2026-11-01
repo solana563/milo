@@ -1,0 +1,8 @@
+<resources>
+    <string name="widget_player_name">milo. player</string>
+    <string name="widget_player_desc">Cover, title, progress and controls</string>
+    <string name="widget_pill_name">milo. mini</string>
+    <string name="widget_pill_desc">A slim player bar</string>
+    <string name="widget_art_name">milo. cover</string>
+    <string name="widget_art_desc">Big cover art with play and next</string>
+</resources>

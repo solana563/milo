@@ -16,11 +16,22 @@ android {
         versionName = "1.0"
     }
 
+    // "full" has Google Cast; "fdroid" leaves out every proprietary Google library so F-Droid can build it.
+    flavorDimensions += "store"
+    productFlavors {
+        create("full") {
+            dimension = "store"
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        create("fdroid") { dimension = "store" }
+    }
+    // no signing-info blob in the APK (required for F-Droid reproducible builds)
+    dependenciesInfo { includeInApk = false; includeInBundle = false }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -47,6 +58,7 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
@@ -54,8 +66,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
     implementation("androidx.media3:media3-session:1.4.1")
-    implementation("androidx.media3:media3-cast:1.4.1")
-    implementation("androidx.mediarouter:mediarouter:1.7.0")
+    "fullImplementation"("androidx.media3:media3-cast:1.4.1")
+    "fullImplementation"("androidx.mediarouter:mediarouter:1.7.0")
     implementation("androidx.media3:media3-common:1.4.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

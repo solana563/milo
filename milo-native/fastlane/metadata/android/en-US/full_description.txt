@@ -1,0 +1,23 @@
+<b>milo.</b> plays the music already on your phone, SD card or USB drive, with no uploading and no file picker. It also streams radio, previews and your own Navidrome or Subsonic server.
+
+<b>Playback</b>
+• Background playback with lock-screen controls, gapless playback and true overlapping crossfade
+• Equaliser, bass boost, speed control, sleep timer that fades out
+• Smart autoplay keeps similar songs coming when the queue ends
+• Resumes the last queue where you left off
+
+<b>Library</b>
+• Songs, albums and artists, playlists and liked songs
+• Long-press options, multi-select, swipe gestures and drag to reorder
+• Synced lyrics, lyric translation and shareable lyric cards
+• Backup and restore of likes, playlists and stats to a file
+
+<b>Social (optional)</b>
+• Free account shared with the milo. web app
+• Friends, "listening now", and messenger-style chat with photos, voice notes, replies and reactions
+• Cloud backup of likes and playlists
+
+<b>Extras</b>
+• Listening insights, car mode, YouTube search, live radio
+
+The app works fully without an account. The F-Droid build leaves out Google Cast because it needs proprietary Google libraries.

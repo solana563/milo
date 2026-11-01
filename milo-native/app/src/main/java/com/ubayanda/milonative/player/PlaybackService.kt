@@ -129,6 +129,13 @@ class PlaybackService : MediaSessionService() {
                 // dead stream: drop it right here so the session never carries a broken timeline
                 endGhost(); player.stop(); player.clearMediaItems()
             }
+            override fun onEvents(p: Player, events: Player.Events) {
+                if (events.containsAny(
+                        Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                        Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_MEDIA_METADATA_CHANGED,
+                    )
+                ) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, p)
+            }
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 AudioFx.attach(this@PlaybackService, audioSessionId)
             }
@@ -146,6 +153,7 @@ class PlaybackService : MediaSessionService() {
         try { castBridge?.release() } catch (_: Throwable) {}
         castBridge = null
         handler.removeCallbacksAndMessages(null)
+        com.ubayanda.milonative.widget.WidgetUpdater.clear(this)
         try { ghost?.release() } catch (_: Throwable) {}
         ghost = null
         exo = null

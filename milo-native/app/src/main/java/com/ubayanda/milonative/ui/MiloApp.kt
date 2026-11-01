@@ -154,6 +154,16 @@ fun MiloApp(vm: MainViewModel) {
     val selection by vm.selection.collectAsState()
     var pickMany by remember { mutableStateOf(false) }
     var newMany by remember { mutableStateOf(false) }
+    // Back from anywhere goes Home first; on Home the first back warns and the second leaves the app.
+    val lastBack = remember { longArrayOf(0L) }
+    BackHandler(enabled = !car && selection.isEmpty() && !playerOpen && !friendsOpen && detail == null && yt == null) {
+        if (tab != Tab.Home) tab = Tab.Home
+        else {
+            val now = System.currentTimeMillis()
+            if (now - lastBack[0] < 2000L) (ctx as? android.app.Activity)?.finish()
+            else { lastBack[0] = now; android.widget.Toast.makeText(ctx, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show() }
+        }
+    }
     BackHandler(enabled = car) { car = false }
     BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
     BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
