@@ -9,9 +9,7 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 3. When it finishes, open the run and download **milo-native-debug-apk** (a zip holding `app-debug.apk`).
 4. Install it. It is a separate app (`com.ubayanda.milonative`), so it sits next to your current milo.
 
-> **Heads-up:** this code was written without being able to compile it (the build tools are blocked in the
-> authoring environment). The first run may fail on a small mistake. If it does, open the failed run, copy the red
-> error lines and send them over; fixes are quick.
+> The workflow also builds a minified **release** APK (`milo-native-release-apk`), which scrolls much more smoothly than debug.
 
 ## What's in this version
 - Looks like the web milo.: black header with the logo, rounded panel, amber accent, Figtree font, pill nav, bordered cards.
@@ -26,7 +24,7 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 
 - **Accounts**: welcome screen (drifting leaves), sign up, log in, pick a username, terms, Profile tab and sign out. Same Supabase account as the web milo., so one login works in both. "Continue without an account" works too.
 
-## Not yet (later releases)
-Friends and miloCHAT, cloud sync of native playlists, casting.
+## Also in current builds
+Friends and chat, cloud sync, casting, YouTube, Navidrome/Subsonic, crossfade, listening insights, backup/restore, car mode, lyric translation and share cards.
 
 The web/PWA and TV apps are untouched and keep working.

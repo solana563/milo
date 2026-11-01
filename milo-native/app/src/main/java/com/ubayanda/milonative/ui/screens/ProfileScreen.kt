@@ -41,6 +41,9 @@ import com.ubayanda.milonative.ui.AccountUi
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.components.ScreenTitle
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Ty
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Rad
 
 @Composable
 fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playlists: Int, hours: Int, bottomPad: Dp) {
@@ -49,19 +52,19 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
     val syncMsg by vm.syncMsg.collectAsState()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPad)) {
         ScreenTitle("Profile")
-        val shape = RoundedCornerShape(30.dp)
+        val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
         // the card takes the playing song's colour, fading to dark, like the web profile
         val tint = vm.tint.collectAsState().value
         val base = if (tint == 0) Milo.card2 else lerp(Color(tint), Color.Black, 0.45f)
         val cardBrush = Brush.linearGradient(listOf(base, lerp(base, Color.Black, 0.55f), Milo.card))
         val coverBmp = remember(a.cover) { if (a.cover.isEmpty()) null else ChatMedia.photoBitmap(a.cover) }
         val avatarBmp = remember(a.avatar) { if (a.avatar.isEmpty()) null else ChatMedia.photoBitmap(a.avatar) }
-        Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(cardBrush, shape).border(1.dp, Milo.line, shape)) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(cardBrush, shape).border(1.dp, Milo.line, shape)) {
         if (coverBmp != null) {
             androidx.compose.foundation.Image(coverBmp.asImageBitmap(), null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
             Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Black.copy(alpha = 0.8f)))))
         }
-        Column(Modifier.padding(22.dp)) {
+        Column(Modifier.padding(Sp.x6)) {
             Box(
                 Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))),
                 contentAlignment = Alignment.Center,
@@ -181,7 +184,7 @@ private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Un
 @Composable
 private fun PhotoRow(label: String, has: Boolean, onChange: () -> Unit, onRemove: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = Milo.text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text(label, color = Milo.text, style = Ty.label, modifier = Modifier.weight(1f))
         Text("Change", color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onChange).padding(8.dp))
         if (has) Text("Remove", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onRemove).padding(8.dp))
     }
@@ -197,7 +200,7 @@ private fun DeleteAccountDialog(vm: MainViewModel, onClose: () -> Unit) {
         title = { Text("Delete your account?") },
         text = {
             Column {
-                Text("This permanently deletes your account, friends, messages and cloud backup. Songs on this phone are not touched.", color = Milo.dim, fontSize = 15.sp)
+                Text("This permanently deletes your account, friends, messages and cloud backup. Songs on this phone are not touched.", color = Milo.dim, style = Ty.caption)
                 if (err.isNotEmpty()) Text(err, color = Color(0xFFFF8A80), fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
             }
         },
@@ -220,12 +223,12 @@ private fun ServerCard(vm: MainViewModel) {
     var pass by rememberSaveable { mutableStateOf("") }
     var status by remember { mutableStateOf(if (vm.server.configured) "Connected to " + vm.server.url else "") }
     var busy by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(30.dp)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
-        Text("My server", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("My server", color = Milo.text, style = Ty.title)
         Text(
             "Stream your own library from Navidrome or any Subsonic server. It shows up under Discover.",
-            color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         ServerField(url, "Server address (http://192.168.1.5:4533)", false) { url = it }
         Spacer(Modifier.height(10.dp))
@@ -256,10 +259,10 @@ private fun ServerCard(vm: MainViewModel) {
 
 @Composable
 private fun SharingCard(vm: MainViewModel, a: AccountUi) {
-    val shape = RoundedCornerShape(30.dp)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
-        Text("Sharing with friends", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-        Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Sharing with friends", color = Milo.text, style = Ty.title)
+        Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
         ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
     }
@@ -280,12 +283,12 @@ private fun ShareRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
 private fun YouTubeKeyCard(vm: MainViewModel) {
     var key by rememberSaveable { mutableStateOf(vm.youtube.key) }
     var saved by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(30.dp)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
-        Text("YouTube", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("YouTube", color = Milo.text, style = Ty.title)
         Text(
             "Search uses milo.'s built-in YouTube key. If YouTube search ever says it was refused, paste your own YouTube Data API key here (free from Google Cloud).",
-            color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         ServerField(key, "Your YouTube Data API key (optional)", false) { key = it; saved = false }
         Spacer(Modifier.height(14.dp))
@@ -327,11 +330,11 @@ private fun Stat(n: Int, label: String) {
 @Composable
 private fun InsightsCard(vm: MainViewModel) {
     val st by vm.stats.collectAsState()
-    val shape = RoundedCornerShape(30.dp)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
-        Text("Your listening", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Your listening", color = Milo.text, style = Ty.title)
         if (st.plays == 0) {
-            Text("Play a few songs and your favourites will show up here.", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp))
+            Text("Play a few songs and your favourites will show up here.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp))
         } else {
             val mins = st.totalMs / 60_000L
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
@@ -341,8 +344,8 @@ private fun InsightsCard(vm: MainViewModel) {
             Text("Top songs", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
             st.songs.forEachIndexed { i, r ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                    Text("${i + 1}", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(end = 12.dp))
-                    Text(r.title + " · " + r.artist, color = Milo.text, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text("${i + 1}", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(end = 12.dp))
+                    Text(r.title + " · " + r.artist, color = Milo.text, style = Ty.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Text("${r.plays}×", color = Milo.dim, fontSize = 14.sp)
                 }
             }
@@ -350,8 +353,8 @@ private fun InsightsCard(vm: MainViewModel) {
                 Text("Top artists", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
                 st.artists.forEachIndexed { i, (n, c) ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                        Text("${i + 1}", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(end = 12.dp))
-                        Text(n, color = Milo.text, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Text("${i + 1}", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(end = 12.dp))
+                        Text(n, color = Milo.text, style = Ty.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         Text("${c}×", color = Milo.dim, fontSize = 14.sp)
                     }
                 }
@@ -377,9 +380,9 @@ private fun ToolsCard(vm: MainViewModel) {
             if (text == null) msg = "Couldn't read that file." else vm.importBackup(text) { msg = it }
         }
     }
-    val shape = RoundedCornerShape(30.dp)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(22.dp)) {
-        Text("Tools", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Tools", color = Milo.text, style = Ty.title)
         ShareRow("Smart autoplay (keep similar songs coming)", auto) { vm.setAutoplay(it) }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

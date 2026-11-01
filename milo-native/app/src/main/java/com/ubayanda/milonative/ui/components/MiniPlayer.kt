@@ -33,38 +33,44 @@ import com.ubayanda.milonative.model.PlayerUi
 import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Rad
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Ty
+import androidx.compose.material.icons.rounded.SkipNext
 
 /** Art-tinted glass bar: cover, title, a cream play/pause circle, thin progress line. */
 @Composable
 fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val soft = rememberSoft(vm, t).value
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
-    val shape = RoundedCornerShape(32.dp)
+    val shape = RoundedCornerShape(Rad.xl)
     Column(
-        modifier.fillMaxWidth().padding(horizontal = 14.dp)
+        modifier.fillMaxWidth().padding(horizontal = Sp.x3)
             .clip(shape).artBackdrop(soft, 0.55f).border(1.dp, Milo.line, shape)
             .clickable(onClick = onOpen)
     ) {
-        Row(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Cover(vm, t, 58.dp, 16.dp, px = 160)
-            Spacer(Modifier.width(14.dp))
+        Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {
+            Cover(vm, t, 52.dp, Rad.sm, px = 160)
+            Spacer(Modifier.width(Sp.x3))
             Column(Modifier.weight(1f)) {
-                Text(t.title, color = Milo.text, fontSize = 19.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(t.artist, color = Color(0xFFD6D0C4), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(t.title, color = Milo.text, style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(t.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Spacer(Modifier.width(10.dp))
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.player.next() }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
+            }
             Box(
-                Modifier.size(56.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                Modifier.size(48.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(30.dp))
+                Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))
             }
         }
         Box(Modifier.fillMaxWidth().height(3.dp).padding(horizontal = 18.dp)) {
             Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)))
             Box(Modifier.fillMaxWidth(frac).height(3.dp).clip(CircleShape).background(Milo.cream))
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Sp.x3))
     }
 }
 

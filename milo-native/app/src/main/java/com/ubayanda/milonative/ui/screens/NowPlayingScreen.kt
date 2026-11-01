@@ -102,6 +102,9 @@ import com.ubayanda.milonative.ui.components.artBackdrop
 import com.ubayanda.milonative.ui.components.rememberCover
 import com.ubayanda.milonative.ui.components.rememberSoft
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Rad
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
 
@@ -139,7 +142,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         Column(Modifier.fillMaxSize()) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 38.dp, bottomEnd = 38.dp)).background(Milo.card2).pointerInput("swipe-skip") {
+                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("swipe-skip") {
                     // swipe the art sideways: left = next song, right = previous
                     var hx = 0f
                     detectHorizontalDragGestures(
@@ -173,12 +176,12 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     MoreMenu(vm, t, ui)
                 }
 
-                Column(Modifier.align(Alignment.BottomStart).padding(start = 22.dp, end = 80.dp, bottom = 22.dp)) {
-                    Text(t.title, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 36.sp)
-                    Text(t.artist, color = Color(0xFFEDE8DC), fontSize = 20.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Column(Modifier.align(Alignment.BottomStart).padding(start = Sp.gutter, end = 80.dp, bottom = Sp.x6)) {
+                    Text(t.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(t.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
                     Text(
                         t.album + if (t.year >= 1900) " · ${t.year}" else "",
-                        color = Color(0xFFC9C3B6), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = Color(0xFFC9C3B6), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -187,25 +190,25 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
             // control card
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)).background(Milo.panel)
-                    .navigationBarsPadding().padding(top = 16.dp, bottom = 6.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)).background(Milo.panel)
+                    .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {
-                Scrubber(ui, Modifier.padding(horizontal = 22.dp)) { vm.player.seekTo(it) }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(fmtTime(ui.positionMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
-                    Text(fmtTime(ui.durationMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
+                Scrubber(ui, Modifier.padding(horizontal = Sp.gutter)) { vm.player.seekTo(it) }
+                Row(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(fmtTime(ui.positionMs), color = Milo.dim, style = Ty.caption)
+                    Text(fmtTime(ui.durationMs), color = Milo.dim, style = Ty.caption)
                 }
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = Sp.x4, vertical = Sp.x3),
                     horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconTap(Icons.Rounded.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
                     RoundDark(Icons.Rounded.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
-                        Modifier.size(96.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                        Modifier.size(88.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(48.dp))
+                        Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
                     }
                     RoundDark(Icons.Rounded.SkipNext, "Next") { vm.player.next() }
                     IconTap(
@@ -228,8 +231,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     Box(Modifier.width(80.dp).height(5.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        if (lyricsLoading) "Lyrics" else preview, color = Milo.text.copy(alpha = 0.7f), fontSize = 17.sp,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 24.dp),
+                        if (lyricsLoading) "Lyrics" else preview, color = Milo.text.copy(alpha = 0.7f), style = Ty.body,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
                     )
                 }
             }
@@ -275,7 +278,7 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
         )
     }
     LazyColumn(state = listState) {
-        item { Text("Up next", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(20.dp)) }
+        item { Text("Up next", color = Color.White, style = Ty.title, modifier = Modifier.padding(Sp.gutter)) }
         itemsIndexed(local, key = { i, _ -> keys.getOrElse(i) { "q$i" } }) { i, t ->
             val key = keys.getOrElse(i) { "q$i" }
             val idx by rememberUpdatedState(i)

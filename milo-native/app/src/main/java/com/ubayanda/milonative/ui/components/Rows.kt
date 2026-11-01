@@ -56,6 +56,10 @@ import com.ubayanda.milonative.ui.LocalActions
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.theme.Figtree
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Rad
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Ty
+import androidx.compose.foundation.layout.heightIn
 import com.ubayanda.milonative.util.fmtTime
 
 class RowAction(val label: String, val run: () -> Unit)
@@ -85,7 +89,7 @@ fun TrackRow(
         // what the swipe will do, shown behind the row
         if (dx > 8f) Text("Play next", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterStart).padding(start = 22.dp))
         if (dx < -8f) Text(if (liked) "Unlike" else "Like", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp))
-        val hot = Modifier.padding(horizontal = 8.dp).clip(RoundedCornerShape(20.dp)).background(Milo.card)
+        val hot = Modifier.padding(horizontal = Sp.x2).clip(RoundedCornerShape(Rad.lg)).background(Milo.card)
         Row(
             Modifier.graphicsLayer { translationX = dx * 0.55f }
                 .then(if (current || picked) hot else Modifier).fillMaxWidth()
@@ -109,7 +113,7 @@ fun TrackRow(
                         if (selecting) vm.toggleSelect(t.id) else menu = true
                     },
                 )
-                .padding(start = if (current || picked) 12.dp else 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = if (current || picked) Sp.x3 else Sp.gutter, end = Sp.x1, top = Sp.x2, bottom = Sp.x2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selecting) {
@@ -118,19 +122,19 @@ fun TrackRow(
                     tint = if (picked) Milo.amber else Milo.dim, modifier = Modifier.padding(end = 12.dp).size(24.dp),
                 )
             }
-            Cover(vm, t, 52.dp, 12.dp, px = 160)
-            Spacer(Modifier.width(14.dp))
+            Cover(vm, t, 56.dp, Rad.sm, px = 160)
+            Spacer(Modifier.width(Sp.x3))
             Column(Modifier.weight(1f)) {
                 Text(
-                    t.title, color = if (current) Milo.amber else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                    t.title, color = if (current) Milo.amber else Milo.text, style = Ty.body,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     if (t.album.isBlank() || t.album == "Unknown album") t.artist else t.artist + " · " + t.album,
-                    color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(fmtTime(t.durationMs), color = Milo.dim, fontSize = 12.sp)
+            Text(fmtTime(t.durationMs), color = Milo.dim, style = Ty.caption)
             if (handle != null) {
                 Icon(Icons.Rounded.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
             }
@@ -155,24 +159,24 @@ fun TrackRow(
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
-        text, color = Milo.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
-        modifier = modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        text, color = Milo.text, style = Ty.title,
+        modifier = modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x6, bottom = Sp.x2),
     )
 }
 
 @Composable
 fun ScreenTitle(text: String) {
     Text(
-        text, color = Milo.text, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 37.sp,
-        modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 26.dp, bottom = 14.dp),
+        text, color = Milo.text, style = Ty.display,
+        modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x6, bottom = Sp.x4),
     )
 }
 
 @Composable
 fun LetterHeader(letter: String, accent: Color) {
     Text(
-        letter, color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+        letter, color = Milo.amber, style = Ty.micro,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Sp.gutter, vertical = Sp.x2),
     )
 }
 
@@ -192,10 +196,10 @@ fun EmptyNote(title: String, body: String) {
 fun MiloChip(label: String, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
     Text(
-        label, color = if (on) Color.Black else Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+        label, color = if (on) Color.Black else Milo.text, style = Ty.label,
         textAlign = TextAlign.Center, maxLines = 1, softWrap = false,
-        modifier = modifier.clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
+        modifier = modifier.heightIn(min = 44.dp).clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
             .border(1.dp, if (on) Milo.amber else Milo.line, shape).clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+            .padding(horizontal = Sp.x3, vertical = 11.dp),
     )
 }

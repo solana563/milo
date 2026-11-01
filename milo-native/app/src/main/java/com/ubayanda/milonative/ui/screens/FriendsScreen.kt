@@ -94,6 +94,9 @@ import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.components.Cover
 import com.ubayanda.milonative.ui.components.UserAvatar
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Ty
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Rad
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -119,7 +122,7 @@ private fun SmallBtn(label: String, filled: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun Field(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier, imeAction: ImeAction = ImeAction.Default, onGo: () -> Unit = {}) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(Rad.lg)
     Box(modifier.clip(shape).background(Milo.card2, shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 14.dp)) {
         if (value.isEmpty()) Text(hint, color = Milo.dim, fontSize = 16.sp)
         BasicTextField(
@@ -152,7 +155,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
     Column(Modifier.fillMaxSize().background(Milo.panel)) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 6.dp, end = 10.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Milo.text) }
-            Text("Chats", color = Milo.text, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            Text("Chats", color = Milo.text, style = Ty.display, modifier = Modifier.weight(1f))
             if (acct.signedIn) Box(Modifier.size(44.dp).clip(CircleShape).background(Milo.card2).clickable { addOpen = !addOpen }, contentAlignment = Alignment.Center) {
                 Icon(if (addOpen) Icons.Rounded.Close else Icons.Rounded.PersonAdd, "Add a friend", tint = Milo.text, modifier = Modifier.size(22.dp))
             }
@@ -184,7 +187,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
             if (s.err.isNotEmpty()) item(key = "err") { Text(s.err, color = DANGER, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
             if (s.note.isNotEmpty()) item(key = "note") { Text(s.note, color = Milo.amber, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
             if (listening.isNotEmpty()) {
-                item(key = "lhead") { Text("Listening now", color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 10.dp)) }
+                item(key = "lhead") { Text("Listening now", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 10.dp)) }
                 item(key = "lrow") {
                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         items(listening, key = { "l" + it.id }) { f ->
@@ -202,7 +205,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
                 }
             }
             if (req.isNotEmpty()) {
-                item(key = "rhead") { Text("Requests", color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
+                item(key = "rhead") { Text("Requests", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
                 items(req, key = { "q" + it.id }) { f ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp)).background(Milo.card).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         UserAvatar(f.name, f.avatar, 50.dp)
@@ -216,7 +219,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
                     }
                 }
             }
-            item(key = "chead") { Text("Messages", color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 4.dp)) }
+            item(key = "chead") { Text("Messages", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 4.dp)) }
             if (fr.isEmpty()) item(key = "empty") {
                 Text(
                     if (s.loading) "Loading…" else "No friends yet. Tap the person icon above and add someone by their username.",
@@ -227,7 +230,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
                 ChatRow(f, s.last[f.id], f.id in s.unread, s.shared[f.id]?.now, onClick = { onChat(f) }, onLong = { profile = f })
             }
             if (out.isNotEmpty()) {
-                item(key = "ohead") { Text("Sent requests", color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
+                item(key = "ohead") { Text("Sent requests", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
                 items(out, key = { "o" + it.id }) { f ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         UserAvatar(f.name, f.avatar, 46.dp)
@@ -255,7 +258,7 @@ private fun ChatRow(f: Friend, last: LastMsg?, unread: Boolean, now: SharedSong?
     ) {
         UserAvatar(f.name, f.avatar, 58.dp, ring = now != null)
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(f.name, color = Milo.text, fontSize = 17.sp, fontWeight = if (unread) FontWeight.ExtraBold else FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(f.name, color = Milo.text, style = Ty.heading.copy(fontWeight = if (unread) FontWeight.ExtraBold else FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
             val preview = when {
                 last != null -> (if (last.mine) "You: " else "") + last.text
                 now != null -> "♪ " + nowLine(now)
@@ -509,7 +512,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                         Column(horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
                             val bg: Modifier = if (m.mine) Modifier.background(Brush.linearGradient(listOf(Color(0xFFFFB02E), Color(0xFFF08A00))), shape) else Modifier.background(Milo.card2, shape)
                             Column(
-                                Modifier.widthIn(max = 280.dp).clip(shape).then(bg)
+                                Modifier.widthIn(max = 288.dp).clip(shape).then(bg)
                                     .pointerInput(m.id) {
                                         detectHorizontalDragGestures(
                                             onDragEnd = { if (dx > swipeLimit * 0.9f) { replyTo = m; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress) }; dx = 0f },
@@ -557,7 +560,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                                         }
                                     }
                                     "song" -> SongBubble(vm, m, fg)
-                                    else -> Text(m.shown, color = fg, fontSize = 16.sp, lineHeight = 21.sp)
+                                    else -> Text(m.shown, color = fg, style = Ty.body.copy(fontWeight = FontWeight.Normal))
                                 }
                             }
                             if (m.rx.isNotEmpty()) {
@@ -655,7 +658,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
 
     menuFor?.let { m ->
         androidx.compose.ui.window.Dialog(onDismissRequest = { menuFor = null }) {
-            Column(Modifier.clip(RoundedCornerShape(24.dp)).background(Milo.card).padding(16.dp)) {
+            Column(Modifier.clip(RoundedCornerShape(Rad.lg)).background(Milo.card).padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     REACTIONS.forEach { e ->
                         Text(e, fontSize = 26.sp, modifier = Modifier.clip(CircleShape).background(if (m.rx[me] == e) Milo.amber.copy(alpha = 0.35f) else Color.Transparent)

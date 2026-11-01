@@ -66,7 +66,7 @@ fun DetailScreen(
 ) {
     val lead = tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     val listState = rememberLazyListState()
     var local by remember(tracks) { mutableStateOf(tracks) }
     val moveNow by rememberUpdatedState(onMove)

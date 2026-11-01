@@ -54,6 +54,9 @@ import com.ubayanda.milonative.ui.components.Cover
 import com.ubayanda.milonative.ui.components.MiloChip
 import com.ubayanda.milonative.ui.components.ScreenTitle
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Ty
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Rad
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
@@ -97,15 +100,15 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
 
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Discover")
-        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MiloChip("Radio", mode == 0, Modifier.weight(1f)) { mode = 0; tag = 0 }
             MiloChip("Previews", mode == 1, Modifier.weight(1f)) { mode = 1; tag = 0 }
             MiloChip("YouTube", mode == 3, Modifier.weight(1f)) { mode = 3; tag = 0 }
             MiloChip("Server", mode == 2, Modifier.weight(1f)) { mode = 2; tag = 0 }
         }
-        Spacer(Modifier.height(12.dp))
-        val shape = RoundedCornerShape(24.dp)
-        Box(Modifier.padding(horizontal = 18.dp).fillMaxWidth().clip(shape).background(Color.Black.copy(alpha = 0.3f), shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 14.dp)) {
+        Spacer(Modifier.height(Sp.x3))
+        val shape = RoundedCornerShape(Rad.lg)
+        Box(Modifier.padding(horizontal = Sp.gutter).fillMaxWidth().clip(shape).background(Color.Black.copy(alpha = 0.3f), shape).border(1.dp, Milo.line, shape).padding(horizontal = Sp.gutter, vertical = 14.dp)) {
             if (query.isEmpty()) Text(when (mode) { 0 -> "Search radio stations"; 1 -> "Search songs to preview"; 3 -> "Search YouTube"; else -> "Search your server" }, color = Milo.dim, fontSize = 16.sp)
             BasicTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
@@ -116,18 +119,18 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
         }
         Spacer(Modifier.height(10.dp))
         val chips = when (mode) { 0 -> RADIO_TAGS.map { it.first }; 1 -> PREVIEW_TERMS.map { it.first }; 3 -> YT_TERMS.map { it.first }; else -> SERVER_VIEWS }
-        LazyRow(contentPadding = PaddingValues(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(contentPadding = PaddingValues(horizontal = Sp.gutter), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(chips) { i, label -> MiloChip(label, i == tag && query.isEmpty()) { query = ""; tag = i } }
         }
         Spacer(Modifier.height(8.dp))
         Text(
             when (mode) { 0 -> "Live streams from the free radio-browser directory."; 3 -> "Songs from YouTube, played in YouTube's own player. Audio stops when you leave the app or lock the screen."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
-            color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp),
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = Sp.gutter, vertical = Sp.x1),
         )
         when {
-            loading && items.isEmpty() -> Text("Loading…", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(20.dp))
+            loading && items.isEmpty() -> Text("Loading…", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
             err.isNotEmpty() -> Text(err, color = Color(0xFFFF8A80), fontSize = 15.sp, modifier = Modifier.padding(20.dp))
-            items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(20.dp))
+            items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
             itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
@@ -136,12 +139,12 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     Modifier.fillMaxWidth().clickable { if (mode == 3) onYouTube(items, i) else vm.playRemote(items, i) }.padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Cover(vm, t, 52.dp, 12.dp, px = 160)
+                    Cover(vm, t, 56.dp, Rad.sm, px = 160)
                     Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                        Text(t.title, color = if (on) Milo.amber else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(t.title, color = if (on) Milo.amber else Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             if (mode == 0) t.artist else t.artist + " · " + t.album,
-                            color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
                     if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp))

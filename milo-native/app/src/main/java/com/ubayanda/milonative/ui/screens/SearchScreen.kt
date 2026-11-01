@@ -39,6 +39,9 @@ import com.ubayanda.milonative.ui.components.ScreenTitle
 import com.ubayanda.milonative.ui.components.SectionTitle
 import com.ubayanda.milonative.ui.components.TrackRow
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Ty
+import com.ubayanda.milonative.ui.theme.Sp
+import com.ubayanda.milonative.ui.theme.Rad
 import com.ubayanda.milonative.util.plural
 
 @Composable
@@ -59,7 +62,7 @@ fun SearchScreen(
         OutlinedTextField(
             value = q, onValueChange = { q = it }, singleLine = true,
             placeholder = { Text("Songs, albums or artists", color = Milo.dim, fontSize = 17.sp) },
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(Rad.lg),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Milo.card, unfocusedContainerColor = Milo.card,
                 focusedBorderColor = Milo.amber, unfocusedBorderColor = Milo.line,
@@ -76,22 +79,22 @@ fun SearchScreen(
             if (albumHits.isNotEmpty()) item { SectionTitle("Albums") }
             items(albumHits.take(20), key = { "al" + it.id + it.title }) { a ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenAlbum(a) }.padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Cover(vm, a.tracks.first(), 54.dp, 14.dp, px = 160)
+                    Cover(vm, a.tracks.first(), 56.dp, Rad.sm, px = 160)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(a.title, color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(a.artist + " · " + plural(a.tracks.size, "song"), color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(a.title, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(a.artist + " · " + plural(a.tracks.size, "song"), color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
             if (artistHits.isNotEmpty()) item { SectionTitle("Artists") }
             items(artistHits.take(20), key = { "ar" + it.name }) { a ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenArtist(a) }.padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Cover(vm, a.tracks.first(), 54.dp, 27.dp, px = 160)
+                    Cover(vm, a.tracks.first(), 56.dp, 28.dp, px = 160)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(a.name, color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(plural(a.tracks.size, "song"), color = Milo.dim, fontSize = 14.sp)
+                        Text(a.name, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(plural(a.tracks.size, "song"), color = Milo.dim, style = Ty.caption)
                     }
                 }
             }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.ubayanda.milonative.ui.components.UserAvatar
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,7 +41,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
 
 /** The web milo. pill nav: tinted rounded bar, the active tab sits in a raised lighter pill. Solid colours, no blur effect. */
 @Composable
-fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
+fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier, avatar: String = "", name: String = "") {
     val bar = RoundedCornerShape(40.dp)
     Row(
         modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
@@ -51,7 +52,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifi
             val on = tab == current
             val pill = RoundedCornerShape(32.dp)
             Box(
-                Modifier.width(64.dp).height(54.dp).clip(pill)
+                Modifier.width(if (on) 84.dp else 60.dp).height(56.dp).clip(pill)
                     .then(
                         if (on) Modifier.background(Brush.verticalGradient(listOf(lerp(Milo.card2, Color.White, 0.10f), Milo.card2)), pill)
                             .border(1.dp, Milo.line, pill) else Modifier
@@ -59,7 +60,11 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifi
                     .clickable { onSelect(tab) },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(tab.icon, tab.label, tint = if (on) Milo.amber else Milo.text, modifier = Modifier.size(28.dp))
+                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (tab == Tab.Profile && avatar.isNotEmpty()) UserAvatar(name, avatar, if (on) 26.dp else 32.dp, ring = on)
+                    else Icon(tab.icon, tab.label, tint = if (on) Milo.amber else Milo.text, modifier = Modifier.size(if (on) 24.dp else 28.dp))
+                    if (on) androidx.compose.material3.Text(tab.label, color = Milo.amber, style = com.ubayanda.milonative.ui.theme.Ty.micro)
+                }
             }
         }
     }

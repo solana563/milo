@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -80,17 +83,46 @@ fun LibraryScreen(
             section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked)
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
             section == 0 -> SongsList(vm, tracks, ui, bottomPad)
-            section == 1 -> LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
-                items(albums, key = { "al" + it.id + it.title }) { a ->
-                    ListRow(vm, a.tracks.first(), a.title, a.artist + " · " + plural(a.tracks.size, "song")) { onOpenAlbum(a) }
+            section == 1 -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
+                horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                gridItems(albums, key = { "al" + it.id + it.title }, contentType = { "album" }) { a ->
+                    GridCard(vm, a.tracks.first(), a.title, a.artist + " · " + plural(a.tracks.size, "song"), false) { onOpenAlbum(a) }
                 }
             }
-            else -> LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
-                items(artists, key = { "ar" + it.name }) { a ->
-                    ListRow(vm, a.tracks.first(), a.name, plural(a.tracks.size, "song")) { onOpenArtist(a) }
+            else -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
+                horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                gridItems(artists, key = { "ar" + it.name }, contentType = { "artist" }) { a ->
+                    GridCard(vm, a.tracks.first(), a.name, plural(a.tracks.size, "song"), true) { onOpenArtist(a) }
                 }
             }
         }
+    }
+}
+
+/** Big square cover (round for artists) with the name under it, for the two-column album and artist grids. */
+@Composable
+private fun GridCard(vm: MainViewModel, lead: Track, title: String, sub: String, round: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick),
+        horizontalAlignment = if (round) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            Cover(vm, lead, maxWidth, if (round) maxWidth / 2 else 22.dp, px = 480)
+        }
+        Text(
+            title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            textAlign = if (round) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
+            modifier = Modifier.padding(top = 8.dp, start = 2.dp, end = 2.dp).then(if (round) Modifier.fillMaxWidth() else Modifier),
+        )
+        Text(
+            sub, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            textAlign = if (round) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
+            modifier = Modifier.padding(start = 2.dp, end = 2.dp).then(if (round) Modifier.fillMaxWidth() else Modifier),
+        )
     }
 }
 

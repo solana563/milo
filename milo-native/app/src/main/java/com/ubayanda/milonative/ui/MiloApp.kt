@@ -249,7 +249,7 @@ fun MiloApp(vm: MainViewModel) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
-                BottomNav(tab, onSelect = { tab = it; detail = null })
+                BottomNav(tab, onSelect = { tab = it; detail = null }, avatar = acct.avatar, name = acct.username)
             }
 
             if (friendsOpen) {

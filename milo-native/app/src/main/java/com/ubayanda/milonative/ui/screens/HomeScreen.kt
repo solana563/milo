@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,40 +97,39 @@ fun HomeScreen(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Column(Modifier.fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 14.dp, top = 22.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()).uppercase(),
-                        color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp,
-                    )
-                    Text(
-                        greeting(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) + if (name.isNotEmpty()) ", $name" else "",
-                        color = Milo.text, fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 31.sp, maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 20.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()).uppercase(),
+                    color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp,
+                    modifier = Modifier.weight(1f),
+                )
                 Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onSearch),
+                    Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onSearch),
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Outlined.Search, "Search", tint = Milo.text, modifier = Modifier.size(24.dp)) }
                 Spacer(Modifier.width(8.dp))
                 Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onFriends),
+                    Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onFriends),
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Outlined.People, "Friends", tint = Milo.text, modifier = Modifier.size(24.dp)) }
                 Spacer(Modifier.width(8.dp))
-                Box(
-                    Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(Brush.verticalGradient(listOf(Color(0xFFF99C00), Color(0xFFB36F00)))).clickable(onClick = onProfile),
-                    contentAlignment = Alignment.Center,
-                ) { Text(initial, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold) }
+                val me by vm.account.collectAsState()
+                com.ubayanda.milonative.ui.components.UserAvatar(
+                    name.ifEmpty { initial }, me.avatar, 44.dp,
+                    Modifier.clip(CircleShape).clickable(onClick = onProfile),
+                )
             }
+            Text(
+                greeting(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) + if (name.isNotEmpty()) ", $name" else "",
+                color = Milo.text, style = com.ubayanda.milonative.ui.theme.Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+            )
                 PlayerCard(vm, tracks, ui, scanning, liked)
                 if (tracks.isEmpty() && !scanning) EmptyNote(
                     "No music found",
                     "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
                 )
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     tiles.chunked(2).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             row.forEach { t -> Tile(vm, t, Modifier.weight(1f)) }
@@ -141,10 +141,10 @@ fun HomeScreen(
                     SectionTitle("Your artists")
                     LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         items(artists.take(20), key = { "ar" + it.name }) { a ->
-                            Column(Modifier.width(96.dp).clickable { onOpenArtist(a) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                Cover(vm, a.tracks.first(), 96.dp, 32.dp, px = 300)
+                            Column(Modifier.width(132.dp).clickable { onOpenArtist(a) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Cover(vm, a.tracks.first(), 132.dp, 66.dp, px = 400)
                                 Spacer(Modifier.height(6.dp))
-                                Text(a.name, color = Milo.text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(a.name, color = Milo.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -167,7 +167,7 @@ fun HomeScreen(
 
 @Composable
 private fun Tile(vm: MainViewModel, t: TileData, modifier: Modifier) {
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Row(
         modifier.height(60.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).clickable(onClick = t.onClick),
         verticalAlignment = Alignment.CenterVertically,
@@ -199,7 +199,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
     val lead = vm.trackById(ui.currentId)
     val cover = rememberCover(vm, lead, 600).value
     val dark = Color(0xFF050505)
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Box(Modifier.fillMaxWidth().padding(horizontal = 17.dp).height(252.dp).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
         if (lead != null && cover != null) {
             Box(Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
@@ -240,7 +240,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                         Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(26.dp)) }
-                    val pill = RoundedCornerShape(30.dp)
+                    val pill = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
                     Row(
                         Modifier.clip(pill).background(Color(0x55000000), pill).border(1.dp, Color.White.copy(alpha = 0.28f), pill)
                             .clickable { vm.toggleFav(lead.id) }.padding(horizontal = 16.dp, vertical = 9.dp),
