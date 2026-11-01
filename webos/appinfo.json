@@ -1,0 +1,14 @@
+{
+ "id": "com.ubayanda.milotv",
+ "version": "1.0.0",
+ "vendor": "UBayanda",
+ "type": "web",
+ "main": "index.html",
+ "title": "milo.",
+ "icon": "icon80.png",
+ "largeIcon": "icon130.png",
+ "bgImage": "splash.jpg",
+ "splashBackground": "splash.jpg",
+ "resolution": "1920x1080",
+ "disableBackHistoryAPI": true
+}
