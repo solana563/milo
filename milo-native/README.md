@@ -28,3 +28,6 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 Friends and chat, cloud sync, casting, YouTube, Navidrome/Subsonic, crossfade, listening insights, backup/restore, car mode, lyric translation and share cards.
 
 The web/PWA and TV apps are untouched and keep working.
+
+## F-Droid
+There is an `fdroid` build flavour without Google Cast (or any other proprietary Google library) and fastlane store metadata. See [FDROID.md](FDROID.md) for the steps and the recipe.
