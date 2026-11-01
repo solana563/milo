@@ -14,7 +14,7 @@ Your library, the YouTube Music catalogue, live radio and word-by-word karaoke l
 
 [Live demo](https://claude.ai/artifact/LtVpb7FCy9LAnFfeNQknZr) · [Install](#-install) · [Features](#-features) · [Configure](#-configure) · [Smart TVs](#-smart-tvs)
 
-<img src="docs/a_d_Home.png" alt="milo. on desktop" width="88%">
+<img src="docs/native-home.jpg" width="24%" alt="Home"> <img src="docs/native-playing.jpg" width="24%" alt="Now playing"> <img src="docs/native-library.jpg" width="24%" alt="Library"> <img src="docs/native-lyrics.jpg" width="24%" alt="Lyrics">
 
 </div>
 
@@ -40,11 +40,24 @@ Your library, the YouTube Music catalogue, live radio and word-by-word karaoke l
 | 📺 **Smart TV** | Samsung Tizen and LG webOS packages, TV mode switches on automatically. |
 
 <div align="center">
-<img src="docs/a_m_Home.png" width="23%" alt="Home">
-<img src="docs/a_m_Library.png" width="23%" alt="Library">
-<img src="docs/a_m_Profile.png" width="23%" alt="Profile">
-<img src="docs/a_d_Discover.png" width="23%" alt="Discover">
+<img src="docs/native-discover.jpg" width="23%" alt="Discover">
+<img src="docs/native-profile.jpg" width="23%" alt="Profile">
+<img src="docs/web-welcome.jpg" width="23%" alt="Web welcome screen">
 </div>
+
+<sub>Screenshots are from the native Android app (and the web welcome screen). The native app has a newer design system since these were taken; replace the files in `docs/` with fresh captures any time.</sub>
+
+## 🤖 Native Android app (Kotlin + Jetpack Compose)
+
+Found in `milo-native/` (package `com.ubayanda.milonative`), built by the **Build milo. native APK** GitHub Action. It reads music straight from the phone with Media3 playback and shares your milo. account with the web app.
+
+- **Playback:** background play with lock-screen controls, gapless, true overlapping crossfade, equaliser, speed, sleep timer with fade-out, Google Cast, resume where you left off, smart autoplay.
+- **Library:** songs, albums and artists (grids), playlists, long-press options, multi-select, swipe gestures, drag to reorder.
+- **Online:** radio, previews, YouTube search, Navidrome/Subsonic server, lyrics (synced) with translation and lyric share cards.
+- **Social:** messenger-style chats with photos, voice notes, replies, reactions, friend profiles and "listening now"; cloud sync of likes and playlists.
+- **Extras:** listening insights, backup/restore, car mode, profile photo and cover.
+
+See [`milo-native/README.md`](milo-native/README.md) for building it.
 
 ## 📦 What's in the folder
 
