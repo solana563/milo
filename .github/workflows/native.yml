@@ -15,20 +15,23 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
-      - run: gradle assembleDebug --stacktrace
+      - run: gradle assembleFullDebug --stacktrace
       - name: Build smooth release APK (minified, much faster scrolling)
         id: rel
         continue-on-error: true
-        run: gradle assembleRelease --stacktrace
+        run: gradle assembleFullRelease --stacktrace
+      - name: F-Droid flavour compiles (no Google libraries)
+        continue-on-error: true
+        run: gradle assembleFdroidRelease --stacktrace
       - uses: actions/upload-artifact@v4
         if: steps.rel.outcome == 'success'
         with:
           name: milo-native-release-apk
-          path: milo-native/app/build/outputs/apk/release/*.apk
+          path: milo-native/app/build/outputs/apk/full/release/*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: milo-native-debug-apk
-          path: milo-native/app/build/outputs/apk/debug/*.apk
+          path: milo-native/app/build/outputs/apk/full/debug/*.apk
       # Optional: same Firebase App Distribution step as the web-wrapper APK (needs FIREBASE_APP_ID + FIREBASE_SERVICE_ACCOUNT secrets).
       - name: Firebase App Distribution
         if: ${{ env.FB_APP != '' }}
@@ -37,5 +40,5 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
-          file: milo-native/app/build/outputs/apk/debug/app-debug.apk
+          file: milo-native/app/build/outputs/apk/full/debug/app-full-debug.apk
           releaseNotes: "milo. native debug build"
