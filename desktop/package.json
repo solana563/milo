@@ -1,0 +1,30 @@
+{
+  "name": "milo-desktop",
+  "productName": "milo.",
+  "version": "1.0.0",
+  "description": "milo. desktop app (Electron wrapper of the web app).",
+  "author": "UBayanda",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "prepare:web": "node scripts/prepare.mjs",
+    "start": "npm run prepare:web && electron .",
+    "dist": "npm run prepare:web && electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ubayanda.milodesktop",
+    "productName": "milo.",
+    "artifactName": "milo-${version}-${os}-${arch}.${ext}",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**/*", "build/icon.png"],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }]
+    },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true }
+  }
+}
