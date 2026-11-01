@@ -55,7 +55,7 @@ Found in `milo-native/` (package `com.ubayanda.milonative`), built by the **Buil
 - **Library:** songs, albums and artists (grids), playlists, long-press options, multi-select, swipe gestures, drag to reorder.
 - **Online:** radio, previews, YouTube search, Navidrome/Subsonic server, lyrics (synced) with translation and lyric share cards.
 - **Social:** messenger-style chats with photos, voice notes, replies, reactions, friend profiles and "listening now"; cloud sync of likes and playlists.
-- **Extras:** listening insights, backup/restore, car mode, profile photo and cover.
+- **Extras:** listening insights, backup/restore, car mode, profile photo and cover, and three home-screen widgets (4×2 player, 4×1 slim bar, 2×2 cover).
 
 See [`milo-native/README.md`](milo-native/README.md) for building it.
 
