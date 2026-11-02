@@ -26,6 +26,7 @@ async function musicGo(label,q,genre){S.mg=label;S.mload=1;S.mErr="";refreshM();
   try{let items=[];
     if(src==="it"){const d=await jget(`https://itunes.apple.com/search?media=music&entity=song&limit=40&term=${e(q||label)}`);
       items=(d.results||[]).filter(x=>x.previewUrl&&x.trackName).map(x=>({id:"it"+x.trackId,t:x.trackName,a:x.artistName||"Unknown artist",d:30,url:x.previewUrl,img:(x.artworkUrl100||"").replace("100x100","600x600"),src:x.collectionName||"iTunes",lic:"30s preview",page:x.trackViewUrl||"",g:x.primaryGenreName||""}))}
+    else if(src==="yt"&&typeof ymOk==="function"&&ymOk()){try{items=await ymSongs(q||label)}catch(er){items=[];S.mErr="YouTube Music search failed ("+String((er&&er.message)||er).slice(0,60)+"). Try again in a moment."}}
     else if(src==="yt"){const d=await jget(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=30&q=${e(q||label)}&key=${YTK}`);
       items=(d.items||[]).filter(x=>x.id&&x.id.videoId&&x.snippet).map(x=>({id:"yt"+x.id.videoId,yt:x.id.videoId,t:lclean(ytDecode(x.snippet.title))||ytDecode(x.snippet.title),a:ytArtist(ytDecode(x.snippet.channelTitle)),d:0,url:"",img:(x.snippet.thumbnails&&(x.snippet.thumbnails.high||x.snippet.thumbnails.medium||x.snippet.thumbnails.default)||{}).url||"",src:"YouTube",lic:"YouTube",page:"https://www.youtube.com/watch?v="+x.id.videoId,g:""}))}
     if(src!==S.ms)return;

@@ -1,3 +1,5 @@
+/* desktop app: put saved settings back if this install starts empty (new PC, cleared storage) */
+try{const D=window.miloDesktop;if(D&&D.data&&!Object.keys(localStorage).some(k=>k.indexOf("milo.")===0)){const o=JSON.parse(D.data);Object.keys(o).forEach(k=>{try{localStorage.setItem(k,o[k])}catch(e){}})}}catch(e){}
 
 const T=[
 {t:"Low Tide",a:"Wren Sable",d:212,c:"84,120,140",n:[110,164.8,196,246.9]},

@@ -1607,6 +1607,31 @@ html[dir=rtl] .mc-r.me{align-self:flex-start;align-items:flex-start}html[dir=rtl
 #app main#view .mcard::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:color-mix(in srgb,rgb(var(--cc,120,110,100)) 30%,var(--mc))}
 /* fallback (web covers the browser won't let us read): real image, live blur, visible cards only */
 }
+/* ===== v10: cover art on album, playlist and artist pages (blurred backdrop, poster artists, skeletons) ===== */
+.dhero{position:relative;isolation:isolate}
+/* the cover, blown up and blurred behind the title, fading into the page */
+.dbd{position:absolute;z-index:-1;left:-24px;right:-24px;top:-70px;height:calc(100% + 70px);background-size:cover!important;background-position:center!important;filter:blur(30px) saturate(1.25);transform:scale(1.18);opacity:.5;pointer-events:none;
+ -webkit-mask-image:linear-gradient(#000 35%,transparent 100%);mask-image:linear-gradient(#000 35%,transparent 100%);contain:paint}
+.ybn .dbd{filter:blur(2px) saturate(1.1);opacity:.62;transform:none;height:calc(100% + 90px);-webkit-mask-image:linear-gradient(#000 25%,transparent 100%);mask-image:linear-gradient(#000 25%,transparent 100%)}
+.yds{font-size:14px;line-height:1.5;color:var(--mute);margin:4px 0 6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;max-width:760px}
+@media (prefers-reduced-motion:reduce){.dbd{transition:none}}
+/* poster-style artists: a tall photo with the name set on it */
+.ypls{gap:12px}
+.ypo{position:relative;flex:0 0 138px;aspect-ratio:3/4;border-radius:18px;overflow:hidden;background:var(--card);cursor:pointer;scroll-snap-align:start}
+.ypo>i{position:absolute;inset:0;display:block;background-size:cover!important;background-position:50% 22%!important}
+.ypo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.18) 55%,transparent)}
+.ypo>span{position:absolute;left:0;right:0;bottom:0;padding:11px;z-index:1;display:block;pointer-events:none}
+.ypo b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.15;font-weight:700;color:#fff}
+.ypo small{display:block;margin-top:2px;font-size:11px;color:rgba(255,255,255,.66);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ypo:active{scale:.97;transition:scale .15s}
+@media (min-width:860px){.ypo{flex-basis:160px}}
+/* loading skeleton */
+.ysk{background:var(--card)!important;animation:ysh 1.2s ease-in-out infinite}
+.ysk2{color:transparent!important;background:var(--card);border-radius:10px;width:min(60%,260px);animation:ysh 1.2s ease-in-out infinite}
+.ysklist{display:grid;gap:10px;margin-top:22px}
+.ysklist i{height:54px;border-radius:12px;background:var(--card);animation:ysh 1.2s ease-in-out infinite}
+@keyframes ysh{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.ysk,.ysk2,.ysklist i{animation:none}}
 </style>
 </head>
 <body>
@@ -1692,6 +1717,8 @@ html[dir=rtl] .mc-r.me{align-self:flex-start;align-items:flex-start}html[dir=rtl
   <div id="mdl" hidden></div>
 </div>
 <script>
+/* desktop app: put saved settings back if this install starts empty (new PC, cleared storage) */
+try{const D=window.miloDesktop;if(D&&D.data&&!Object.keys(localStorage).some(k=>k.indexOf("milo.")===0)){const o=JSON.parse(D.data);Object.keys(o).forEach(k=>{try{localStorage.setItem(k,o[k])}catch(e){}})}}catch(e){}
 
 const T=[
 {t:"Low Tide",a:"Wren Sable",d:212,c:"84,120,140",n:[110,164.8,196,246.9]},
@@ -2034,7 +2061,7 @@ function detail(){const c=S.nav.indexOf(":"),k=S.nav.slice(0,c),id=S.nav.slice(c
   const num=k==="album";
   const rows=idx.length?(S.lists.d=idx,`<div class="list${num?" num":" dlist"}">${idx.map((i,n)=>{const h=li(i,"d");return num?h.replace(/<i style="background:[^"]*">/,`<i>${n+1}`):h}).join("")}</div>`):`<p class="empty">${k==="recent"?"Nothing played yet. Songs you listen to will show up here.":"No songs here yet. Use the ⋯ menu on any song to add it."}</p>`;
   return `<button class="dbk" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-  <div class="dhero"><i class="dcv${round?" rd":""}" style="background:${bg}"></i><div class="dtx"><div class="dky">${type}</div><h1>${esc(ti)}</h1><div class="dm2">${m1?m1:""}${m2?`<small>${m2}</small>`:""}</div></div></div>
+  <div class="dhero"><i class="dbd" style="background:${bg}"></i><i class="dcv${round?" rd":""}" style="background:${bg}"></i><div class="dtx"><div class="dky">${type}</div><h1>${esc(ti)}</h1><div class="dm2">${m1?m1:""}${m2?`<small>${m2}</small>`:""}</div></div></div>
   <div class="dact">${ib("data-ps",I.shuf,"Shuffle")}${ib("data-pq",I.queue,"Add to queue")}${ib("data-pn",'<path d="M5 5v14l9-7zM18 5v14"/>',"Play next")}${ib("data-pd",'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',"Save for offline")}<span class="sp"></span><button class="pg" data-pa aria-label="Play">${svg(DP)}</button></div>
   ${k==="recent"&&idx.length||pl?`<div class="dx">${k==="recent"&&idx.length?'<button class="ghost" data-clrh>Clear history</button>':""}${pl?`<button class="ghost" data-rn="${pl.id}">Rename</button><button class="ghost" data-dl="${pl.id}">Delete</button>`:""}</div>`:""}
   ${extra}${rows}`}
@@ -2411,6 +2438,7 @@ async function musicGo(label,q,genre){S.mg=label;S.mload=1;S.mErr="";refreshM();
   try{let items=[];
     if(src==="it"){const d=await jget(`https://itunes.apple.com/search?media=music&entity=song&limit=40&term=${e(q||label)}`);
       items=(d.results||[]).filter(x=>x.previewUrl&&x.trackName).map(x=>({id:"it"+x.trackId,t:x.trackName,a:x.artistName||"Unknown artist",d:30,url:x.previewUrl,img:(x.artworkUrl100||"").replace("100x100","600x600"),src:x.collectionName||"iTunes",lic:"30s preview",page:x.trackViewUrl||"",g:x.primaryGenreName||""}))}
+    else if(src==="yt"&&typeof ymOk==="function"&&ymOk()){try{items=await ymSongs(q||label)}catch(er){items=[];S.mErr="YouTube Music search failed ("+String((er&&er.message)||er).slice(0,60)+"). Try again in a moment."}}
     else if(src==="yt"){const d=await jget(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=30&q=${e(q||label)}&key=${YTK}`);
       items=(d.items||[]).filter(x=>x.id&&x.id.videoId&&x.snippet).map(x=>({id:"yt"+x.id.videoId,yt:x.id.videoId,t:lclean(ytDecode(x.snippet.title))||ytDecode(x.snippet.title),a:ytArtist(ytDecode(x.snippet.channelTitle)),d:0,url:"",img:(x.snippet.thumbnails&&(x.snippet.thumbnails.high||x.snippet.thumbnails.medium||x.snippet.thumbnails.default)||{}).url||"",src:"YouTube",lic:"YouTube",page:"https://www.youtube.com/watch?v="+x.id.videoId,g:""}))}
     if(src!==S.ms)return;
@@ -2982,15 +3010,21 @@ function ytLoad(){return new Promise((res,rej)=>{if(window.YT&&window.YT.Player)
   window.onYouTubeIframeAPIReady=()=>{YTX.q.splice(0).forEach(f=>f())};
   const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";s.onerror=()=>{YTX.loading=0;YTX.q=[];rej(new Error("blocked"))};document.head.appendChild(s)})}
 function ytApply(){if(!YTX.ready)return;try{S.playing?YTX.p.playVideo():YTX.p.pauseVideo()}catch(e){}}
+/* errors: 2 bad id, 5 player fault, 100 removed/private, 101+150 embedding off, 153 the app could not identify itself to YouTube */
+function ytErr(e){const c=+(e&&e.data)||0,t=T[S.cur];YTX.errAt=Date.now();YTX.errs=(YTX.errs||0)+1;
+  const sys=c===153||c===2||c===5||YTX.errs>=3,id=t&&t.yt;
+  if(!sys&&YTX.errs<3){toast(c===100?"This video was removed or is private. Skipping.":"The owner turned off playing this video outside YouTube. Skipping.");setTimeout(()=>{if(T[S.cur]===t)next(true)},900);return}
+  YTX.errs=0;try{YTX.p.stopVideo()}catch(x){}S.playing=false;sync();
+  modal(`<h3>YouTube won't play here</h3><p class="empty">${c===153?"YouTube refused to start the video inside this app (error 153: the app could not identify itself to YouTube).":"YouTube refused several videos in a row (error "+(c||"?")+")."} milo. stopped instead of skipping through your queue. You can open this song in YouTube, or play your own music.</p>${id?`<a class="mi" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Open in YouTube</a>`:""}<button class="mi" data-dv="x">Close</button>`)}
 function ytState(e){const t=T[S.cur];if(!t||!t.yt)return;const d=e.data;
-  if(d===0)next(true);
-  else if(d===1&&!S.playing){S.playing=true;sync()}
+  if(d===0){if(Date.now()-(YTX.errAt||0)<4000)return;next(true)}
+  else if(d===1){YTX.errs=0;if(!S.playing){S.playing=true;sync()}}
   else if(d===2&&S.playing&&!YTX.busy){S.playing=false;sync()}}
 function ytPlay(t,tog){ytInfo(t);sbGet(t.yt);DK.forEach(e=>e.pause());RA.pause();RB.pause();audioStop();A=RA;const w=$("ytw");w.hidden=false;ytPlaceSoon();if(!IM.on&&!$("full").classList.contains("open")&&!$("lyr").classList.contains("open")){if(mqDesk.matches)imOpen();else openFull()}
   ytLoad().then(()=>{if(T[S.cur]!==t)return;
-    if(!YTX.p){YTX.p=new window.YT.Player("ytp",{width:"100%",height:"100%",videoId:t.yt,playerVars:{playsinline:1,rel:0,start:Math.floor(YTX.rs||0),autoplay:S.playing?1:0,origin:/^https?:/.test(location.protocol)?location.origin:undefined},
+    if(!YTX.p){YTX.p=new window.YT.Player("ytp",{width:"100%",height:"100%",videoId:t.yt,playerVars:{playsinline:1,rel:0,start:Math.floor(YTX.rs||0),autoplay:S.playing?1:0,origin:/^https?:/.test(location.protocol)?location.origin:undefined,widget_referrer:/^https?:/.test(location.protocol)?location.href:undefined},
       events:{onReady:()=>{YTX.ready=1;YTX.vid=t.yt;const c=T[S.cur];try{YTX.p.setVolume(Math.round((S.vol==null?1:S.vol)*100))}catch(e){}if(c&&c.yt){if(c.yt!==YTX.vid){YTX.vid=c.yt;YTX.p.loadVideoById(c.yt)}ytApply()}},
-        onStateChange:ytState,onError:()=>toast("YouTube won't play this video here. The owner may have turned embedding off.")}});YTX.vid=t.yt;YTX.rs=0}
+        onStateChange:ytState,onError:ytErr}});YTX.vid=t.yt;YTX.rs=0}
     else if(YTX.ready){if(!tog||YTX.vid!==t.yt){YTX.vid=t.yt;YTX.busy=1;S.playing?YTX.p.loadVideoById(t.yt):YTX.p.cueVideoById(t.yt);setTimeout(()=>{YTX.busy=0},900)}else ytApply()}})
   .catch(()=>{toast("YouTube can't load here. Hosted previews block it, so use the installed app.");w.hidden=true;ytPlace();S.playing=false;sync()})}
 function ytHome(){const w=$("ytw"),h=mqDesk.matches?$("imBg"):$("big");if(!w||!h||w.parentNode===h)return false;
@@ -3433,13 +3467,17 @@ async function storageM(){const i=await stInfo(),pct=i.quota?Math.min(100,Math.m
   ${i.idb&&i.persisted===false?'<button class="mi" data-stor="persist">Protect my data</button>':""}
   <button class="mi" data-stor="bk">Back up settings and playlists</button>
   <label class="mi">Restore a backup<input type="file" accept=".json,application/json" data-bk hidden></label>
-  ${window.showDirectoryPicker?'<button class="mi" data-stor="dir">Add a music folder</button>':""}
+  ${window.miloDesktop?'<button class="mi" data-stor="dopen">Open the data folder</button><button class="mi" data-stor="dchg">Change the data folder</button>':""}
+  ${window.miloDesktop?'<button class="mi" data-stor="dvdir">Link a music folder</button>':window.showDirectoryPicker?'<button class="mi" data-stor="dir">Add a music folder</button>':""}
   ${i.songs?'<button class="mi stdng" data-stor="rm">Remove all uploaded songs</button>':""}
   <p class="empty" style="font-size:12px;margin-top:10px">Songs you upload stay on this device. A backup holds your playlists, likes and settings, not the song files.</p>`)}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-stor]");if(!b)return;const k=b.dataset.stor;
   if(k==="persist"){stPersist().then(ok=>{toast(ok?"Your data is protected":"This browser said no. Installing milo. as an app usually fixes that.");storageM()})}
   else if(k==="bk"){backupOut()}
   else if(k==="dir"){pickDir()}
+  else if(k==="dvdir"){closeM();dvFolder()}
+  else if(k==="dopen"){miloDesktop.openDataDir()}
+  else if(k==="dchg"){miloDesktop.chooseDataDir().then(d=>{if(d){toast("Data folder changed");kvDisk()}})}
   else if(k==="rm"){modal(`<h3>Remove all uploaded songs?</h3><p class="empty">This deletes the songs you added from this device. Your playlists and likes stay, but they will lose these songs.</p><button class="mi stdng" data-stor="rm2">Remove songs</button><button class="mi" data-stor="no">Cancel</button>`)}
   else if(k==="rm2"){clearLibrary();closeM();toast("Uploaded songs removed")}
   else if(k==="no"){storageM()}});
@@ -3452,6 +3490,11 @@ function kvSoon(){clearTimeout(KV.t);KV.t=setTimeout(kvSnap,1500)}
 addEventListener("pagehide",kvSnap);document.addEventListener("visibilitychange",()=>{if(document.hidden)kvSnap()});
 (async()=>{try{if(localStorage.getItem(dkey())||sessionStorage.getItem("milo.rec"))return;const db=await idb(),r=await rq(db.transaction("kv").objectStore("kv").get("snap"));
   if(r&&r.o&&r.o[dkey()]){Object.entries(r.o).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(e){}});sessionStorage.setItem("milo.rec","1");location.reload()}}catch(e){}})();
+/* 2b. desktop app: keep a readable copy of settings, playlists and likes in the data folder (with daily backups) */
+const KD={t:0};
+async function kvDisk(){try{const D=window.miloDesktop;if(!D)return;const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^milo\./.test(k)&&!/tok|sess|auth|secret|pass/i.test(k))o[k]=localStorage.getItem(k)}if(Object.keys(o).length)await D.saveData(JSON.stringify(o))}catch(e){}}
+if(window.miloDesktop){{const _d=LS.set;LS.set=(k,v)=>{_d(k,v);clearTimeout(KD.t);KD.t=setTimeout(kvDisk,2500)}}
+  addEventListener("pagehide",kvDisk);setTimeout(kvDisk,6000)}
 /* 3. saving files: native share sheet / save dialog where there is one, plain download otherwise */
 async function saveFile(blob,name){
   try{const FS=NV.P.Filesystem,SH=NV.P.Share;if(NV.cap&&FS){const d=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(blob)});
@@ -4125,9 +4168,10 @@ async function dvConnect(){
   LS.set("milo.dv",1);DV.on=1;toast("Looking for music on this phone…");await dvScan()}
 /* installed web app (desktop and mobile): link folders or files, they stay where they are */
 var DVH=[];
-function dvWebOk(){return !!(window.showDirectoryPicker||window.showOpenFilePicker)}
+function dvWebOk(){return !!(window.miloDesktop||window.showDirectoryPicker||window.showOpenFilePicker)}
 async function dvSaveH(){try{const db=await idb(),tx=db.transaction("kv","readwrite");tx.objectStore("kv").put({k:"dvsrc",h:DVH});await txDone(tx)}catch(e){}}
 async function dvFolder(){
+  if(window.miloDesktop){const r=await miloDesktop.pickFolders();if(!r)return;LS.set("milo.dv",1);DV.on=1;DV.need=0;await dvDesk();return}
   if(!dvWebOk()){toast("This browser can't link files in place. Add music copies songs into milo. instead");return}
   try{let h;
     if(window.showDirectoryPicker)h=[await showDirectoryPicker({mode:"read"})];
@@ -4136,6 +4180,27 @@ async function dvFolder(){
     DV.need=0;LS.set("milo.dv",1);DV.on=1;await dvSaveH();await dvLoadH()}
   catch(e){if(e&&e.name==="AbortError")return;if(/android/i.test(navigator.userAgent))dvAndroidWeb();else toast("Couldn't open that")}}
 function dvAndroidWeb(){modal(`<h3>This needs the milo. Android app</h3><p class="empty">Android does not let a browser or an installed web app read your Music folder, so songs can only be added by copying them in. The milo. Android app (APK) asks for music permission and plays your songs right where they are.</p><button class="mi" data-dv="x">OK</button>`)}
+/* desktop app: real folders, remembered between launches, no permission prompts */
+function dskFile(x){return{size:x.size,name:x.name,type:"",lastModified:x.mtime,slice:(a,b)=>({arrayBuffer:()=>miloDesktop.read(x.abs,a,Math.min(b,x.size))}),text:()=>miloDesktop.text(x.abs)}}
+async function dvDesk(quiet){
+  const D=window.miloDesktop;if(!D||DV.busy)return;DV.busy=1;
+  try{const r=await D.scan(),fl=r.files,known=new Map();
+    T.forEach(t=>{if(t.dev)known.set(t.key,t)});
+    for(const x of r.lrc){try{const bk=bn(x.name).toLowerCase();if(S.lrc[bk])continue;const ln=parseLrc(await D.text(x.abs));S.lrc[bk]=ln;idbLrc(bk,ln)}catch(e){}}
+    const rows=[];let i=0;
+    const w=async()=>{while(i<fl.length){const e=fl[i++],key="dvf:"+e.key,h=known.get(key);
+      if(h){rows.push({key,o:null});continue}
+      try{const f=dskFile(e),tg=await readTags(f),nm=fromName(e.name),al=tg.al||"";
+        rows.push({key,o:{t:tg.t||nm.t,a:tg.a||tg.aa||nm.a||"On this device",al,y:tg.y||"",n:tg.n||nm.n||0,d:0,c:COLS[hs(al||tg.t||nm.t)%6],url:e.url,base:bn(e.name).toLowerCase(),fname:e.name,img:tg.img,lrc:tg.lrc,plain:tg.plain,lsrc:tg.lrc?"Embedded · synced":tg.plain?"Embedded":"",added:e.mtime}});
+        if(rows.length%40===0){dvSync(rows.filter(z=>z.o),1);render()}}catch(er){}}};
+    await Promise.all([w(),w(),w(),w()]);
+    dvSync(rows.filter(z=>z.o),1);
+    const keep=new Set(rows.map(z=>z.key));
+    T.forEach(t=>{if(t.dev&&t.key.startsWith("dvf:")){if(keep.has(t.key)){if(t.gone&&!DVRM.has(t.key)){t.gone=false;t.hid=false}}else if(!t.gone){t.gone=true;t.hid=true}}});
+    DV.last=Date.now();render();dvDur();
+    if(!quiet)toast(fl.length?`${fl.length} songs linked`:r.folders.length?"No music found there":"No folders linked yet")}
+  catch(e){if(!quiet)toast("Couldn't read the music folders")}finally{DV.busy=0}}
+function dvManage(){miloDesktop.folders().then(fs=>modal(`<h3>Music folders</h3>${fs.length?fs.map((d,i)=>`<div class="mi" style="display:flex;gap:10px;align-items:center;justify-content:space-between"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="${esc(d)}">${esc(d)}</span><button class="ghost" data-dv="rm" data-i="${i}">Remove</button></div>`).join(""):'<p class="empty">No folders linked yet.</p>'}<button class="mi" data-dv="dir">Add a folder</button><button class="mi" data-dv="x">Done</button><p class="empty" style="font-size:12px;margin-top:10px">milo. plays songs right where they are and picks up new ones by itself. Nothing is copied.</p>`))}
 async function dvPerm(ask){let ok=true;for(const h of DVH){try{let p=await h.queryPermission({mode:"read"});if(p!=="granted"&&ask)p=await h.requestPermission({mode:"read"});if(p!=="granted")ok=false}catch(e){ok=false}}return ok}
 async function dvLoadH(){
   if(DV.busy||!DVH.length)return;DV.busy=1;
@@ -4158,8 +4223,9 @@ function dvDur(){const q=T.filter(t=>t.dev&&!t.gone&&!t.d&&t.url);let i=0;
     a.onloadedmetadata=()=>{if(isFinite(a.duration))t.d=a.duration;dn()};a.onerror=dn;a.src=t.url};nx()});
   Promise.all([w(),w(),w()]).then(dvPaint)}
 async function dvBoot(){
-  if(!DV.on)return;const M=dvM();
+  if(!DV.on&&!window.miloDesktop)return;const M=dvM();
   if(M){try{if((await M.check()).granted)dvScan(true);else{DV.on=0;LS.set("milo.dv",0)}}catch(e){}return}
+  if(window.miloDesktop){const f=await miloDesktop.folders();if(f.length){LS.set("milo.dv",1);DV.on=1;dvDesk(true)}return}
   if(!dvWebOk())return;
   try{const db=await idb(),r=await rq(db.transaction("kv").objectStore("kv").get("dvsrc"));if(!r||!r.h||!r.h.length)return;DVH=r.h;
     if(await dvPerm(false))dvLoadH();else{DV.need=1;render();
@@ -4167,12 +4233,16 @@ async function dvBoot(){
       addEventListener("pointerup",async function f(){removeEventListener("pointerup",f);if(await dvPerm(true)){DV.need=0;dvLoadH()}},{once:true})}}catch(e){}}
 function dvBar(){
   if(!DV||!DV.art)return"";if(window.usbBar&&S.tv&&!dvM())return usbBar();const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
+  if(!DV.on&&window.miloDesktop)return'<button class="addb" data-dv="dir">Link a music folder</button>';
   if(!DV.on)return M?'<button class="addb" data-dv="on">Play music on this phone</button>':'<button class="addb" data-dv="dir">'+(window.showDirectoryPicker?"Link a music folder":"Link music files")+'</button>';
+  if(window.miloDesktop)return `<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button><button class="ghost" data-dv="mng">Music folders</button>`;
   return (DV.need?'<button class="addb" data-dv="re">Reconnect music folder</button>':`<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button>`)+'<button class="ghost" data-dv="off">Turn off</button>'}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-dv]");if(!b)return;const k=b.dataset.dv;
   if(k==="on"){closeM();dvConnect()}
-  else if(k==="dir"){dvFolder()}
-  else if(k==="scan"){if(dvM())dvScan();else dvLoadH()}
+  else if(k==="dir"){closeM();dvFolder()}
+  else if(k==="scan"){if(dvM())dvScan();else if(window.miloDesktop)dvDesk();else dvLoadH()}
+  else if(k==="mng"){dvManage()}
+  else if(k==="rm"){const fs=await miloDesktop.folders();await miloDesktop.removeFolder(fs[+b.dataset.i]);const n=(await miloDesktop.folders()).length;await dvDesk(true);if(!n){DV.on=0;LS.set("milo.dv",0)}dvManage()}
   else if(k==="re"){if(await dvPerm(true)){DV.need=0;dvLoadH()}}
   else if(k==="off"){DV.on=0;LS.set("milo.dv",0);T.forEach(t=>{if(t.dev){t.hid=true;t.gone=true}});toast("Phone music hidden");render()}
   else if(k==="later"){LS.set("milo.dvAsk",1);closeM()}
@@ -4185,6 +4255,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
     if(g||(m&&!m.hidden)||DV.on||LS.get("milo.dvAsk",0)){if(DV.on||LS.get("milo.dvAsk",0))clearInterval(t);return}
     clearInterval(t);LS.set("milo.dvAsk",1);
     modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`)},1500)})();
+if(window.miloDesktop)miloDesktop.onFoldersChanged(()=>{if(DV.on)dvDesk(true)});
 setTimeout(dvBoot,1200);
 
 /* ===== v8: playback guard (local music keeps playing through stalls, interruptions, file hiccups and app restarts) ===== */
@@ -4382,6 +4453,245 @@ async function usbLoad(list){
 document.addEventListener("change",e=>{const el=e.target;if(el&&el.matches&&el.matches("input[data-usb]")){const f=el.files;if(f&&f.length)usbLoad(f);el.value=""}});
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-usb-x]");if(!b)return;
   T.forEach(t=>{if(t.usb&&!t.gone){t.gone=true;t.hid=true;try{URL.revokeObjectURL(t.url)}catch(_){}}});USBN=0;toast("USB songs removed");render()});
+/* ===== v10: YouTube Music inside milo.
+   - search: songs, artists and albums from YouTube Music's own catalogue, with square album art
+   - direct audio streams: the song plays in milo.'s own player (background audio, lock screen, speed, sleep timer)
+     instead of YouTube's embedded player, which refuses to start inside the Android app (error 153)
+   - artist, album and playlist pages with big covers, a blurred cover backdrop and poster-style artists
+   Works where the app can talk to YouTube without a browser in the way: the Android app and the desktop app.
+   In a plain browser or installed web app the old embedded player is used, exactly as before.
+   Written for milo. from the way YouTube Music's public web API behaves. Ideas and approach credited in CREDITS.md. */
+const YMC={
+  REMIX:{n:"WEB_REMIX",v:"1.20260213.01.00",id:"67",ua:"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"},
+  VISION:{n:"VISIONOS",v:"0.1",id:"101",ua:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",os:"visionOS",ov:"1.3.21O771",mk:"Apple",md:"RealityDevice14,1"}};
+try{const o=LS.get("milo.ymc",null);if(o&&o.REMIX)Object.assign(YMC.REMIX,o.REMIX);if(o&&o.VISION)Object.assign(YMC.VISION,o.VISION)}catch(e){}/* versions rot: a saved override can replace them without a new app */
+const YMF={song:"EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D",video:"EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D",album:"EgWKAQIYAWoKEAkQChAFEAMQBA%3D%3D",artist:"EgWKAQIgAWoKEAkQChAFEAMQBA%3D%3D",playlist:"EgeKAQQoAEABagoQAxAEEAoQCRAF"};
+const YM={vd:LS.get("milo.ymvd",""),vdAt:+LS.get("milo.ymvdAt",0)||0,sc:new Map(),pg:new Map(),tk:0,act:null,retry:{},xr:null};
+const ymEsc=s=>esc(s==null?"":String(s));
+/* ---------- transport: the Android app and the desktop app can call YouTube directly ---------- */
+function ymOk(){try{return !!((window.miloDesktop&&miloDesktop.http)||(NV.cap&&NV.P&&NV.P.CapacitorHttp))}catch(e){return false}}
+async function ymHttp(r){
+  const D=window.miloDesktop;
+  if(D&&D.http)return D.http(r);
+  const H=NV.P&&NV.P.CapacitorHttp;
+  if(NV.cap&&H){const o=await H.request({url:r.url,method:r.method||"GET",headers:r.headers||{},data:r.body?JSON.parse(r.body):undefined,responseType:"text",connectTimeout:12000,readTimeout:20000});
+    return{status:o.status,text:typeof o.data==="string"?o.data:JSON.stringify(o.data)}}
+  throw new Error("no-transport")}
+const ymLoc=()=>{const l=(navigator.language||"en-US").split("-");return{hl:(l[0]||"en").toLowerCase(),gl:((l[1]||"US")+"").toUpperCase().slice(0,2)}};
+function ymCtx(c){const L=ymLoc(),cl={clientName:c.n,clientVersion:c.v,gl:L.gl,hl:L.hl};
+  if(c.os){cl.osName=c.os;cl.osVersion=c.ov;cl.deviceMake=c.mk;cl.deviceModel=c.md}if(YM.vd)cl.visitorData=YM.vd;
+  return{client:cl,request:{internalExperimentFlags:[],useSsl:true},user:{lockedSafetyMode:false}}}
+function ymHead(c){const L=ymLoc(),h={"content-type":"application/json","accept":"application/json","x-goog-api-format-version":"1","x-youtube-client-name":c.id,"x-youtube-client-version":c.v,"x-origin":"https://music.youtube.com","referer":"https://music.youtube.com/","user-agent":c.ua,"accept-language":L.hl==="en"?"en-US,en;q=0.9":L.hl+",en;q=0.5"};
+  if(YM.vd)h["x-goog-visitor-id"]=YM.vd;return h}
+async function ymVisitor(){
+  if(YM.vd&&Date.now()-YM.vdAt<6*36e5)return;
+  try{const r=await ymHttp({url:"https://music.youtube.com/sw.js_data",method:"GET",headers:{"user-agent":YMC.REMIX.ua,"accept-language":"en-US,en;q=0.9"}});
+    const s=r.text||"",i=s.indexOf("[");if(i<0)return;const j=JSON.parse(s.slice(i)),a=j&&j[0]&&j[0][2];
+    const v=Array.isArray(a)?a.find(x=>typeof x==="string"&&/^Cg[ts]/.test(x)):"";
+    if(v){YM.vd=v;YM.vdAt=Date.now();LS.set("milo.ymvd",v);LS.set("milo.ymvdAt",YM.vdAt)}}catch(e){}}
+async function ymPost(path,body,c){
+  await ymVisitor();
+  const r=await ymHttp({url:"https://music.youtube.com/youtubei/v1/"+path+"?prettyPrint=false",method:"POST",headers:ymHead(c),body:JSON.stringify(Object.assign({context:ymCtx(c)},body))});
+  if(r.status>=400){const e=new Error(String(r.status));e.status=r.status;throw e}
+  return JSON.parse(r.text)}
+/* ---------- reading the answers ---------- */
+function ymAll(n,key,out){out=out||[];if(Array.isArray(n)){for(const x of n)ymAll(x,key,out)}else if(n&&typeof n==="object"){for(const k in n){if(k===key)out.push(n[k]);ymAll(n[k],key,out)}}return out}
+function ymFirst(n,key){return ymAll(n,key)[0]}
+const ymRuns=v=>((v&&v.runs)||[]).map(r=>r.text||"").join("");
+function ymThumbOf(n){const a=ymAll(n,"thumbnails");for(const t of a){if(Array.isArray(t)&&t.length)return t[t.length-1].url||""}return""}
+function ymStr(n,key){const a=ymAll(n,key);return a.find(x=>typeof x==="string")||""}
+const ymDur=s=>{const p=String(s||"").split(":").map(Number);return p.some(isNaN)?0:p.reduce((a,x)=>a*60+x,0)};
+const ymIsDur=s=>/^\d+(:\d{2}){1,2}$/.test(String(s||"").trim());
+const YM_TYPES=/^(song|video|album|single|ep|playlist|artist|podcast|episode|profile|station)$/i;
+function ymArtistLink(r){const b=r.navigationEndpoint&&r.navigationEndpoint.browseEndpoint;return b&&/^UC/.test(b.browseId||"")?b.browseId:""}
+function ymGroups(runs){const g=[];let cur={t:"",ar:"",al:""};
+  for(const r of runs){const t=r.text||"";if(t.trim()==="•"){g.push(cur);cur={t:"",ar:"",al:""}}else{cur.t+=t;const b=r.navigationEndpoint&&r.navigationEndpoint.browseEndpoint;if(b){if(/^UC/.test(b.browseId||""))cur.ar=cur.ar||b.browseId;if(/^MPRE/.test(b.browseId||""))cur.al=b.browseId}}}
+  g.push(cur);g.forEach(x=>x.t=x.t.trim());return g}
+/* one song row (search results, playlists, albums, an artist's top songs) */
+function ymSong(n){
+  const fx=i=>(((((n.flexColumns||[])[i]||{}).musicResponsiveListItemFlexColumnRenderer||{}).text)||{}).runs||[];
+  const vid=(n.playlistItemData&&n.playlistItemData.videoId)||(n.navigationEndpoint&&n.navigationEndpoint.watchEndpoint&&n.navigationEndpoint.watchEndpoint.videoId)||ymStr(n.overlay,"videoId");
+  const title=fx(0).map(r=>r.text||"").join("");if(!vid||!title)return null;
+  let g=ymGroups(fx(1));
+  if(g.length>1&&!g[0].ar&&(YM_TYPES.test(g[0].t)||g.slice(1).some(x=>x.ar)||(g.length===2&&ymIsDur(g[1].t))))g=g.slice(1);
+  let dur=[...g].reverse().find(x=>ymIsDur(x.t));dur=dur?dur.t:"";
+  if(!dur){const fc=(n.fixedColumns||[]).map(c=>ymRuns(((c.musicResponsiveListItemFixedColumnRenderer||{}).text)||{})).find(ymIsDur);dur=fc||""}
+  const artists=g[0]&&!ymIsDur(g[0].t)?g[0].t:"";
+  const albG=g.slice(1).find(x=>x.al);let alb=albG?albG.t:"",albId=albG?albG.al:"";
+  if(!albId){const f=ymAll(n,"browseId").find(x=>typeof x==="string"&&/^MPRE/.test(x));if(f)albId=f}
+  if(!alb){for(let i=2;i<(n.flexColumns||[]).length&&!alb;i++){const rs=fx(i);const r=rs.find(x=>x.navigationEndpoint&&x.navigationEndpoint.browseEndpoint&&/^MPRE/.test(x.navigationEndpoint.browseEndpoint.browseId||""));if(r){alb=r.text||"";albId=albId||r.navigationEndpoint.browseEndpoint.browseId}}}
+  const mvt=(JSON.stringify(n).match(/MUSIC_VIDEO_TYPE_[A-Z_]+/)||[""])[0],isVideo=!!mvt&&mvt!=="MUSIC_VIDEO_TYPE_ATV";
+  const ar=fx(1).map(ymArtistLink).find(Boolean)||"";
+  return{k:"song",id:vid,t:title,a:artists,al:alb,alId:albId,arId:ar,d:ymDur(dur),img:ymThumbOf(n),video:isVideo,exp:/"MUSIC_EXPLICIT_BADGE"/.test(JSON.stringify(n.badges||[]))}}
+/* a card in a carousel / a non-song search row: artist, album, playlist (or a song) */
+function ymKind(id){return /^UC/.test(id)?"artist":/^MPRE/.test(id)?"album":/^(VL|PL|RD|OLAK)/.test(id)?"playlist":/^MPSP/.test(id)?"show":"other"}
+function ymBrowse(n){const b=(n.navigationEndpoint&&n.navigationEndpoint.browseEndpoint)||ymFirst(n.navigationEndpoint||{},"browseEndpoint");return b&&b.browseId||""}
+function ymCard(n,two){
+  const nv=n.navigationEndpoint||{};
+  if(two){const title=ymRuns(n.title),sub=ymRuns(n.subtitle),img=ymThumbOf(n);if(!title)return null;
+    if(nv.watchEndpoint&&nv.watchEndpoint.videoId){const g=ymGroups((n.subtitle||{}).runs||[]);const a=g.find(x=>x.ar)||g[0]||{t:""};return{k:"song",id:nv.watchEndpoint.videoId,t:title,a:YM_TYPES.test(a.t)&&g[1]?g[1].t:a.t,img,al:"",d:0}}
+    if(nv.watchPlaylistEndpoint){return{k:"playlist",id:"VL"+nv.watchPlaylistEndpoint.playlistId,t:title,sub,img}}
+    const id=ymBrowse(n);if(!id)return null;return{k:ymKind(id),id,t:title,sub,img}}
+  const f=i=>(((((n.flexColumns||[])[i]||{}).musicResponsiveListItemFlexColumnRenderer||{}).text)||{}).runs||[];
+  const id=ymBrowse(n),title=f(0).map(r=>r.text||"").join("");if(!id||!title)return null;
+  let g=ymGroups(f(1));if(g.length>1&&YM_TYPES.test(g[0].t))g=g.slice(1);
+  return{k:ymKind(id),id,t:title,sub:g.map(x=>x.t).filter(Boolean).join(" · "),img:ymThumbOf(n)}}
+function ymRows(root){const out=[];for(const n of ymAll(root,"musicResponsiveListItemRenderer")){const s=ymSong(n);if(s)out.push(s)}return out}
+/* ---------- artwork: ask for the size a slot really shows, and step back if the CDN lacks it ---------- */
+function ymArt(u,px){if(!u)return"";
+  const v=/^https:\/\/i\.ytimg\.com\/vi\/([\w-]{11})\//.exec(u);if(v&&px>=720)return"https://i.ytimg.com/vi/"+v[1]+"/maxresdefault.jpg";
+  if(/=w\d+-h\d+/.test(u))return u.replace(/=w\d+-h\d+/,"=w"+px+"-h"+px);
+  if(/=s\d+/.test(u))return u.replace(/=s\d+/,"=s"+px);return u}
+/* YouTube's own 2x2 collage of a playlist's first four songs is not a cover somebody chose */
+const YM_COLLAGE=/yt3\.(ggpht|googleusercontent)\.com\/.*=s\d+/;
+const ymBgImg=u=>"center/cover url(\""+String(u).replace(/"/g,"%22")+"\")";
+/* hero images are checked once: a size the CDN doesn't have 404s (or comes back as a grey 120x90 picture), so use the original */
+function ymFixArt(root){(root||document).querySelectorAll("[data-ya]").forEach(el=>{
+  const want=el.dataset.ya,orig=el.dataset.yo;el.removeAttribute("data-ya");if(!want||want===orig)return;
+  const im=new Image(),back=()=>{el.style.background=ymBgImg(orig)};
+  im.onload=()=>{if(im.naturalWidth===120&&im.naturalHeight===90)back()};im.onerror=back;im.src=want})}
+/* ---------- search ---------- */
+async function ymSearch(q,kind){
+  const j=await ymPost("search",{query:q,params:YMF[kind||"song"]},YMC.REMIX);
+  if(kind==="artist"||kind==="album"||kind==="playlist"){const o=[];for(const n of ymAll(j,"musicResponsiveListItemRenderer")){const c=ymCard(n,false);if(c&&c.k===kind)o.push(c)}return o}
+  return ymRows(j)}
+/* songs, shaped for the Discover list */
+async function ymSongs(q){
+  const L=await ymSearch(q,"song");
+  ymExtras(q);
+  return L.slice(0,40).map(s=>({id:"yt"+s.id,yt:s.id,t:s.t,a:s.a||"YouTube Music",d:s.d||0,url:"",img:ymArt(s.img,544),src:s.al||"YouTube Music",lic:"YouTube Music",page:"https://music.youtube.com/watch?v="+s.id,g:"",ymAl:s.alId||"",ymAr:s.arId||""}))}
+async function ymExtras(q){
+  YM.xr={q,artists:[],albums:[],busy:1};
+  try{const [ar,al]=await Promise.all([ymSearch(q,"artist").catch(()=>[]),ymSearch(q,"album").catch(()=>[])]);
+    if(!YM.xr||YM.xr.q!==q)return;YM.xr={q,artists:ar.slice(0,12),albums:al.slice(0,12)}}catch(e){}
+  try{refreshM()}catch(e){}}
+function ymPoster(c){return`<div class="ypo" role="button" tabindex="0" data-nav="${encodeURIComponent("yt:"+c.id)}"><i style="background:${ymBgImg(ymArt(c.img,400)||"")}"></i><span><b>${ymEsc(c.t)}</b>${c.sub?`<small>${ymEsc(c.sub)}</small>`:""}</span></div>`}
+function ymSquare(c){return`<div class="cd" role="button" tabindex="0" data-nav="${encodeURIComponent("yt:"+c.id)}"><i style="background:${c.img?ymBgImg(ymArt(c.img,400)):"var(--card)"}"></i><b>${ymEsc(c.t)}</b><small>${ymEsc(c.sub||"")}</small></div>`}
+function ymExtraHtml(){const x=YM.xr;if(!x||x.busy||!(x.artists.length||x.albums.length))return"";
+  return(x.artists.length?`<div class="row" style="margin-top:14px"><h2>Artists</h2></div><div class="pls ypls">${x.artists.map(ymPoster).join("")}</div>`:"")+
+    (x.albums.length?`<div class="row"><h2>Albums</h2></div><div class="pls">${x.albums.map(ymSquare).join("")}</div>`:"")}
+/* ---------- direct audio streams ---------- */
+const YM_RANK={AUDIO_QUALITY_HIGH:3,AUDIO_QUALITY_MEDIUM:2,AUDIO_QUALITY_LOW:1};
+function ymPick(sd){
+  let a=(sd.adaptiveFormats||[]).filter(f=>!f.width&&f.url&&!f.signatureCipher&&!f.cipher);
+  if(!a.length)a=(sd.formats||[]).filter(f=>!f.width&&f.url&&!f.signatureCipher&&!f.cipher);
+  if(!a.length)return null;
+  const orig=a.filter(f=>!f.audioTrack||(f.audioTrack.isAutoDubbed!==true&&f.audioTrack.audioIsDefault===true));if(orig.length)a=orig;
+  const au=new Audio(),can=a.filter(f=>{try{return au.canPlayType(f.mimeType)!==""}catch(e){return true}});if(can.length)a=can;
+  const score=f=>[YM_RANK[f.audioQuality]||0,f.audioChannels||2,/opus/.test(f.mimeType)?2:/mp4a/.test(f.mimeType)?1:0,+f.bitrate||0];
+  return a.sort((x,y)=>{const p=score(x),q=score(y);for(let i=0;i<p.length;i++)if(p[i]!==q[i])return q[i]-p[i];return 0})[0]}
+async function ymStream(vid,force){
+  const c=YM.sc.get(vid);if(c&&!force&&c.exp>Date.now()+90000)return c;
+  const j=await ymPost("player",{videoId:vid,contentCheckOk:true,racyCheckOk:true},YMC.VISION);
+  const ps=j.playabilityStatus||{};if(ps.status&&ps.status!=="OK")throw new Error(ps.reason||ps.status);
+  const f=ymPick(j.streamingData||{});if(!f)throw new Error("no direct audio stream");
+  const exp=Date.now()+(+((j.streamingData||{}).expiresInSeconds)||18000)*1000,vd=j.videoDetails||{};
+  const s={url:f.url,mime:f.mimeType,exp,d:+vd.lengthSeconds||0,ua:YMC.VISION.ua,title:vd.title||"",author:(vd.author||"").replace(/\s*-\s*Topic$/i,"")};
+  YM.sc.set(vid,s);return s}
+/* where the audio element reads from. On the desktop app the bytes come through a small local proxy that asks YouTube for the
+   file in bounded pieces (an open-ended download is throttled to about 2x realtime, pieces are not) and adds the headers a browser can't set */
+function ymSrc(s){const D=window.miloDesktop;if(D&&D.http&&D.streamUrl)return D.streamUrl(s.url,s.ua);return s.url}
+var _ymEng=engine;
+engine=function(i,tog){const t=T[i];
+  if(!(t&&t.yt&&ymOk()&&!t.ymFail)){YM.act=null;YM.tk++;return _ymEng(i,tog)}
+  ymPlay(i,tog,t)};
+async function ymPlay(i,tog,t){
+  try{ytStop()}catch(e){}
+  DK.forEach(e=>e.pause());RB.pause();try{audioStop()}catch(e){}A=RA;
+  if(tog&&YM.act===t&&RA.getAttribute("src")){RA.defaultPlaybackRate=RA.playbackRate=S.rate;S.playing?RA.play().catch(er=>{if(er&&er.name==="NotSupportedError")ymRecover(t,1)}):RA.pause();return}
+  const my=++YM.tk;YM.act=null;RA.pause();
+  try{sbGet(t.yt)}catch(e){}
+  const slow=setTimeout(()=>{if(my===YM.tk&&T[S.cur]===t)toast("Finding the stream…")},1600);
+  let s;try{s=await ymStream(t.yt)}catch(e){clearTimeout(slow);if(my!==YM.tk||T[S.cur]!==t)return;ymFallback(i,tog,t,e);return}
+  clearTimeout(slow);if(my!==YM.tk||T[S.cur]!==t)return;
+  if(s.d&&!t.d){t.d=s.d;try{$("fD").textContent=$("dD").textContent=$("lyD").textContent=fmt(t.d)}catch(e){}}
+  YM.act=t;RA.src=ymSrc(s);RA.defaultPlaybackRate=RA.playbackRate=S.rate;
+  if(YM.rs){const p=YM.rs;YM.rs=0;const f=()=>{RA.removeEventListener("loadedmetadata",f);try{RA.currentTime=p}catch(e){}};RA.addEventListener("loadedmetadata",f)}
+  S.playing?RA.play().catch(er=>{if(er&&er.name==="NotSupportedError")ymRecover(t,1)}):RA.pause();setTimeout(()=>{try{preload()}catch(e){}},600)}
+/* the direct route failed: use YouTube's own player as before, and say why once */
+function ymFallback(i,tog,t,e){t.ymFail=1;YM.act=null;
+  if(!YM.told){YM.told=1;toast("Couldn't get a direct stream ("+String((e&&e.message)||"unknown").slice(0,60)+"). Using YouTube's player.")}
+  _ymEng(i,tog)}
+/* a stream URL expires or is refused: ask for a fresh one once, then fall back */
+function ymRecover(t,fromPlay){
+  if(YM.act!==t&&!fromPlay)return;const n=YM.retry[t.yt]=(YM.retry[t.yt]||0)+1;
+  if(n>2){delete YM.retry[t.yt];ymFallback(S.cur,false,t,new Error("stream refused"));return}
+  YM.rs=S.pos||0;YM.sc.delete(t.yt);YM.act=null;ymPlay(S.cur,false,t)}
+{const o=RA.onerror;RA.onerror=function(ev){const t=YM.act;if(t&&A===RA&&T[S.cur]===t&&RA.getAttribute("src")){ymRecover(t);return}return o&&o.call(this,ev)};
+ const p=RA.onplaying;RA.onplaying=function(ev){const t=YM.act;if(t)YM.retry[t.yt]=0;return p&&p.call(this,ev)}}
+/* progress, seeking and SponsorBlock for a direct stream */
+var _ymTick=ytTick;
+ytTick=function(t){if(YM.act===t&&A===RA){S.pos=RA.currentTime||0;const d=RA.duration;
+    if(isFinite(d)&&d>0&&Math.abs(d-(t.d||0))>.5){t.d=d;try{$("fD").textContent=$("dD").textContent=$("lyD").textContent=fmt(d);msPos(true)}catch(e){}}
+    try{if(S.sb!==false){const g=(SMU.sb[t.yt]||[]).find(x=>S.pos>=x[0]&&S.pos<x[1]-.6);if(g){RA.currentTime=g[1];toast("Skipped a non-music part")}}}catch(e){}
+    return}
+  return _ymTick(t)};
+var _ymSeek=seekTo;
+seekTo=function(x){const t=T[S.cur];if(t&&YM.act===t&&A===RA){S.pos=x;try{RA.currentTime=x}catch(e){}prog();msPos(true);return}return _ymSeek(x)};
+/* ---------- artist, album and playlist pages ---------- */
+function ymHeader(j){return ymFirst(j,"musicImmersiveHeaderRenderer")||ymFirst(j,"musicResponsiveHeaderRenderer")||ymFirst(j,"musicDetailHeaderRenderer")||ymFirst(j,"musicEditablePlaylistDetailHeaderRenderer")||ymFirst(j,"musicVisualHeaderRenderer")||ymFirst(j,"musicHeaderRenderer")||{}}
+function ymParse(id,j){
+  const h=ymHeader(j),k=ymKind(id),title=ymRuns(h.title),desc=ymRuns(h.description)||ymRuns((ymFirst(h,"description")||{})),
+    sub=ymRuns(h.subtitle)||ymRuns(h.straplineTextOne)||"",rows=ymRows(j);
+  const sec=[];let top=[];
+  if(k==="artist"){
+    const list=(ymAll(j,"sectionListRenderer").map(s=>s.contents).find(Array.isArray))||[];
+    for(const n of list){
+      if(n.musicShelfRenderer&&!top.length){top=ymRows(n.musicShelfRenderer)}
+      else if(n.musicCarouselShelfRenderer){const c=n.musicCarouselShelfRenderer,hd=ymFirst(c.header||{},"title"),items=(c.contents||[]).map(x=>x.musicTwoRowItemRenderer?ymCard(x.musicTwoRowItemRenderer,true):x.musicResponsiveListItemRenderer?(ymSong(x.musicResponsiveListItemRenderer)||null):null).filter(Boolean);
+        if(items.length)sec.push({t:ymRuns(hd)||"More",items})}}
+    const sb=ymFirst(h,"subscribeButtonRenderer")||{};
+    return{k,id,t:title||"Artist",desc,banner:ymThumbOf(h.thumbnail||h),avatar:ymThumbOf(h.foregroundThumbnail||{}),subs:ymRuns(sb.longSubscriberCountText)||ymRuns(sb.subscriberCountText)||ymRuns(h.monthlyListenerCount)||"",top:top.length?top:rows.slice(0,10),sec,radio:(ymAll(h,"playlistId").find(x=>typeof x==="string"&&/^RD/.test(x)))||""}}
+  const cover=ymThumbOf(h.thumbnail||h.thumbnails||h);
+  const sg=ymGroups(((h.subtitle||{}).runs)||[]).map(x=>x.t).filter(Boolean),strap=ymRuns(h.straplineTextOne);
+  const year=(sg.find(x=>/^(19|20)\d{2}$/.test(x))||""),artist=strap||(sg.find(x=>!YM_TYPES.test(x)&&!/^(19|20)\d{2}$/.test(x)&&!/song|minute|hour/i.test(x))||"");
+  const meta=ymRuns(h.secondSubtitle)||sg.filter(x=>/song|minute|hour|view|track/i.test(x)).join(" · ");
+  const label=sg[0]&&YM_TYPES.test(sg[0])?sg[0]:(k==="album"?"Album":"Playlist");
+  return{k,id,t:title||(k==="album"?"Album":"Playlist"),artist,year,desc,cover,meta,label,rows,collage:YM_COLLAGE.test(cover||"")}}
+async function ymLoad(id){
+  if(YM.pg.has(id)&&!YM.pg.get(id).err)return;YM.pg.set(id,{busy:1});
+  try{const j=await ymPost("browse",{browseId:id},YMC.REMIX);YM.pg.set(id,ymParse(id,j))}
+  catch(e){YM.pg.set(id,{err:(e&&e.message)||"failed"})}
+  if(S.nav==="yt:"+id)render()}
+function ymSongIdx(s,img){return addStream({id:"yt"+s.id,yt:s.id,t:s.t,a:s.a||"",d:s.d||0,url:"",img:ymArt(s.img||img||"",544),src:s.al||"YouTube Music",lic:"YouTube Music",page:"https://music.youtube.com/watch?v="+s.id,g:"",ymAl:s.alId||"",ymAr:s.arId||""})}
+function ymBack(){return'<button class="dbk" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'}
+function ymHero(o){/* o: type, title, m1, m2, img (sized), orig, round, banner */
+  const big=o.banner?ymArt(o.banner,1200):ymArt(o.img,800),bd=o.banner||o.img;
+  const cv=o.img?ymBgImg(ymArt(o.img,544)):"var(--card)";
+  return`<div class="dhero yhero${o.banner?" ybn":""}">${bd?`<i class="dbd" style="background:${ymBgImg(o.banner?ymArt(o.banner,1200):ymArt(bd,96))}" data-ya="${ymEsc(o.banner?ymArt(o.banner,1200):ymArt(bd,96))}" data-yo="${ymEsc(bd)}"></i>`:""}
+  <i class="dcv${o.round?" rd":""}" style="background:${cv}"${o.img?` data-ya="${ymEsc(ymArt(o.img,544))}" data-yo="${ymEsc(o.img)}"`:""}></i>
+  <div class="dtx"><div class="dky">${ymEsc(o.type)}</div><h1>${ymEsc(o.title)}</h1><div class="dm2">${o.m1||""}${o.m2?`<small>${o.m2}</small>`:""}</div></div></div>`}
+function ymActs(){const ib=(a,p,l)=>`<button class="rb" ${a} aria-label="${l}" title="${l}">${svg(p)}</button>`;
+  return`<div class="dact">${ib("data-ps",I.shuf,"Shuffle")}${ib("data-pq",I.queue,"Add to queue")}${ib("data-pn",'<path d="M5 5v14l9-7zM18 5v14"/>',"Play next")}<span class="sp"></span><button class="pg" data-pa aria-label="Play">${svg(DP)}</button></div>`}
+function ymRowsHtml(idx,num){S.lists.d=idx;return idx.length?`<div class="list${num?" num":" dlist"}">${idx.map((i,n)=>{const h=li(i,"d");return num?h.replace(/<i style="background:[^"]*">/,`<i>${n+1}`):h}).join("")}</div>`:'<p class="empty">No songs found here.</p>'}
+function ymView(id){
+  const d=YM.pg.get(id);
+  if(!d||d.busy){if(!d)ymLoad(id);S.dtc="201,151,90";S.dti="";return ymBack()+`<div class="dhero yhero"><i class="dcv ysk"></i><div class="dtx"><div class="dky">YouTube Music</div><h1 class="ysk2">Loading…</h1></div></div><div class="ysklist"><i></i><i></i><i></i><i></i><i></i></div>`}
+  if(d.err){S.dtc="201,151,90";S.dti="";return ymBack()+`<div class="dhero yhero"><div class="dtx"><div class="dky">YouTube Music</div><h1>Couldn't open this</h1><div class="dm2">${ymEsc(d.err)}</div></div></div><div class="dact"><button class="ghost" data-ymretry="${ymEsc(id)}">Try again</button></div>`}
+  S.dtc="201,151,90";S.dti=d.t;
+  if(d.k==="artist"){
+    const idx=d.top.map(s=>ymSongIdx(s,d.avatar||d.banner));
+    const sec=d.sec.map(s=>{const cards=s.items.map(c=>c.k==="artist"?ymPoster(c):c.k==="song"?ymSongCard(c):ymSquare(c)).join("");return`<div class="dsec">${ymEsc(s.t)}</div><div class="pls${s.items[0]&&s.items[0].k==="artist"?" ypls":""}">${cards}</div>`}).join("");
+    return ymBack()+ymHero({type:"Artist",title:d.t,m1:d.subs?`<b>${ymEsc(d.subs)}</b>`:"",m2:"",img:d.avatar||d.banner,banner:d.avatar?d.banner:"",round:true})+
+      ymActs().replace('</div>',(d.radio?`<button class="ghost" data-ymradio="${ymEsc(d.radio)}">Radio</button>`:"")+'</div>')+
+      (d.desc?`<p class="yds">${ymEsc(d.desc)}</p>`:"")+(idx.length?`<div class="dsec">Top songs</div>`+ymRowsHtml(idx,true):"")+sec}
+  const idx=d.rows.map(s=>ymSongIdx(s,d.cover)),a=d.k==="album";
+  const m1=(d.artist?`<b>${ymEsc(d.artist)}</b>`:"")+(d.year?" · "+d.year:""),m2=ymEsc(d.meta||idx.length+" songs");
+  return ymBack()+ymHero({type:d.label,title:d.t,m1,m2,img:d.collage&&!idx.length?d.cover:d.cover})+ymActs()+(d.desc?`<p class="yds">${ymEsc(d.desc)}</p>`:"")+ymRowsHtml(idx,a)}
+function ymSongCard(c){return`<div class="cd" role="button" tabindex="0" data-ymp="${ymEsc(c.id)}" data-ymt="${ymEsc(c.t)}" data-yma="${ymEsc(c.a||"")}" data-ymi="${ymEsc(c.img||"")}"><i style="background:${c.img?ymBgImg(ymArt(c.img,400)):"var(--card)"}"></i><b>${ymEsc(c.t)}</b><small>${ymEsc(c.a||"")}</small></div>`}
+var _ymDetail=detail;
+detail=function(){const c=S.nav.indexOf(":");if(S.nav.slice(0,c)==="yt")return ymView(S.nav.slice(c+1));return _ymDetail()};
+/* paint the extra hero bits after every render */
+{const _r=render;render=function(){const r=_r.apply(this,arguments);try{ymFixArt($("view"))}catch(e){}return r}}
+document.addEventListener("click",e=>{
+  const p=e.target.closest&&e.target.closest("[data-ymp]");
+  if(p){e.preventDefault();const i=addStream({id:"yt"+p.dataset.ymp,yt:p.dataset.ymp,t:p.dataset.ymt,a:p.dataset.yma,d:0,url:"",img:ymArt(p.dataset.ymi,544),src:"YouTube Music",lic:"YouTube Music",page:"https://music.youtube.com/watch?v="+p.dataset.ymp,g:""});playList([i],false);return}
+  const r=e.target.closest&&e.target.closest("[data-ymretry]");if(r){YM.pg.delete(r.dataset.ymretry);render();return}
+  const rd=e.target.closest&&e.target.closest("[data-ymradio]");
+  if(rd){toast("Starting radio…");ymPost("next",{playlistId:rd.dataset.ymradio,isAudioOnly:true},YMC.REMIX).then(j=>{const L=[];for(const n of ymAll(j,"playlistPanelVideoRenderer")){const vid=n.videoId;if(!vid)continue;const by=ymRuns(n.longBylineText||n.shortBylineText).split(" • ")[0];L.push({id:vid,t:ymRuns(n.title),a:by,img:ymThumbOf(n),d:ymDur(ymRuns(n.lengthText)),al:""})}
+      if(!L.length){toast("No radio for this artist");return}playList(L.slice(0,50).map(s=>ymSongIdx(s,"")),false)}).catch(()=>toast("Couldn't start radio"));return}});
+/* the Discover list shows artists and albums under the songs */
+{const _mr=musicRes;musicRes=function(){const h=_mr();return S.ms==="yt"&&ymOk()?h.replace(/(<div class="row" style="margin-top:14px"><h2>Search this on other services)/,ymExtraHtml()+"$1"):h}}
 </script>
 </body>
 </html>

@@ -86,7 +86,7 @@ function detail(){const c=S.nav.indexOf(":"),k=S.nav.slice(0,c),id=S.nav.slice(c
   const num=k==="album";
   const rows=idx.length?(S.lists.d=idx,`<div class="list${num?" num":" dlist"}">${idx.map((i,n)=>{const h=li(i,"d");return num?h.replace(/<i style="background:[^"]*">/,`<i>${n+1}`):h}).join("")}</div>`):`<p class="empty">${k==="recent"?"Nothing played yet. Songs you listen to will show up here.":"No songs here yet. Use the ⋯ menu on any song to add it."}</p>`;
   return `<button class="dbk" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-  <div class="dhero"><i class="dcv${round?" rd":""}" style="background:${bg}"></i><div class="dtx"><div class="dky">${type}</div><h1>${esc(ti)}</h1><div class="dm2">${m1?m1:""}${m2?`<small>${m2}</small>`:""}</div></div></div>
+  <div class="dhero"><i class="dbd" style="background:${bg}"></i><i class="dcv${round?" rd":""}" style="background:${bg}"></i><div class="dtx"><div class="dky">${type}</div><h1>${esc(ti)}</h1><div class="dm2">${m1?m1:""}${m2?`<small>${m2}</small>`:""}</div></div></div>
   <div class="dact">${ib("data-ps",I.shuf,"Shuffle")}${ib("data-pq",I.queue,"Add to queue")}${ib("data-pn",'<path d="M5 5v14l9-7zM18 5v14"/>',"Play next")}${ib("data-pd",'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',"Save for offline")}<span class="sp"></span><button class="pg" data-pa aria-label="Play">${svg(DP)}</button></div>
   ${k==="recent"&&idx.length||pl?`<div class="dx">${k==="recent"&&idx.length?'<button class="ghost" data-clrh>Clear history</button>':""}${pl?`<button class="ghost" data-rn="${pl.id}">Rename</button><button class="ghost" data-dl="${pl.id}">Delete</button>`:""}</div>`:""}
   ${extra}${rows}`}

@@ -36,9 +36,10 @@ async function dvConnect(){
   LS.set("milo.dv",1);DV.on=1;toast("Looking for music on this phone…");await dvScan()}
 /* installed web app (desktop and mobile): link folders or files, they stay where they are */
 var DVH=[];
-function dvWebOk(){return !!(window.showDirectoryPicker||window.showOpenFilePicker)}
+function dvWebOk(){return !!(window.miloDesktop||window.showDirectoryPicker||window.showOpenFilePicker)}
 async function dvSaveH(){try{const db=await idb(),tx=db.transaction("kv","readwrite");tx.objectStore("kv").put({k:"dvsrc",h:DVH});await txDone(tx)}catch(e){}}
 async function dvFolder(){
+  if(window.miloDesktop){const r=await miloDesktop.pickFolders();if(!r)return;LS.set("milo.dv",1);DV.on=1;DV.need=0;await dvDesk();return}
   if(!dvWebOk()){toast("This browser can't link files in place. Add music copies songs into milo. instead");return}
   try{let h;
     if(window.showDirectoryPicker)h=[await showDirectoryPicker({mode:"read"})];
@@ -47,6 +48,27 @@ async function dvFolder(){
     DV.need=0;LS.set("milo.dv",1);DV.on=1;await dvSaveH();await dvLoadH()}
   catch(e){if(e&&e.name==="AbortError")return;if(/android/i.test(navigator.userAgent))dvAndroidWeb();else toast("Couldn't open that")}}
 function dvAndroidWeb(){modal(`<h3>This needs the milo. Android app</h3><p class="empty">Android does not let a browser or an installed web app read your Music folder, so songs can only be added by copying them in. The milo. Android app (APK) asks for music permission and plays your songs right where they are.</p><button class="mi" data-dv="x">OK</button>`)}
+/* desktop app: real folders, remembered between launches, no permission prompts */
+function dskFile(x){return{size:x.size,name:x.name,type:"",lastModified:x.mtime,slice:(a,b)=>({arrayBuffer:()=>miloDesktop.read(x.abs,a,Math.min(b,x.size))}),text:()=>miloDesktop.text(x.abs)}}
+async function dvDesk(quiet){
+  const D=window.miloDesktop;if(!D||DV.busy)return;DV.busy=1;
+  try{const r=await D.scan(),fl=r.files,known=new Map();
+    T.forEach(t=>{if(t.dev)known.set(t.key,t)});
+    for(const x of r.lrc){try{const bk=bn(x.name).toLowerCase();if(S.lrc[bk])continue;const ln=parseLrc(await D.text(x.abs));S.lrc[bk]=ln;idbLrc(bk,ln)}catch(e){}}
+    const rows=[];let i=0;
+    const w=async()=>{while(i<fl.length){const e=fl[i++],key="dvf:"+e.key,h=known.get(key);
+      if(h){rows.push({key,o:null});continue}
+      try{const f=dskFile(e),tg=await readTags(f),nm=fromName(e.name),al=tg.al||"";
+        rows.push({key,o:{t:tg.t||nm.t,a:tg.a||tg.aa||nm.a||"On this device",al,y:tg.y||"",n:tg.n||nm.n||0,d:0,c:COLS[hs(al||tg.t||nm.t)%6],url:e.url,base:bn(e.name).toLowerCase(),fname:e.name,img:tg.img,lrc:tg.lrc,plain:tg.plain,lsrc:tg.lrc?"Embedded · synced":tg.plain?"Embedded":"",added:e.mtime}});
+        if(rows.length%40===0){dvSync(rows.filter(z=>z.o),1);render()}}catch(er){}}};
+    await Promise.all([w(),w(),w(),w()]);
+    dvSync(rows.filter(z=>z.o),1);
+    const keep=new Set(rows.map(z=>z.key));
+    T.forEach(t=>{if(t.dev&&t.key.startsWith("dvf:")){if(keep.has(t.key)){if(t.gone&&!DVRM.has(t.key)){t.gone=false;t.hid=false}}else if(!t.gone){t.gone=true;t.hid=true}}});
+    DV.last=Date.now();render();dvDur();
+    if(!quiet)toast(fl.length?`${fl.length} songs linked`:r.folders.length?"No music found there":"No folders linked yet")}
+  catch(e){if(!quiet)toast("Couldn't read the music folders")}finally{DV.busy=0}}
+function dvManage(){miloDesktop.folders().then(fs=>modal(`<h3>Music folders</h3>${fs.length?fs.map((d,i)=>`<div class="mi" style="display:flex;gap:10px;align-items:center;justify-content:space-between"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="${esc(d)}">${esc(d)}</span><button class="ghost" data-dv="rm" data-i="${i}">Remove</button></div>`).join(""):'<p class="empty">No folders linked yet.</p>'}<button class="mi" data-dv="dir">Add a folder</button><button class="mi" data-dv="x">Done</button><p class="empty" style="font-size:12px;margin-top:10px">milo. plays songs right where they are and picks up new ones by itself. Nothing is copied.</p>`))}
 async function dvPerm(ask){let ok=true;for(const h of DVH){try{let p=await h.queryPermission({mode:"read"});if(p!=="granted"&&ask)p=await h.requestPermission({mode:"read"});if(p!=="granted")ok=false}catch(e){ok=false}}return ok}
 async function dvLoadH(){
   if(DV.busy||!DVH.length)return;DV.busy=1;
@@ -69,8 +91,9 @@ function dvDur(){const q=T.filter(t=>t.dev&&!t.gone&&!t.d&&t.url);let i=0;
     a.onloadedmetadata=()=>{if(isFinite(a.duration))t.d=a.duration;dn()};a.onerror=dn;a.src=t.url};nx()});
   Promise.all([w(),w(),w()]).then(dvPaint)}
 async function dvBoot(){
-  if(!DV.on)return;const M=dvM();
+  if(!DV.on&&!window.miloDesktop)return;const M=dvM();
   if(M){try{if((await M.check()).granted)dvScan(true);else{DV.on=0;LS.set("milo.dv",0)}}catch(e){}return}
+  if(window.miloDesktop){const f=await miloDesktop.folders();if(f.length){LS.set("milo.dv",1);DV.on=1;dvDesk(true)}return}
   if(!dvWebOk())return;
   try{const db=await idb(),r=await rq(db.transaction("kv").objectStore("kv").get("dvsrc"));if(!r||!r.h||!r.h.length)return;DVH=r.h;
     if(await dvPerm(false))dvLoadH();else{DV.need=1;render();
@@ -78,12 +101,16 @@ async function dvBoot(){
       addEventListener("pointerup",async function f(){removeEventListener("pointerup",f);if(await dvPerm(true)){DV.need=0;dvLoadH()}},{once:true})}}catch(e){}}
 function dvBar(){
   if(!DV||!DV.art)return"";if(window.usbBar&&S.tv&&!dvM())return usbBar();const M=dvM(),can=M||dvWebOk();if(!can)return(!NV.cap&&/android/i.test(navigator.userAgent))?'<button class="ghost" data-dv="aw">Play music from my phone</button>':"";
+  if(!DV.on&&window.miloDesktop)return'<button class="addb" data-dv="dir">Link a music folder</button>';
   if(!DV.on)return M?'<button class="addb" data-dv="on">Play music on this phone</button>':'<button class="addb" data-dv="dir">'+(window.showDirectoryPicker?"Link a music folder":"Link music files")+'</button>';
+  if(window.miloDesktop)return `<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button><button class="ghost" data-dv="mng">Music folders</button>`;
   return (DV.need?'<button class="addb" data-dv="re">Reconnect music folder</button>':`<button class="ghost" data-dv="scan">${DV.busy?"Scanning…":"Rescan"}</button>`)+'<button class="ghost" data-dv="off">Turn off</button>'}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-dv]");if(!b)return;const k=b.dataset.dv;
   if(k==="on"){closeM();dvConnect()}
-  else if(k==="dir"){dvFolder()}
-  else if(k==="scan"){if(dvM())dvScan();else dvLoadH()}
+  else if(k==="dir"){closeM();dvFolder()}
+  else if(k==="scan"){if(dvM())dvScan();else if(window.miloDesktop)dvDesk();else dvLoadH()}
+  else if(k==="mng"){dvManage()}
+  else if(k==="rm"){const fs=await miloDesktop.folders();await miloDesktop.removeFolder(fs[+b.dataset.i]);const n=(await miloDesktop.folders()).length;await dvDesk(true);if(!n){DV.on=0;LS.set("milo.dv",0)}dvManage()}
   else if(k==="re"){if(await dvPerm(true)){DV.need=0;dvLoadH()}}
   else if(k==="off"){DV.on=0;LS.set("milo.dv",0);T.forEach(t=>{if(t.dev){t.hid=true;t.gone=true}});toast("Phone music hidden");render()}
   else if(k==="later"){LS.set("milo.dvAsk",1);closeM()}
@@ -96,5 +123,6 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
     if(g||(m&&!m.hidden)||DV.on||LS.get("milo.dvAsk",0)){if(DV.on||LS.get("milo.dvAsk",0))clearInterval(t);return}
     clearInterval(t);LS.set("milo.dvAsk",1);
     modal(`<h3>Play the music on your phone</h3><p class="empty">Let milo. read your songs right where they are, like any music player. Nothing is copied or uploaded.</p><button class="mi" data-dv="on">Allow access</button><button class="mi" data-dv="later">Not now</button>`)},1500)})();
+if(window.miloDesktop)miloDesktop.onFoldersChanged(()=>{if(DV.on)dvDesk(true)});
 setTimeout(dvBoot,1200);
 

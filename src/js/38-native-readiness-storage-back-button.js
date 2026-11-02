@@ -20,13 +20,17 @@ async function storageM(){const i=await stInfo(),pct=i.quota?Math.min(100,Math.m
   ${i.idb&&i.persisted===false?'<button class="mi" data-stor="persist">Protect my data</button>':""}
   <button class="mi" data-stor="bk">Back up settings and playlists</button>
   <label class="mi">Restore a backup<input type="file" accept=".json,application/json" data-bk hidden></label>
-  ${window.showDirectoryPicker?'<button class="mi" data-stor="dir">Add a music folder</button>':""}
+  ${window.miloDesktop?'<button class="mi" data-stor="dopen">Open the data folder</button><button class="mi" data-stor="dchg">Change the data folder</button>':""}
+  ${window.miloDesktop?'<button class="mi" data-stor="dvdir">Link a music folder</button>':window.showDirectoryPicker?'<button class="mi" data-stor="dir">Add a music folder</button>':""}
   ${i.songs?'<button class="mi stdng" data-stor="rm">Remove all uploaded songs</button>':""}
   <p class="empty" style="font-size:12px;margin-top:10px">Songs you upload stay on this device. A backup holds your playlists, likes and settings, not the song files.</p>`)}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-stor]");if(!b)return;const k=b.dataset.stor;
   if(k==="persist"){stPersist().then(ok=>{toast(ok?"Your data is protected":"This browser said no. Installing milo. as an app usually fixes that.");storageM()})}
   else if(k==="bk"){backupOut()}
   else if(k==="dir"){pickDir()}
+  else if(k==="dvdir"){closeM();dvFolder()}
+  else if(k==="dopen"){miloDesktop.openDataDir()}
+  else if(k==="dchg"){miloDesktop.chooseDataDir().then(d=>{if(d){toast("Data folder changed");kvDisk()}})}
   else if(k==="rm"){modal(`<h3>Remove all uploaded songs?</h3><p class="empty">This deletes the songs you added from this device. Your playlists and likes stay, but they will lose these songs.</p><button class="mi stdng" data-stor="rm2">Remove songs</button><button class="mi" data-stor="no">Cancel</button>`)}
   else if(k==="rm2"){clearLibrary();closeM();toast("Uploaded songs removed")}
   else if(k==="no"){storageM()}});
@@ -39,6 +43,11 @@ function kvSoon(){clearTimeout(KV.t);KV.t=setTimeout(kvSnap,1500)}
 addEventListener("pagehide",kvSnap);document.addEventListener("visibilitychange",()=>{if(document.hidden)kvSnap()});
 (async()=>{try{if(localStorage.getItem(dkey())||sessionStorage.getItem("milo.rec"))return;const db=await idb(),r=await rq(db.transaction("kv").objectStore("kv").get("snap"));
   if(r&&r.o&&r.o[dkey()]){Object.entries(r.o).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(e){}});sessionStorage.setItem("milo.rec","1");location.reload()}}catch(e){}})();
+/* 2b. desktop app: keep a readable copy of settings, playlists and likes in the data folder (with daily backups) */
+const KD={t:0};
+async function kvDisk(){try{const D=window.miloDesktop;if(!D)return;const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^milo\./.test(k)&&!/tok|sess|auth|secret|pass/i.test(k))o[k]=localStorage.getItem(k)}if(Object.keys(o).length)await D.saveData(JSON.stringify(o))}catch(e){}}
+if(window.miloDesktop){{const _d=LS.set;LS.set=(k,v)=>{_d(k,v);clearTimeout(KD.t);KD.t=setTimeout(kvDisk,2500)}}
+  addEventListener("pagehide",kvDisk);setTimeout(kvDisk,6000)}
 /* 3. saving files: native share sheet / save dialog where there is one, plain download otherwise */
 async function saveFile(blob,name){
   try{const FS=NV.P.Filesystem,SH=NV.P.Share;if(NV.cap&&FS){const d=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(blob)});
