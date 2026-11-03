@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (web wrapper - NOT the native app)
 on:
   workflow_dispatch:
   push:
@@ -25,7 +25,7 @@ jobs:
       - run: npm run build:debug
       - uses: actions/upload-artifact@v4
         with:
-          name: milo-debug-apk
+          name: milo-WEB-WRAPPER-debug-apk
           path: native/android/app/build/outputs/apk/debug/*.apk
       # Optional: send the APK to testers through Firebase App Distribution.
       # Runs only when the repo secrets FIREBASE_APP_ID and FIREBASE_SERVICE_ACCOUNT are set (see FIREBASE-DISTRIBUTION.md).

@@ -19,10 +19,17 @@ jobs:
       - name: Build smooth release APK (minified, much faster scrolling)
         id: rel
         continue-on-error: true
-        run: gradle assembleFullRelease --stacktrace
+        run: gradle assembleFullRelease --stacktrace 2>&1 | tee release-build.log; exit ${PIPESTATUS[0]}
+        shell: bash
       - name: F-Droid flavour compiles (no Google libraries)
         continue-on-error: true
         run: gradle assembleFdroidRelease --stacktrace
+      - name: Upload the release build log when the release build failed
+        if: steps.rel.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: milo-native-RELEASE-FAILED-log
+          path: milo-native/release-build.log
       - uses: actions/upload-artifact@v4
         if: steps.rel.outcome == 'success'
         with:
