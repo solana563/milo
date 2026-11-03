@@ -187,7 +187,7 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     /* YouTube Music: calls go from here, not from the page, so no browser rules (CORS, forbidden headers) get in the way */
-    const YT_HOST = /(^|\.)(youtube\.com|googlevideo\.com|ytimg\.com)$/i;
+    const YT_HOST = /(^|\.)(youtube\.com|googlevideo\.com|ytimg\.com|audioscrobbler\.com|listenbrainz\.org)$/i;
     ipcMain.handle("dsk:http", (_e, r) => new Promise((resolve, reject) => {
       let u; try { u = new URL(r.url); } catch { return reject(new Error("bad url")); }
       if (u.protocol !== "https:" || !YT_HOST.test(u.hostname)) return reject(new Error("blocked host"));
