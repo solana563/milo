@@ -210,9 +210,9 @@ fun MiloApp(vm: MainViewModel) {
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
                         is Detail.ArtistD -> DetailScreen(vm, d.artist.name, "Artist", d.artist.tracks, ui, bottomPad, { detail = null })
-                        is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }) { t ->
+                        is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, rowExtra = { t ->
                             listOf(RowAction("Remove from Liked songs") { vm.toggleFav(t.id) })
-                        }
+                        })
                         is Detail.PlaylistD -> {
                             val p = playlists.firstOrNull { it.id == d.id }
                             LaunchedEffect(p == null) { if (p == null) detail = null }

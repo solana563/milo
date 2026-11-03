@@ -2,6 +2,7 @@ package com.ubayanda.milonative.data
 
 import android.content.Context
 import com.ubayanda.milonative.model.LyricLine
+import com.ubayanda.milonative.model.LyricWord
 import com.ubayanda.milonative.model.Lyrics
 import com.ubayanda.milonative.model.Track
 import kotlinx.coroutines.Dispatchers
