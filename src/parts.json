@@ -86,6 +86,8 @@
   "js/69-streaming-home-google-sign-in.js",
   "js/70-motion.js",
   "js/71-audio-output-bluetooth.js",
+  "js/72-discord-presence.js",
+  "js/73-error-report.js",
   "foot.html"
  ]
 }
