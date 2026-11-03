@@ -20,7 +20,7 @@
     "productName": "milo.",
     "artifactName": "milo-${version}-${os}-${arch}.${ext}",
     "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "app/**/*", "build/icon.png"],
+    "files": ["main.js", "preload.js", "discord.js", "app/**/*", "build/icon.png"],
     "win": {
       "icon": "build/icon.png",
       "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }]

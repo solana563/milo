@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, Tray, shell, protocol, net, ipcMain, nativeIma
 const path = require("path");
 const fs = require("fs");
 const { pathToFileURL } = require("url");
+const discord = require("./discord");
 
 // Serve the app from app://milo so it is a secure context with a stable origin
 // (service worker, localStorage, IndexedDB and media APIs all work, and data survives updates).
@@ -261,6 +262,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     ipcMain.on("dsk:data-load", (e) => { try { e.returnValue = fs.readFileSync(dataPath(), "utf8"); } catch { e.returnValue = null; } });
     ipcMain.handle("dsk:data-save", (_e, text) => { try { writeData(String(text)); return true; } catch { return false; } });
+    ipcMain.handle("dsk:presence", (_e, cfg, info) => { try { discord.update(cfg, info); } catch {} return true; });
     ipcMain.handle("dsk:data-dir", () => loadCfg().dataDir);
     ipcMain.handle("dsk:data-open", () => { fs.mkdirSync(loadCfg().dataDir, { recursive: true }); return shell.openPath(loadCfg().dataDir); });
     ipcMain.handle("dsk:data-choose", async () => {
@@ -282,6 +284,6 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.on("win:close", () => win && win.close());
     app.on("activate", showWin);
   });
-  app.on("before-quit", () => { quitting = true; saveState(); });
+  app.on("before-quit", () => { quitting = true; saveState(); try { discord.close(); } catch {} });
   app.on("window-all-closed", () => { /* stay in tray */ });
 }

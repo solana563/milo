@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("miloDesktop", {
   saveData: (t) => ipcRenderer.invoke("dsk:data-save", t),
   dataDir: () => ipcRenderer.invoke("dsk:data-dir"),
   openDataDir: () => ipcRenderer.invoke("dsk:data-open"),
+  presence: (cfg, info) => ipcRenderer.invoke("dsk:presence", cfg, info),
   chooseDataDir: () => ipcRenderer.invoke("dsk:data-choose"),
   http: (r) => ipcRenderer.invoke("dsk:http", r),
   streamUrl: (url, ua) => {
