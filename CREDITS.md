@@ -15,3 +15,17 @@ What was learned from it:
 The code in milo. is written separately in JavaScript, but it follows Limusic's approach closely. Limusic is licensed
 under the GNU GPL v3, so if you distribute milo. builds that include this code, they should be released under a
 GPL-3.0 compatible licence with source. See `LICENSE` choice notes in `milo-native/FDROID.md`.
+
+## Licence
+
+milo. is released under the GNU General Public License v3.0 (see `LICENSE`) because it contains YouTube Music code written from how limusic (GPL-3.0) works, on web, desktop and native Android.
+The native Android app got the same engine (`data/YtMusic.kt`, `player/YtSource.kt`) and the same artist, album and playlist art display.
+
+## Features added in this round
+- Word-by-word lyrics (enhanced LRC `<mm:ss.xx>` tags) on web, desktop and native.
+- ListenBrainz and Last.fm scrobbling on web, desktop, Android and native (Profile > Scrobbling / Settings).
+- Listen together: host or join with a code over the realtime channel, shared between web and native.
+
+## Motion and Bluetooth
+- Song art and titles glide in the direction you skipped (web and native); shimmer skeletons replace "Loading…" text.
+- Bluetooth: "Playing on" device indicator, carry on when headphones reconnect, remembered volume per device, lyrics delay for Bluetooth lag (native); output-device picker and lyrics delay (web/desktop).

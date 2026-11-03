@@ -1632,6 +1632,37 @@ html[dir=rtl] .mc-r.me{align-self:flex-start;align-items:flex-start}html[dir=rtl
 .ysklist i{height:54px;border-radius:12px;background:var(--card);animation:ysh 1.2s ease-in-out infinite}
 @keyframes ysh{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){.ysk,.ysk2,.ysklist i{animation:none}}
+
+/* word-by-word lyrics */
+#lyL p .wd{opacity:.45;transition:opacity .15s,color .15s}
+#lyL p.on .wd.sung{opacity:1}
+#lyL p.on .wd:not(.sung){opacity:.45}
+#lyL p.past .wd{opacity:1}
+/* ----- premium motion: art transitions, shimmer skeletons, page and press feel ----- */
+:root{--ease:cubic-bezier(.22,1,.36,1)}
+@keyframes artF{from{opacity:0;transform:translateX(34px) scale(.93)}to{opacity:1;transform:none}}
+@keyframes artB{from{opacity:0;transform:translateX(-34px) scale(.93)}to{opacity:1;transform:none}}
+@keyframes txtIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes txtInB{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@keyframes txtInF{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@keyframes skSweep{from{background-position:120% 0}to{background-position:-120% 0}}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.artF{animation:artF .5s var(--ease) both}
+.artB{animation:artB .5s var(--ease) both}
+.txtF{animation:txtInF .42s var(--ease) both}
+.txtB{animation:txtInB .42s var(--ease) both}
+#view.vin{animation:viewIn .3s var(--ease) both}
+/* shimmer skeleton: any element with .sk */
+.sk,.ysk,.ysk2,.ysklist i{background:linear-gradient(100deg,var(--card) 35%,rgba(255,255,255,.085) 50%,var(--card) 65%) 0 0/260% 100%!important;animation:skSweep 1.5s linear infinite!important;color:transparent!important}
+.skl{display:grid;gap:12px;padding:6px 0}.skl i{display:block;height:26px;border-radius:13px;background:var(--card)}
+.skl i:nth-child(1){width:88%}.skl i:nth-child(2){width:64%}.skl i:nth-child(3){width:78%}.skl i:nth-child(4){width:52%}.skl i:nth-child(5){width:70%}
+.skr{display:grid;gap:12px;margin:10px 0}.skr b{display:flex;gap:14px;align-items:center}.skr b i{width:52px;height:52px;border-radius:10px;flex:none}.skr b span{display:grid;gap:8px;flex:1}.skr b span i{height:12px;width:60%;border-radius:6px}.skr b span i+i{width:38%;height:10px}
+/* press feel */
+.cd,.li,.ypo,.pcd,.rb,.ic,.chip{transition:transform .18s var(--ease),opacity .2s}
+.cd:active,.li:active,.ypo:active,.pcd:active{transform:scale(.97)}
+.rb:active,.ic:active{transform:scale(.9)}
+@media (hover:hover){.cd:hover,.ypo:hover{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.artF,.artB,.txtF,.txtB,#view.vin{animation:none}.sk,.ysk,.ysk2,.ysklist i{animation:none!important}.cd:hover,.ypo:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -1926,7 +1957,7 @@ function lyrRender(){const t=T[S.cur];if(!t)return;$("lyT").textContent=t.t;lyHe
   if(!ls.length){L.innerHTML=noLy(t);L.scrollTop=0;return}
   let h=sy?"":'<p class="note">Not time-synced · scroll to read</p>';
   if(sy&&lt(S.cur,0)>4)h+='<p class="gap" data-g="-1"><i></i><i></i><i></i></p>';
-  ls.forEach((x,k)=>{h+=`<p data-k="${k}">${esc(x)}</p>`;if(sy&&k<ls.length-1&&lt(S.cur,k+1)-lt(S.cur,k)>9)h+=`<p class="gap" data-g="${k}"><i></i><i></i><i></i></p>`});
+  ls.forEach((x,k)=>{const wd=sy&&T[S.cur].lrc[k][2];h+=`<p data-k="${k}">${wd?wd.map((q,j)=>`<span class="wd" data-w="${j}">${esc(q[1])}</span>`).join(" "):esc(x)}</p>`;if(sy&&k<ls.length-1&&lt(S.cur,k+1)-lt(S.cur,k)>9)h+=`<p class="gap" data-g="${k}"><i></i><i></i><i></i></p>`});
   L.innerHTML=h;L.scrollTop=0;
   L.querySelectorAll("[data-k]").forEach(e=>{S.lyEls[+e.dataset.k]=e});L.querySelectorAll("[data-g]").forEach(e=>{S.lyGaps[e.dataset.g]=e})}
 function scrollActive(inst){const L=$("lyL");if(!L||L.classList.contains("static"))return;
@@ -1935,12 +1966,18 @@ function scrollActive(inst){const L=$("lyL");if(!L||L.classList.contains("static
 function lyrSync(){const t=T[S.cur];if(!t)return;const ls=lines(S.cur),sy=lsynced(S.cur);let k=-1,g=null;
   if(sy)for(let j=0;j<ls.length;j++)if(S.pos>=lt(S.cur,j))k=j;
   if(sy&&ls.length){if(k<0&&lt(S.cur,0)>4)g=-1;else if(k>=0&&k<ls.length-1&&lt(S.cur,k+1)-lt(S.cur,k)>9&&S.pos>lt(S.cur,k)+6)g=k}
-  if(k===S.lk&&g===S.lg)return;S.lk=k;S.lg=g;
+  lyrWords(k);if(k===S.lk&&g===S.lg)return;S.lk=k;S.lg=g;
   $("lyPk").textContent=k>=0&&ls[k]?ls[k]:ls.length?"Slide up for lyrics":(t.radio?"Live radio has no lyrics":"Slide up to find lyrics");
   (S.lyEls||[]).forEach((e,j)=>{if(!e)return;e.classList.toggle("on",j===k&&g==null);e.classList.toggle("past",j<k||(j===k&&g!=null))});
   Object.keys(S.lyGaps||{}).forEach(key=>S.lyGaps[key].classList.toggle("on",g!=null&&+key===g));
   if(Date.now()-(S.lyUser||0)>3500){const inst=S.lyInstant;S.lyInstant=false;scrollActive(inst)}}
 
+
+/* word-by-word highlight for enhanced-LRC lines: words up to the playing position light up */
+function lyrWords(k){const t=T[S.cur];if(!t||!t.lrc)return;if(k==null){k=-1;for(let j=0;j<t.lrc.length;j++)if(S.pos>=t.lrc[j][0])k=j}
+  const e=(S.lyEls||[])[k],w=k>=0&&t.lrc[k][2];if(!e||!w)return;const sp=e.querySelectorAll(".wd");let n=0;
+  for(let j=0;j<w.length;j++)if(S.pos>=w[j][0])n=j+1;
+  if(e._n===n)return;e._n=n;sp.forEach((q,j)=>q.classList.toggle("sung",j<n))}
 /* ---------- library data ---------- */
 const idxOfKey=k=>{for(let i=T.length-1;i>=0;i--)if(T[i].key===k&&!T[i].gone)return i;return -1};
 const showable=i=>i>=0&&(!T[i].hid||T[i].radio||T[i].stream);
@@ -2318,7 +2355,7 @@ function lyHead(){const t=T[S.cur];if(!t)return;$("lyA").textContent=t.a+(t.lyBu
 async function findLyrics(i,manual,force){const t=T[i];
   if(!t||(!t.url&&!t.yt)||t.radio){if(manual)toast("No online lyrics for this one");return}
   if(t.lrc&&!force){if(manual)toast("This song already has synced lyrics");return}
-  t.lyTried=1;t.lyTs=Date.now();t.lyBusy=1;if(S.cur===i){if(!t.lrc&&!t.plain)$("lyL").innerHTML='<p class="none">Searching for lyrics…</p>';lyHead()}
+  t.lyTried=1;t.lyTs=Date.now();t.lyBusy=1;if(S.cur===i){if(!t.lrc&&!t.plain)$("lyL").innerHTML=(typeof skLines==="function"?skLines():'<p class="none">Searching for lyrics…</p>');lyHead()}
   let msg;
   try{const r=await lyLookup(t);
     if(!r)msg=t.plain||t.lrc?"No better lyrics found online":"No lyrics found for this song";
@@ -2424,7 +2461,7 @@ function rememberStream(i){const t=T[i];if(!t||!t.stream||!t.raw||t.ph)return;if
 const radioSwitch=()=>`<div class="seg" style="margin-bottom:12px">${[["music","Free music"],["radio","Live radio"]].map(([k,n])=>`<button data-dm="${k}" class="${S.dm===k?"on":""}">${n}</button>`).join("")}</div>`;
 const discoverV=()=>`<h1 style="margin-top:20px">Discover</h1>${radioSwitch()}${S.dm==="radio"?radioPane():musicPane()}`;
 function musicRes(){let h=(typeof vbRow==="function"?vbRow():"")+smChartRow();
-  if(S.mload)h+='<p class="empty">Loading songs…</p>';else if(S.mErr)h+=`<p class="empty">${esc(S.mErr)}</p>`;
+  if(S.mload)h+=(typeof skRows==="function"?skRows(6):'<p class="empty">Loading songs…</p>');else if(S.mErr)h+=`<p class="empty">${esc(S.mErr)}</p>`;
   else if(S.mres.length)h+=`<div class="row"><h2>${esc(S.mg||"Results")}</h2></div>`+list(S.mres,"mr");
   else h+='<p class="empty">Pick a genre or search to start listening for free.</p>';
   const q=encodeURIComponent(S.mqv||S.mg||"");
@@ -2735,7 +2772,10 @@ function applyWash(){const ap=$("app");if(!ap)return;const t=T[S.cur],L=t?lumOf(
   ap.style.setProperty("--lum",Math.min(1,L+(S.hc?.15:0)).toFixed(2));ap.dataset.hc=S.hc?"1":"0"}
 const COLS=["84,120,140","150,100,130","110,140,110","170,110,90","120,110,160","201,151,90"];
 const bn=n=>n.replace(/\.[^.]+$/,"");
-const parseLrc=t=>{const o=[];t.split(/\r?\n/).forEach(l=>{const m=[...l.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)],x=l.replace(/\[[^\]]*\]/g,"").trim();if(x)m.forEach(a=>o.push([+a[1]*60+ +a[2],x]))});return o.sort((a,b)=>a[0]-b[0])};
+const parseLrc=t=>{const o=[];t.split(/\r?\n/).forEach(l=>{const m=[...l.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)],body=l.replace(/\[[^\]]*\]/g,""),x=body.replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim();
+  if(!x)return;let w=null;/* enhanced LRC: <mm:ss.xx>word - gives word-by-word timing */
+  if(/<\d+:\d+/.test(body)){w=[];for(const a of body.matchAll(/<(\d+):(\d+(?:\.\d+)?)>([^<]*)/g)){const s=a[3].trim();if(s)w.push([+a[1]*60+ +a[2],s])}if(w.length<2)w=null}
+  m.forEach(a=>{const r=[+a[1]*60+ +a[2],x];if(w)r.push(w);o.push(r)})});return o.sort((a,b)=>a[0]-b[0])};
 const u8=async(f,a,b)=>new Uint8Array(await f.slice(a,b).arrayBuffer());
 const be=(d,o)=>((d[o]<<24)|(d[o+1]<<16)|(d[o+2]<<8)|d[o+3])>>>0;
 const le=(d,o)=>((d[o+3]<<24)|(d[o+2]<<16)|(d[o+1]<<8)|d[o])>>>0;
@@ -4692,6 +4732,158 @@ document.addEventListener("click",e=>{
       if(!L.length){toast("No radio for this artist");return}playList(L.slice(0,50).map(s=>ymSongIdx(s,"")),false)}).catch(()=>toast("Couldn't start radio"));return}});
 /* the Discover list shows artists and albums under the songs */
 {const _mr=musicRes;musicRes=function(){const h=_mr();return S.ms==="yt"&&ymOk()?h.replace(/(<div class="row" style="margin-top:14px"><h2>Search this on other services)/,ymExtraHtml()+"$1"):h}}
+/* ----- scrobbling (ListenBrainz + Last.fm) and Listen Together (live, over the realtime socket) ----- */
+const SC={get:()=>{try{return JSON.parse(localStorage.getItem("milo.scrobble")||"{}")}catch(e){return{}}},set:o=>{try{localStorage.setItem("milo.scrobble",JSON.stringify(o))}catch(e){}},q:{lb:[],fm:[]},np:""};
+function md5(s){/* compact MD5 (needed to sign Last.fm calls) */
+  const u=unescape(encodeURIComponent(s)),n=u.length,w=[];for(let i=0;i<n;i++)w[i>>2]|=u.charCodeAt(i)<<(i%4*8);w[n>>2]|=0x80<<(n%4*8);w[(((n+8)>>6)+1)*16-2]=n*8;
+  const K=[],R=[7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];for(let i=0;i<64;i++)K[i]=Math.floor(Math.abs(Math.sin(i+1))*4294967296)|0;
+  let a=1732584193,b=-271733879,c=-1732584194,d=271733878;const rl=(x,k)=>x<<k|x>>>32-k;
+  for(let o=0;o<w.length;o+=16){let A=a,B=b,C=c,D=d;for(let i=0;i<64;i++){let f,g;
+    if(i<16){f=B&C|~B&D;g=i}else if(i<32){f=D&B|~D&C;g=(5*i+1)%16}else if(i<48){f=B^C^D;g=(3*i+5)%16}else{f=C^(B|~D);g=7*i%16}
+    const t=D;D=C;C=B;B=B+rl(A+f+K[i]+(w[o+g]|0)|0,R[(i>>4)*4+i%4]);A=t}
+    a=a+A|0;b=b+B|0;c=c+C|0;d=d+D|0}
+  return[a,b,c,d].map(x=>{let h="";for(let i=0;i<4;i++)h+=("0"+(x>>>i*8&255).toString(16)).slice(-2);return h}).join("")}
+async function scPost(url,headers,json,form){
+  const D=window.miloDesktop,H=NV.P&&NV.P.CapacitorHttp,body=form?new URLSearchParams(form).toString():JSON.stringify(json);
+  const h=Object.assign({"Content-Type":form?"application/x-www-form-urlencoded":"application/json"},headers||{});
+  let st,tx;
+  if(D&&D.http){const r=await D.http({url,method:"POST",headers:h,body});st=r.status;tx=r.text}
+  else if(NV.cap&&H){const r=await H.request({url,method:"POST",headers:h,data:form||json,responseType:"text",connectTimeout:12000,readTimeout:20000});st=r.status;tx=typeof r.data==="string"?r.data:JSON.stringify(r.data)}
+  else{const r=await fetch(url,{method:"POST",headers:h,body});st=r.status;tx=await r.text()}
+  return{status:st,text:tx}}
+const scArtist=t=>String(t.a||"").split(/,\s*|\s+&\s+|\s+feat\.?\s+/i)[0].trim();
+const scOk=t=>t&&!t.radio&&!t.ph&&t.t&&scArtist(t)&&scArtist(t)!=="On this device";
+function fmSig(p,secret){return md5(Object.keys(p).filter(k=>k!=="format"&&k!=="callback").sort().map(k=>k+p[k]).join("")+secret)}
+async function fmCall(method,p){const c=SC.get().fm;if(!c||!c.key||!c.secret)throw new Error("Last.fm is not set up");
+  const q=Object.assign({method,api_key:c.key},p);q.api_sig=fmSig(q,c.secret);q.format="json";
+  const r=await scPost("https://ws.audioscrobbler.com/2.0/",{},null,q);let j={};try{j=JSON.parse(r.text)}catch(e){}
+  if(j.error)throw new Error(j.message||"Last.fm error "+j.error);if(r.status>=400)throw new Error("Last.fm answered "+r.status);return j}
+async function lbSend(type,t,ts){const c=SC.get().lb;if(!c||!c.token)return;
+  const meta={track_name:t.t,artist_name:scArtist(t),additional_info:{media_player:"milo.",submission_client:"milo.",duration_ms:t.d?Math.round(t.d*1000):undefined}};if(t.al&&t.al!==t.src&&!/^(YouTube|Internet Archive)/i.test(t.al))meta.release_name=t.al;
+  const r=await scPost("https://api.listenbrainz.org/1/submit-listens",{Authorization:"Token "+c.token},{listen_type:type,payload:[type==="playing_now"?{track_metadata:meta}:{listened_at:ts,track_metadata:meta}]});
+  if(r.status===401)throw new Error("ListenBrainz token was refused");if(r.status>=400)throw new Error("ListenBrainz answered "+r.status)}
+async function fmSend(type,t,ts){const c=SC.get().fm;if(!c||!c.sk)return;
+  const p={artist:scArtist(t),track:t.t,sk:c.sk};if(t.d)p.duration=String(Math.round(t.d));if(type==="playing_now")await fmCall("track.updateNowPlaying",p);else{p.timestamp=String(ts);await fmCall("track.scrobble",p)}}
+function scFlush(){["lb","fm"].forEach(async k=>{const q=SC.q[k];if(!q||!q.length||q.busy)return;q.busy=1;try{while(q.length){const x=q[0];await(k==="lb"?lbSend:fmSend)("single",x.t,x.ts);q.shift()}}catch(e){}q.busy=0})}
+const _miListen=miListen;miListen=function(t){try{_miListen(t)}catch(e){}
+  if(!scOk(t))return;const c=SC.get(),ts=Math.floor(Date.now()/1000)-30,it={t:{t:t.t,a:t.a,al:t.al,d:t.d,src:t.src},ts};
+  if(c.lb&&c.lb.token)SC.q.lb.push(it);if(c.fm&&c.fm.sk)SC.q.fm.push(it);while(SC.q.lb.length>60)SC.q.lb.shift();while(SC.q.fm.length>60)SC.q.fm.shift();scFlush()};
+setInterval(()=>{const t=T[S.cur];if(!t||!S.playing||!scOk(t)||SC.np===t.key)return;SC.np=t.key;const c=SC.get();
+  if(c.lb&&c.lb.token)lbSend("playing_now",t).catch(()=>{});if(c.fm&&c.fm.sk)fmSend("playing_now",t).catch(()=>{})},2500);
+/* ---- settings card in Profile ---- */
+function scCard(){const c=SC.get(),lb=c.lb&&c.lb.token,fm=c.fm&&c.fm.sk;
+  return `<button class="sxb" data-sc="lb"><b>ListenBrainz</b><small>${lb?"Connected · tap to change":"Send what you play to your ListenBrainz profile"}</small></button>
+  <button class="sxb" data-sc="fm"><b>Last.fm</b><small>${fm?"Connected as "+esc(c.fm.user||"you")+" · tap to change":"Scrobble what you play to Last.fm"}</small></button>
+  <button class="sxb" data-sc="lt"><b>Listen together</b><small>${LT.code?"In session "+esc(LT.code)+(LT.host?" · hosting":" · listening"):"Play the same song in sync with a friend (needs sign-in)"}</small></button>`}
+const _sxExtra=sxExtra;sxExtra=function(){return _sxExtra()+scCard()};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-sc]");if(!b)return;const k=b.dataset.sc,c=SC.get();
+  if(k==="lb")modal(`<h3>ListenBrainz</h3><p>Paste your user token from listenbrainz.org/settings. Plays are sent after 30 seconds of listening.</p><input id="scTok" placeholder="User token" value="${esc((c.lb&&c.lb.token)||"")}" autocomplete="off" style="width:100%;margin:8px 0"><button class="addb" data-sc="lbok">Save</button> <button class="ghost" data-sc="lbno">Disconnect</button> <button class="ghost" data-x>Cancel</button>`);
+  else if(k==="lbok"){const v=($("scTok").value||"").trim();c.lb=v?{token:v}:null;SC.set(c);closeM();toast(v?"ListenBrainz connected":"ListenBrainz disconnected")}
+  else if(k==="lbno"){c.lb=null;SC.set(c);closeM();toast("ListenBrainz disconnected")}
+  else if(k==="fm")modal(`<h3>Last.fm</h3><p>Create a free API account at last.fm/api/account/create, then enter its key and secret with your Last.fm login. Your password is only used once to get a session key and is never stored.</p><input id="scK" placeholder="API key" value="${esc((c.fm&&c.fm.key)||"")}" style="width:100%;margin:4px 0"><input id="scS" placeholder="Shared secret" value="${esc((c.fm&&c.fm.secret)||"")}" style="width:100%;margin:4px 0"><input id="scU" placeholder="Username" value="${esc((c.fm&&c.fm.user)||"")}" style="width:100%;margin:4px 0"><input id="scP" type="password" placeholder="Password" style="width:100%;margin:4px 0"><button class="addb" data-sc="fmok">Connect</button> <button class="ghost" data-sc="fmno">Disconnect</button> <button class="ghost" data-x>Cancel</button>`);
+  else if(k==="fmno"){c.fm=null;SC.set(c);closeM();toast("Last.fm disconnected")}
+  else if(k==="fmok"){const key=$("scK").value.trim(),secret=$("scS").value.trim(),user=$("scU").value.trim(),pw=$("scP").value;if(!key||!secret||!user||!pw){toast("Fill in all four boxes");return}
+    c.fm={key,secret};SC.set(c);fmCall("auth.getMobileSession",{username:user,password:pw}).then(j=>{const c2=SC.get();c2.fm={key,secret,user:j.session.name,sk:j.session.key};SC.set(c2);closeM();toast("Last.fm connected")}).catch(er=>{const c2=SC.get();c2.fm=null;SC.set(c2);toast(er.message||"Could not connect to Last.fm")})}
+  else if(k==="lt")ltModal()});
+/* ---- Listen together: the host's song, position and play/pause are broadcast; guests follow. Needs YouTube/streamed songs so everyone can play them ---- */
+const LT={code:"",host:false,tm:0,last:"",at:0};
+const ltName=c=>"milo-together-"+c.toLowerCase();
+function ltSend(ev,p){if(!LT.code)return;rtSend({topic:rtTopic(ltName(LT.code)),event:"broadcast",payload:{type:"broadcast",event:ev,payload:p}})}
+function ltState(){const t=T[S.cur];if(!t||!t.yt){return{none:1}}return{yt:t.yt,t:t.t,a:t.a,img:t.img||"",d:t.d||0,pos:S.pos,playing:!!S.playing,ts:Date.now()}}
+function ltHostTick(){if(!LT.host||!LT.code)return;const s=ltState(),sig=s.yt+"|"+s.playing;
+  if(sig!==LT.last||Date.now()-LT.at>4000){LT.last=sig;LT.at=Date.now();ltSend("st",s)}}
+function ltJoin(code,host){if(!S.cloud||!soUid()){toast("Sign in to use Listen together");return}
+  ltLeave(true);LT.code=code.toUpperCase();LT.host=host;LT.last="";LT.at=0;rtJoin(ltName(LT.code),{broadcast:{self:false},presence:{key:""}});
+  LT.tm=setInterval(ltHostTick,1000);if(!host)setTimeout(()=>ltSend("hello",{}),1500);toast(host?"Hosting "+LT.code:"Joined "+LT.code)}
+function ltLeave(q){if(LT.code){try{rtLeave(ltName(LT.code))}catch(e){}}clearInterval(LT.tm);const was=LT.code;LT.code="";LT.host=false;if(was&&!q)toast("Left the session")}
+function ltModal(){if(LT.code){modal(`<h3>Listen together</h3><p>${LT.host?"You're hosting":"You're listening in"}. Code: <b>${esc(LT.code)}</b></p><button class="addb" data-sc="ltx">Leave session</button> <button class="ghost" data-x>Close</button>`);return}
+  modal(`<h3>Listen together</h3><p>Host a session and share the code, or enter a friend's code. Everyone hears the host's song at the same spot. It works for YouTube and streamed songs, and everyone needs to be signed in.</p><button class="addb" data-sc="lth">Host a session</button><p style="margin:14px 0 4px">Or join one</p><input id="ltC" placeholder="Code" maxlength="6" style="text-transform:uppercase;width:100%;margin:4px 0"><button class="addb" data-sc="ltj">Join</button> <button class="ghost" data-x>Cancel</button>`)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-sc]");if(!b)return;const k=b.dataset.sc;
+  if(k==="lth"){const c=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join("");closeM();ltJoin(c,true);setTimeout(()=>modal(`<h3>Hosting</h3><p>Share this code: <b style="font-size:26px;letter-spacing:.12em">${c}</b></p><p>Play a YouTube song and friends who join will hear it with you.</p><button class="ghost" data-x>Done</button>`),200)}
+  else if(k==="ltj"){const c=($("ltC").value||"").trim().toUpperCase();if(c.length<4){toast("Enter the code");return}closeM();ltJoin(c,false)}
+  else if(k==="ltx"){closeM();ltLeave()}});
+const _rtBc=rtBc;rtBc=function(topic,p){try{_rtBc(topic,p)}catch(e){}
+  if(!LT.code||topic!==rtTopic(ltName(LT.code))||!p)return;
+  if(p.event==="hello"&&LT.host){LT.last="";ltHostTick();return}
+  if(p.event!=="st"||LT.host)return;const s=p.payload||{};if(s.none||!s.yt)return;
+  const lag=s.playing?(Date.now()-s.ts)/1000:0,want=(s.pos||0)+Math.max(0,Math.min(lag,5)),cur=T[S.cur];
+  if(!cur||cur.yt!==s.yt){const i=addStream({id:"yt"+s.yt,yt:s.yt,t:s.t,a:s.a,d:s.d,url:"",img:s.img});playList([i],false);if(!s.playing)setTimeout(()=>{if(S.playing)toggle()},800);setTimeout(()=>seekTo(want),1200);return}
+  if(Math.abs(S.pos-want)>3)seekTo(want);if(!!S.playing!==!!s.playing)toggle()};
+/* ----- milo. as a streaming service: on-device music first, then YouTube Music shelves (recommended, trending, charts). Offline shows only your own music. ----- */
+const YH={shelves:LS.get("milo.yhome",[]),at:+LS.get("milo.yhomeAt",0)||0,busy:0,err:""};
+const yhOnline=()=>navigator.onLine!==false&&ymOk();
+function yhShelf(n){/* one carousel shelf -> {t, items:[{k,id,t,sub,img,a}]} */
+  const hd=ymFirst(n.header||{},"title"),t=ymRuns(hd);if(!t)return null;const items=[];const cs=n.contents||[];
+  for(const c of cs){
+    if(c.musicTwoRowItemRenderer){const x=ymCard(c.musicTwoRowItemRenderer,true);if(x)items.push(x)}
+    else if(c.musicResponsiveListItemRenderer){const r=c.musicResponsiveListItemRenderer,sg=ymSong(r);if(sg)items.push({k:"song",id:sg.id,t:sg.t,a:sg.a,img:sg.img||ymThumbOf(r),d:sg.d||0});else{const x=ymCard(r,false);if(x)items.push(x)}}}
+  return items.length?{t,items:items.slice(0,14)}:null}
+function yhParse(j){const out=[];for(const k of["musicCarouselShelfRenderer","musicImmersiveCarouselShelfRenderer"])for(const n of ymAll(j,k)){const s=yhShelf(n);if(s)out.push(s)}return out}
+function yhCont(j){const a=ymAll(j,"nextContinuationData")[0];return a&&a.continuation||""}
+async function yhBrowse(id,extra){try{let j=await ymPost("browse",Object.assign({browseId:id},extra||{}),YMC.REMIX),sh=yhParse(j);
+  for(let i=0;i<2;i++){const c=yhCont(j);if(!c)break;try{j=await ymPost("browse",{continuation:c},YMC.REMIX);sh=sh.concat(yhParse(j))}catch(e){break}}return sh}catch(e){return[]}}
+async function yhLoad(force){if(YH.busy||!yhOnline())return;if(!force&&YH.shelves.length&&Date.now()-YH.at<20*60*1000)return;
+  YH.busy=1;try{const[h,c]=await Promise.all([yhBrowse("FEmusic_home"),yhBrowse("FEmusic_charts")]);const seen=new Set(),all=[];
+    h.concat(c).forEach(s=>{if(!seen.has(s.t)){seen.add(s.t);all.push(s)}});
+    if(all.length){YH.shelves=all.slice(0,10);YH.at=Date.now();YH.err="";LS.set("milo.yhome",YH.shelves);LS.set("milo.yhomeAt",YH.at)}else YH.err="empty"}
+  catch(e){YH.err=(e&&e.message)||"failed"}YH.busy=0;if(S.tab==="Home"&&!S.nav)try{render()}catch(e){}}
+function yhCard(c){return c.k==="song"?ymSongCard(c):c.k==="artist"?ymPoster(c):ymSquare(c)}
+function yhHtml(){if(!yhOnline())return"";if(!YH.shelves.length)return YH.busy?`<div class="row"><h2>Discover</h2></div><div class="ysklist"><i class="ysk"></i><i class="ysk"></i><i class="ysk"></i></div>`:"";
+  return YH.shelves.map(s=>{const ar=s.items.every(x=>x.k==="artist");return`<div class="row"><h2>${ymEsc(s.t)}</h2></div><div class="pls${ar?" ypls":""}">${s.items.map(yhCard).join("")}</div>`}).join("")}
+{const _h=home;home=function(){let h=_h.apply(this,arguments);try{const x=yhHtml();if(x)h=h.replace('<div class="row"><h2>Recently played</h2>',x+'<div class="row"><h2>Recently played</h2>');if(yhOnline())setTimeout(()=>yhLoad(false),50);
+  /* bottom of Home: the newest songs on this device, up to 50 */
+  const ra=[];for(let i=T.length-1;i>=0&&ra.length<50;i--){const t=T[i];if(t&&!t.radio&&!t.stream&&!t.hid&&!t.gone&&!t.ph)ra.push(i)}
+  if(ra.length){S.lists.ra=ra;const k=h.lastIndexOf("</div>");if(k>0)h=h.slice(0,k)+`<div class="row"><h2>Recently added</h2><button data-go="Library" data-lib="Songs">See all</button></div><div class="list">${ra.map(i=>li(i,"ra")).join("")}</div>`+h.slice(k)}}catch(e){}return h}}
+window.addEventListener("online",()=>{try{yhLoad(true)}catch(e){}});window.addEventListener("offline",()=>{try{render()}catch(e){}});
+/* ----- Google sign-in (Google Identity Services -> Supabase id_token). Needs the Google provider switched on in Supabase. ----- */
+const GCLIENT="607031598574-svt5i48ppk9udu7mujo76k2j89j2qk3u.apps.googleusercontent.com";
+const gOk=()=>/^https?:$/.test(location.protocol)&&!NV.cap&&!window.miloDesktop&&navigator.onLine!==false;
+function gLoad(){return new Promise((ok,no)=>{if(window.google&&google.accounts&&google.accounts.id)return ok();const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.onload=()=>ok();s.onerror=()=>no(new Error("Google sign-in could not load"));document.head.appendChild(s)})}
+async function gCred(r){if(!r||!r.credential)return;GATE.busy=1;gtErr("");
+  try{const j=await sbReq("/auth/v1/token?grant_type=id_token",{m:"POST",b:{provider:"google",id_token:r.credential},anon:1});if(!j||!j.access_token)throw new Error("Google sign-in was not accepted");await gtSession(j,"")}
+  catch(e){GATE.busy=0;GATE.err=/provider|disabled|not enabled/i.test(String(e.message))?"Google sign-in isn't switched on for this app yet.":sbMsg(e);gateRender()}}
+async function gMount(){const h=document.getElementById("gt-g");if(!h||h.dataset.on)return;h.dataset.on="1";
+  try{await gLoad();google.accounts.id.initialize({client_id:GCLIENT,callback:gCred,ux_mode:"popup",auto_select:false});google.accounts.id.renderButton(h,{theme:"filled_black",size:"large",shape:"pill",text:"continue_with",width:Math.min(300,h.clientWidth||300)})}
+  catch(e){h.innerHTML=""}}
+{const _g=gateRender;gateRender=function(){const r=_g.apply(this,arguments);try{const st=GATE.step;if(gOk()&&(st==="welcome"||st==="up"||st==="in")){const w=document.querySelector(".gw-in")||document.querySelector(".gt-form");
+  if(w&&!w.querySelector("#gt-g")){const d=document.createElement("div");d.id="gt-g";d.style.cssText="display:flex;justify-content:center;margin:12px 0;min-height:44px";const a=w.querySelector(".gt-fine")||w.lastElementChild;w.insertBefore(d,a);gMount()}}}catch(e){}return r}}
+/* ----- premium motion: the song art and titles glide in the way you went (next = from the right, previous = from the left) ----- */
+const MO={dir:1,bg:-9,view:""};
+const moRed=()=>window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function moPlay(el,cls){if(!el)return;el.classList.remove("artF","artB","txtF","txtB");void el.offsetWidth;el.classList.add(cls)}
+{const _n=next,_p=prev;next=function(){MO.dir=1;return _n.apply(this,arguments)};prev=function(){const back=!(S.pos>3||S.qi<=0);if(back)MO.dir=-1;return _p.apply(this,arguments)}}
+{const _s=sync;sync=function(){const was=S.bgCur,r=_s.apply(this,arguments);
+  try{if(S.bgCur!==was&&was!==undefined&&!moRed()){const f=MO.dir>=0,a=f?"artF":"artB",x=f?"txtF":"txtB";
+    ["mArt","big","imA","imG","imTh","lyArt"].forEach(id=>moPlay($(id),a));
+    ["mT","mA","fT","fA","imT","imAr","imAl","lyT"].forEach(id=>moPlay($(id),x));MO.dir=1}}catch(e){}return r}}
+/* soft entrance when you change tab or open a page */
+{const _r=render;render=function(){const r=_r.apply(this,arguments);try{const k=S.tab+"|"+S.nav+"|"+S.lib;if(k!==MO.view){MO.view=k;if(!moRed()){const v=$("view");v.classList.remove("vin");void v.offsetWidth;v.classList.add("vin")}}}catch(e){}return r}}
+/* skeleton shapes used while lists and lyrics load */
+const skRows=n=>`<div class="skr" aria-hidden="true">${Array.from({length:n||6},()=>'<b><i class="sk"></i><span><i class="sk"></i><i class="sk"></i></span></b>').join("")}</div>`;
+const skLines=()=>'<div class="skl" aria-hidden="true">'+'<i class="sk"></i>'.repeat(5)+'</div>';
+/* ----- audio output (Bluetooth speakers and headphones, USB DACs): pick where milo. plays, pause if the device goes away, and a lyrics delay for Bluetooth lag ----- */
+const AO={id:LS.get("milo.sink",""),name:LS.get("milo.sinkName",""),delay:+LS.get("milo.btdelay",0)||0};
+const aoSupported=()=>typeof Audio!=="undefined"&&"setSinkId" in Audio.prototype;
+function aoApply(){if(!aoSupported())return Promise.resolve(false);const id=AO.id||"default";
+  return Promise.all([RA,RB,DK[0],DK[1]].map(a=>a.setSinkId?a.setSinkId(id).catch(()=>false):false)).then(()=>true)}
+async function aoDevices(){try{const d=await navigator.mediaDevices.enumerateDevices();return d.filter(x=>x.kind==="audiooutput")}catch(e){return[]}}
+async function aoPick(){
+  if(!aoSupported()){modal(`<h3>Audio output</h3><p>This browser can't choose an output. Pick your Bluetooth speaker or headphones in your device's sound settings and milo. will follow.</p><button class="ghost" data-x>Close</button>`);return}
+  if(navigator.mediaDevices&&navigator.mediaDevices.selectAudioOutput){try{const d=await navigator.mediaDevices.selectAudioOutput();AO.id=d.deviceId;AO.name=d.label||"Selected device";aoSave();await aoApply();toast("Playing on "+AO.name);return}catch(e){if(e&&e.name==="NotAllowedError")return}}
+  const ds=await aoDevices();
+  modal(`<h3>Audio output</h3><div class="ao">${[{deviceId:"",label:"System default"}].concat(ds.filter(d=>d.deviceId&&d.deviceId!=="default")).map(d=>`<button class="ghost" data-ao="${esc(d.deviceId)}" data-aon="${esc(d.label||"Output device")}" style="display:block;width:100%;text-align:left;margin:6px 0">${esc(d.label||"Output device")}${d.deviceId===AO.id?" ✓":""}</button>`).join("")}</div><button class="ghost" data-x>Close</button>`)}
+function aoSave(){LS.set("milo.sink",AO.id);LS.set("milo.sinkName",AO.name)}
+function aoCard(){return `<button class="sxb" data-ao="pick"><b>Audio output</b><small>${esc(AO.name||"System default")} · pick Bluetooth, USB or speakers</small></button>
+  <label class="sxs"><span><b>Lyrics delay for Bluetooth</b><small>${AO.delay} ms · raise it until the highlighted line matches what you hear</small></span><input type="range" min="0" max="800" step="50" value="${AO.delay}" data-aod style="width:120px"></label>`}
+{const _s=sxExtra;sxExtra=function(){return _s()+aoCard()}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-ao]");if(!b)return;const k=b.dataset.ao;
+  if(k==="pick"){aoPick();return}
+  AO.id=k;AO.name=k?b.dataset.aon:"";aoSave();aoApply().then(()=>{toast(AO.id?"Playing on "+AO.name:"Using the system default");closeM()})});
+document.addEventListener("input",e=>{const r=e.target.closest&&e.target.closest("[data-aod]");if(!r)return;AO.delay=+r.value;LS.set("milo.btdelay",AO.delay);const s=r.closest("label").querySelector("small");if(s)s.textContent=AO.delay+" ms · raise it until the highlighted line matches what you hear"});
+{const _l=lyrSync;lyrSync=function(){const p=S.pos;if(AO.delay)S.pos=p-AO.delay/1000;try{return _l.apply(this,arguments)}finally{S.pos=p}}}
+/* if the chosen device disappears (Bluetooth switched off, DAC unplugged): fall back to the default and pause, so music doesn't blast from the speaker */
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener("devicechange",async()=>{if(!AO.id)return;const ds=await aoDevices();if(ds.length&&!ds.some(d=>d.deviceId===AO.id)){AO.id="";AO.name="";aoSave();aoApply();if(S.playing){try{toggle()}catch(x){}}toast("Output device disconnected, paused")}});
+aoApply();
 </script>
 </body>
 </html>
