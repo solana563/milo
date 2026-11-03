@@ -49,7 +49,7 @@ import com.ubayanda.milonative.ui.components.Cover
 import com.ubayanda.milonative.ui.components.EmptyNote
 import com.ubayanda.milonative.ui.components.RowAction
 import com.ubayanda.milonative.ui.components.TrackRow
-import com.ubayanda.milonative.ui.components.artBackdrop
+import com.ubayanda.milonative.ui.components.artWash
 import com.ubayanda.milonative.ui.components.rememberSoft
 import com.ubayanda.milonative.ui.theme.Milo
 import com.ubayanda.milonative.util.plural
@@ -63,8 +63,10 @@ fun DetailScreen(
     /** When set, rows get a drag handle and this runs (from, to) after a drop. */
     onMove: ((Int, Int) -> Unit)? = null,
     rowExtra: (Track) -> List<RowAction> = { emptyList() },
+    /** Draw this picture as the cover instead of the first song's (an online playlist's own cover, say). */
+    coverTrack: Track? = null,
 ) {
-    val lead = tracks.firstOrNull()
+    val lead = coverTrack ?: tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     val listState = rememberLazyListState()
@@ -108,7 +110,7 @@ fun DetailScreen(
                 }
             }
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(shape).artBackdrop(soft).border(1.dp, Milo.line, shape).padding(20.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(shape).artWash(soft).border(1.dp, Milo.line, shape).padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Cover(vm, lead, 180.dp, 22.dp, px = 480)

@@ -109,6 +109,11 @@ private fun Welcome(vm: MainViewModel) {
         PrimaryButton("Sign up free", false) { vm.gateStep("up") }
         Spacer(Modifier.height(12.dp))
         OutlineButton("Log in") { vm.gateStep("in") }
+        if (com.ubayanda.milonative.data.GoogleSignIn.available) {
+            Spacer(Modifier.height(12.dp))
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            OutlineButton("Continue with Google") { vm.signInGoogle(ctx) }
+        }
         Spacer(Modifier.height(16.dp))
         Text(
             "Continue without an account", color = Milo.dim, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,

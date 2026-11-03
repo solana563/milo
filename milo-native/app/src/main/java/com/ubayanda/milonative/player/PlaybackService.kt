@@ -17,6 +17,7 @@ class PlaybackService : MediaSessionService() {
     private var exo: ExoPlayer? = null
     private var castBridge: CastBridge? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ytRetried = HashSet<String>()
     private val fxPrefs by lazy { getSharedPreferences("milo_fx", MODE_PRIVATE) }
 
     // ---- true crossfade: a second, short-lived player carries the tail of the old song while the main player starts the next one ----
@@ -27,6 +28,7 @@ class PlaybackService : MediaSessionService() {
     private var lastTick = 0L
 
     private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this)
+        .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
         .setHandleAudioBecomingNoisy(false)
         .build().also { ghost = it }
@@ -109,6 +111,7 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -124,11 +127,21 @@ class PlaybackService : MediaSessionService() {
         session = MediaSession.Builder(this, player).build()
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player).also { it.init() }
+        BtOutput.start(this, { player.isPlaying }, { player.play() })
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // a YouTube link that expired or was refused: look up a fresh one and carry on from the same place, once per song
+                val u = player.currentMediaItem?.localConfiguration?.uri
+                val vid = if (u?.scheme == "yt") u.schemeSpecificPart.orEmpty() else ""
+                if (vid.isNotEmpty() && ytRetried.add(vid)) {
+                    com.ubayanda.milonative.data.YtMusic.forget(vid)
+                    player.prepare()
+                    return
+                }
                 // dead stream: drop it right here so the session never carries a broken timeline
                 endGhost(); player.stop(); player.clearMediaItems()
             }
+            override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) ytRetried.clear() else BtOutput.saveVolume(this@PlaybackService) }
             override fun onEvents(p: Player, events: Player.Events) {
                 if (events.containsAny(
                         Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED,
@@ -152,6 +165,7 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         try { castBridge?.release() } catch (_: Throwable) {}
         castBridge = null
+        BtOutput.stop(this)
         handler.removeCallbacksAndMessages(null)
         com.ubayanda.milonative.widget.WidgetUpdater.clear(this)
         try { ghost?.release() } catch (_: Throwable) {}

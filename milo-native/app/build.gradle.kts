@@ -68,6 +68,10 @@ dependencies {
     implementation("androidx.media3:media3-session:1.4.1")
     "fullImplementation"("androidx.media3:media3-cast:1.4.1")
     "fullImplementation"("androidx.mediarouter:mediarouter:1.7.0")
+    // Google sign-in (Credential Manager). The F-Droid build has no Google libraries, so it gets a stub instead.
+    "fullImplementation"("androidx.credentials:credentials:1.3.0")
+    "fullImplementation"("androidx.credentials:credentials-play-services-auth:1.3.0")
+    "fullImplementation"("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.media3:media3-common:1.4.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

@@ -190,6 +190,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun signInGoogle(context: android.content.Context) {
+        setAcct { it.copy(busy = true, err = "") }
+        viewModelScope.launch {
+            try {
+                val tok = com.ubayanda.milonative.data.GoogleSignIn.idToken(context)
+                cloud.signInGoogle(tok); resolveProfile()
+            } catch (x: com.ubayanda.milonative.data.CancelledSignIn) { setAcct { it.copy(busy = false) } }
+            catch (x: Exception) {
+                val m = x.message.orEmpty()
+                setAcct { it.copy(busy = false, err = if (x is CloudError && Regex("provider|disabled|not enabled", RegexOption.IGNORE_CASE).containsMatchIn(m)) "Google sign-in isn't switched on for this app yet." else if (x is CloudError) cloud.friendly(x) else m.ifEmpty { "Google sign-in failed" }) }
+            }
+        }
+    }
+
     fun claimUsername(username: String) {
         val un = username.trim().lowercase().removePrefix("@")
         if (!UN_RE.matches(un)) return setAcct { it.copy(err = "Username: 3 to 20 letters, numbers or _.") }
@@ -647,6 +661,66 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _stats.value = StatsUi(statsStore.totalMs, statsStore.plays(), statsStore.topSongs(5), statsStore.topArtists(5))
     }
 
+    // ---- streaming-style home: YouTube Music shelves while online ----
+    private val _ytHome = MutableStateFlow<List<com.ubayanda.milonative.data.YtMusic.Shelf>>(emptyList())
+    val ytHome: StateFlow<List<com.ubayanda.milonative.data.YtMusic.Shelf>> = _ytHome.asStateFlow()
+    private var ytHomeAt = 0L
+    private val _ytHomeLoading = MutableStateFlow(false)
+    val ytHomeLoading: StateFlow<Boolean> = _ytHomeLoading.asStateFlow()
+    fun online(): Boolean {
+        val cm = getApplication<Application>().getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+        val c = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+    fun loadYtHome(force: Boolean = false) {
+        if (!online()) { _ytHome.value = emptyList(); return }
+        if (!force && _ytHome.value.isNotEmpty() && System.currentTimeMillis() - ytHomeAt < 20 * 60_000L) return
+        viewModelScope.launch {
+            _ytHomeLoading.value = true
+            val r = withContext(Dispatchers.IO) { try { com.ubayanda.milonative.data.YtMusic.home() } catch (_: Exception) { emptyList() } }
+            if (r.isNotEmpty()) { _ytHome.value = r; ytHomeAt = System.currentTimeMillis() }
+            _ytHomeLoading.value = false
+        }
+    }
+    fun playYtCard(c: com.ubayanda.milonative.data.YtMusic.Card) {
+        val s = com.ubayanda.milonative.data.YtMusic.Song(c.id, c.title, c.sub, "", "", "", 0, c.thumb)
+        playRemote(listOf(com.ubayanda.milonative.data.YtMusic.toTrack(s, c.thumb)), 0)
+    }
+
+    // ---- scrobbling and listen together ----
+    val scrobbler = com.ubayanda.milonative.data.Scrobbler(app)
+    private var nowSent: Long? = null
+    val together = com.ubayanda.milonative.data.Together(
+        token = { cloud.fresh(); cloud.session?.accessToken },
+        onState = { j -> viewModelScope.launch { followHost(j) } },
+        onHello = { hostPing = 0 },
+    )
+    private var hostPing = 0
+    val signedIn: Boolean get() = cloud.session != null
+
+    fun joinTogether(code: String, asHost: Boolean, done: (Boolean) -> Unit) {
+        viewModelScope.launch { done(together.join(code, asHost, com.ubayanda.milonative.data.CloudApi.URL, com.ubayanda.milonative.data.CloudApi.KEY)) }
+    }
+
+    private suspend fun followHost(j: org.json.JSONObject) {
+        val vid = j.optString("yt"); if (vid.isEmpty()) return
+        val playing = j.optBoolean("playing")
+        val lag = if (playing) ((System.currentTimeMillis() - j.optLong("ts")) / 1000.0).coerceIn(0.0, 5.0) else 0.0
+        val want = ((j.optDouble("pos", 0.0) + lag) * 1000).toLong()
+        val st = player.state.value
+        val cur = trackById(st.currentId)
+        if (cur?.uri != "yt:$vid") {
+            val s = com.ubayanda.milonative.data.YtMusic.Song(vid, j.optString("t"), j.optString("a"), "", "", "", j.optInt("d"), j.optString("img"))
+            playRemote(listOf(com.ubayanda.milonative.data.YtMusic.toTrack(s, j.optString("img"))), 0)
+            delay(1500)
+            player.seekTo(want)
+            if (!playing && player.state.value.isPlaying) player.toggle()
+        } else {
+            if (kotlin.math.abs(st.positionMs - want) > 3000) player.seekTo(want)
+            if (st.isPlaying != playing) player.toggle()
+        }
+    }
+
     private suspend fun statsLoop() {
         refreshStats()
         var cur: Long? = null; var acc = 0L; var counted = false; var n = 0
@@ -661,6 +735,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val play = !counted && acc >= need
                 if (play) counted = true
                 statsStore.add(t, 1000L, play)
+                if (nowSent != t.id) { nowSent = t.id; viewModelScope.launch { scrobbler.nowPlaying(t) } }
+                if (play) viewModelScope.launch { scrobbler.scrobble(t) }
+            }
+            if (together.code.value.isNotEmpty() && together.host && t != null && t.uri.startsWith("yt:") && hostPing-- <= 0) {
+                hostPing = 3
+                together.broadcast(t.uri.removePrefix("yt:"), t, st.positionMs, st.isPlaying)
             }
             if (++n >= 10) { n = 0; statsStore.save(); refreshStats() }
         }
@@ -737,6 +817,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val youtube = com.ubayanda.milonative.data.YouTubeRepo(app)
 
     /** Make a listed online song known (so it can be liked) without playing it. */
+    /** Lets the player screens know about online songs before they are played (so the queue, mini player and widgets can show them). */
+    fun rememberRemote(list: List<Track>) { _remote.value = _remote.value + list.associateBy { it.id } }
     fun playRemoteKeep(t: Track) { _remote.value = _remote.value + (t.id to t) }
 
     fun playRemote(list: List<Track>, index: Int) {

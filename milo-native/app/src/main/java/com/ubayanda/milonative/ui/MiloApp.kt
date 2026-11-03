@@ -122,6 +122,8 @@ fun MiloApp(vm: MainViewModel) {
     var friendsOpen by remember { mutableStateOf(false) }
     var car by remember { mutableStateOf(false) }
     var yt by remember { mutableStateOf<Pair<List<Track>, Int>?>(null) }
+    /** YouTube Music pages (artist / album / playlist), newest last; back goes to the one before. */
+    var ytPages by remember { mutableStateOf<List<String>>(emptyList()) }
     var chatWith by remember { mutableStateOf<com.ubayanda.milonative.data.Friend?>(null) }
     var pickFor by remember { mutableStateOf<Track?>(null) }
     var newFor by remember { mutableStateOf<Track?>(null) }
@@ -156,7 +158,7 @@ fun MiloApp(vm: MainViewModel) {
     var newMany by remember { mutableStateOf(false) }
     // Back from anywhere goes Home first; on Home the first back warns and the second leaves the app.
     val lastBack = remember { longArrayOf(0L) }
-    BackHandler(enabled = !car && selection.isEmpty() && !playerOpen && !friendsOpen && detail == null && yt == null) {
+    BackHandler(enabled = !car && selection.isEmpty() && !playerOpen && !friendsOpen && detail == null && yt == null && ytPages.isEmpty()) {
         if (tab != Tab.Home) tab = Tab.Home
         else {
             val now = System.currentTimeMillis()
@@ -199,6 +201,12 @@ fun MiloApp(vm: MainViewModel) {
                     if (ownCards) Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.bg, panelShape)
                     else Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
+                    if (ytPages.isNotEmpty()) {
+                        BackHandler(enabled = !playerOpen && yt == null) { ytPages = ytPages.dropLast(1) }
+                        androidx.compose.runtime.key(ytPages.last()) {
+                            com.ubayanda.milonative.ui.screens.YtPageScreen(vm, ytPages.last(), ui, bottomPad, { ytPages = ytPages + it }) { ytPages = ytPages.dropLast(1) }
+                        }
+                    } else
                     when (val d = detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
                         is Detail.ArtistD -> DetailScreen(vm, d.artist.name, "Artist", d.artist.tracks, ui, bottomPad, { detail = null })
@@ -232,12 +240,13 @@ fun MiloApp(vm: MainViewModel) {
                                 onOpenPlaylist = { detail = Detail.PlaylistD(it.id) },
                                 onLiked = { detail = Detail.Liked },
                                 onFriends = { friendsOpen = true },
+                                onYtPage = { ytPages = ytPages + it },
                             )
                             Tab.Library -> LibraryScreen(
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
                             )
-                            Tab.Discover -> DiscoverScreen(vm, ui, bottomPad) { l, i -> yt = l to i }
+                            Tab.Discover -> DiscoverScreen(vm, ui, bottomPad, { l, i -> yt = l to i }, { ytPages = ytPages + it })
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) })
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
@@ -259,7 +268,7 @@ fun MiloApp(vm: MainViewModel) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
-                BottomNav(tab, onSelect = { tab = it; detail = null }, avatar = acct.avatar, name = acct.username)
+                BottomNav(tab, onSelect = { tab = it; detail = null; ytPages = emptyList() }, avatar = acct.avatar, name = acct.username)
             }
 
             if (friendsOpen) {

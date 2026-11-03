@@ -139,8 +139,10 @@ class PlayerHolder(context: Context) {
     fun removeFromQueue(i: Int) = withController { c -> if (i in 0 until c.mediaItemCount) c.removeMediaItem(i) }
 
     fun toggle() = withController { c -> if (c.isPlaying) c.pause() else c.play() }
-    fun next() = withController { c -> c.seekToNextMediaItem() }
-    fun previous() = withController { c -> if (c.currentPosition > 3000) c.seekTo(0) else c.seekToPreviousMediaItem() }
+    /** 1 when the last change of song went forward, -1 when it went back. The art slides the matching way. */
+    @Volatile var navDir = 1
+    fun next() = withController { c -> navDir = 1; c.seekToNextMediaItem() }
+    fun previous() = withController { c -> if (c.currentPosition > 3000) c.seekTo(0) else { navDir = -1; c.seekToPreviousMediaItem() } }
     fun seekTo(ms: Long) = withController { c -> c.seekTo(ms) }
     fun toggleShuffle() = withController { c -> c.shuffleModeEnabled = !c.shuffleModeEnabled }
     fun cycleRepeat() = withController { c ->

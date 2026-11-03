@@ -1,6 +1,8 @@
 package com.ubayanda.milonative.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -47,14 +49,15 @@ fun rememberSoft(vm: MainViewModel, t: Track?): State<Bitmap?> =
 /** Square cover with a quiet placeholder when the song has no art. */
 @Composable
 fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 360, modifier: Modifier = Modifier) {
-    val bmp by rememberCover(vm, t, px)
+    var done by remember(t?.id, px) { mutableStateOf(false) }
+    val bmp by produceState<Bitmap?>(null, t?.id, px) { value = if (t == null) null else vm.art.cover(t, px); done = true }
     val shape = RoundedCornerShape(radius)
     Box(modifier.size(size).clip(shape).background(Milo.card2), contentAlignment = Alignment.Center) {
         val b = bmp
-        if (b != null) {
-            Image(remember(b) { b.asImageBitmap() }, null, Modifier.size(size), contentScale = ContentScale.Crop)
-        } else {
-            Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.size(size / 2))
+        if (b == null && !done && t != null) Box(Modifier.size(size).shimmer())
+        androidx.compose.animation.Crossfade(targetState = b, animationSpec = androidx.compose.animation.core.tween(260), label = "cover") { x ->
+            if (x != null) Image(remember(x) { x.asImageBitmap() }, null, Modifier.size(size), contentScale = ContentScale.Crop)
+            else if (done || t == null) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.size(size / 2))
         }
     }
 }
@@ -69,6 +72,22 @@ fun Modifier.artBackdrop(bmp: Bitmap?, shade: Float = 0.42f): Modifier {
     if (glow == null) return this.background(Milo.card)
     val solid = androidx.compose.ui.graphics.lerp(Color(0xFF141312), glow, 0.30f)
     return this.background(solid)
+}
+
+/**
+ * Album / playlist / artist header backdrop: the cover, softened and stretched across the card, fading into the page colour at the
+ * bottom so the title stays readable. [bmp] is the small pre-blurred cover, so nothing needs a GPU blur effect.
+ */
+@Composable
+fun Modifier.artWash(bmp: Bitmap?, strength: Float = 0.62f): Modifier {
+    val img = remember(bmp) { bmp?.asImageBitmap() }
+    if (img == null) return this.background(Milo.card)
+    val glow = remember(bmp) { bmp?.let { glowOf(it) } }
+    val base = if (glow == null) Color(0xFF141312) else androidx.compose.ui.graphics.lerp(Color(0xFF141312), glow, 0.22f)
+    return this.background(base).drawBehind {
+        drawImage(img, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), alpha = strength, filterQuality = FilterQuality.High)
+        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0xFF141312).copy(alpha = 0.78f))))
+    }
 }
 
 /** The song's colour taken from the small cover bitmap, or null when it is plain grey/black/white. */

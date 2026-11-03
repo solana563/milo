@@ -32,8 +32,8 @@ class CloudApi(context: Context) {
 
     companion object {
         const val TERMS_V = 1
-        private const val URL = "https://lwcypxiwkgphuekygrps.supabase.co"
-        private const val KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3lweGl3a2dwaHVla3lncnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMjU3NzEsImV4cCI6MjA5OTcwMTc3MX0.qCLKCluVfjkByX9GqRvxcihVl0Qo8eJOhfkVXN-nqAQ"
+        const val URL = "https://lwcypxiwkgphuekygrps.supabase.co"
+        const val KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3lweGl3a2dwaHVla3lncnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMjU3NzEsImV4cCI6MjA5OTcwMTc3MX0.qCLKCluVfjkByX9GqRvxcihVl0Qo8eJOhfkVXN-nqAQ"
     }
 
     private fun loadSession(): CloudSession? {
@@ -124,6 +124,13 @@ class CloudApi(context: Context) {
         if (!r.has("access_token")) return false
         storeSession(r, email)
         return true
+    }
+
+    /** Sign in (or up) with a Google ID token; the server must have the Google provider switched on. */
+    suspend fun signInGoogle(idToken: String) {
+        val r = request("/auth/v1/token?grant_type=id_token", "POST", JSONObject().put("provider", "google").put("id_token", idToken), anon = true)
+        val j = JSONObject(r)
+        storeSession(j, j.optJSONObject("user")?.optString("email").orEmpty())
     }
 
     suspend fun signIn(email: String, password: String) {

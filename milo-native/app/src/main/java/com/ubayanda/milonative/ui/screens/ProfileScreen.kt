@@ -109,6 +109,12 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         ServerCard(vm)
         Spacer(Modifier.height(16.dp))
         YouTubeKeyCard(vm)
+        Spacer(Modifier.height(16.dp))
+        ScrobbleCard(vm)
+        Spacer(Modifier.height(16.dp))
+        TogetherCard(vm)
+        Spacer(Modifier.height(16.dp))
+        BluetoothCard()
         if (a.signedIn) {
             Spacer(Modifier.height(16.dp))
             SharingCard(vm, a)
@@ -287,7 +293,7 @@ private fun YouTubeKeyCard(vm: MainViewModel) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
         Text("YouTube", color = Milo.text, style = Ty.title)
         Text(
-            "Search uses milo.'s built-in YouTube key. If YouTube search ever says it was refused, paste your own YouTube Data API key here (free from Google Cloud).",
+            "YouTube songs now search and stream inside milo. without a key. This key is only a backup for the old search if the main one ever fails (free from Google Cloud).",
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         ServerField(key, "Your YouTube Data API key (optional)", false) { key = it; saved = false }
@@ -391,5 +397,129 @@ private fun ToolsCard(vm: MainViewModel) {
             Pill("Restore", null, false) { open.launch(arrayOf("application/json", "text/plain", "*/*")) }
         }
         if (msg.isNotEmpty()) Text(msg, color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+    }
+}
+
+
+@Composable
+private fun ScrobbleCard(vm: MainViewModel) {
+    val sc = vm.scrobbler
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var lb by rememberSaveable { mutableStateOf(sc.lbToken) }
+    var key by rememberSaveable { mutableStateOf(sc.fmKey) }
+    var secret by rememberSaveable { mutableStateOf(sc.fmSecret) }
+    var user by rememberSaveable { mutableStateOf(sc.fmUser) }
+    var pass by rememberSaveable { mutableStateOf("") }
+    var fmOn by remember { mutableStateOf(sc.fmOn) }
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    fun toast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_SHORT).show()
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Scrobbling", color = Milo.text, style = Ty.title)
+        Text(
+            "Send what you play to ListenBrainz and Last.fm. A play is sent once it counts (30 seconds, or half of a short song).",
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        Text("ListenBrainz", color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+        ServerField(lb, "User token (listenbrainz.org/settings)", true) { lb = it }
+        Spacer(Modifier.height(10.dp))
+        Pill("Save ListenBrainz", null, true) { sc.setListenBrainz(lb); toast(if (lb.isBlank()) "ListenBrainz off" else "ListenBrainz saved") }
+        Spacer(Modifier.height(20.dp))
+        Text(if (fmOn) "Last.fm · connected as ${sc.fmUser}" else "Last.fm", color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+        if (!fmOn) {
+            Text("Make a free API account at last.fm/api/account/create. Your password is used once to sign in and is not stored.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(bottom = 10.dp))
+            ServerField(key, "API key", false) { key = it }
+            Spacer(Modifier.height(8.dp))
+            ServerField(secret, "Shared secret", true) { secret = it }
+            Spacer(Modifier.height(8.dp))
+            ServerField(user, "Username", false) { user = it }
+            Spacer(Modifier.height(8.dp))
+            ServerField(pass, "Password", true) { pass = it }
+            Spacer(Modifier.height(10.dp))
+            Pill("Connect Last.fm", null, true) {
+                if (key.isBlank() || secret.isBlank() || user.isBlank() || pass.isBlank()) toast("Fill in all four boxes")
+                else scope.launch {
+                    val err = sc.connectLastFm(key.trim(), secret.trim(), user.trim(), pass)
+                    pass = ""
+                    if (err == null) { fmOn = true; toast("Last.fm connected") } else toast(err)
+                }
+            }
+        } else Pill("Disconnect Last.fm", null, false) { sc.disconnectLastFm(); fmOn = false; toast("Last.fm disconnected") }
+    }
+}
+
+@Composable
+private fun TogetherCard(vm: MainViewModel) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val code by vm.together.code.collectAsState()
+    var join by rememberSaveable { mutableStateOf("") }
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    fun toast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_SHORT).show()
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Listen together", color = Milo.text, style = Ty.title)
+        Text(
+            "Host a session and share the code, or enter a friend's code, to hear the same song at the same spot. Works for YouTube songs, and everyone needs to be signed in. Web and phone can join the same session.",
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        if (code.isNotEmpty()) {
+            Text((if (vm.together.host) "Hosting" else "Listening in") + " · code $code", color = Milo.amber, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 10.dp))
+            Pill("Leave session", null, false) { vm.together.leave(); toast("Left the session") }
+        } else {
+            Pill("Host a session", null, true) {
+                if (!vm.signedIn) toast("Sign in first")
+                else {
+                    val c = (1..6).map { "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".random() }.joinToString("")
+                    vm.joinTogether(c, true) { ok -> toast(if (ok) "Hosting $c. Play a YouTube song." else "Couldn't start the session") }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            ServerField(join, "Friend's code", false) { join = it.uppercase().take(6) }
+            Spacer(Modifier.height(10.dp))
+            Pill("Join", null, false) {
+                if (!vm.signedIn) toast("Sign in first")
+                else if (join.length < 4) toast("Enter the code")
+                else vm.joinTogether(join, false) { ok -> toast(if (ok) "Joined $join" else "Couldn't join") }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun BluetoothCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val out by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+    var resume by remember { mutableStateOf(com.ubayanda.milonative.player.BtOutput.autoResume(ctx)) }
+    var vol by remember { mutableStateOf(com.ubayanda.milonative.player.BtOutput.rememberVolume(ctx)) }
+    var delay by remember { mutableStateOf(com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx).toFloat()) }
+    var named by remember { mutableStateOf(com.ubayanda.milonative.player.BtOutput.canNameDevices(ctx)) }
+    val ask = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
+        named = it; com.ubayanda.milonative.player.BtOutput.refresh(ctx)
+    }
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Bluetooth and output", color = Milo.text, style = Ty.title)
+        Text(
+            "Playing on: " + out.name + when (out.kind) { "bluetooth" -> " (Bluetooth)"; "usb" -> " (USB)"; else -> "" },
+            color = Milo.amber, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+        )
+        if (!named) {
+            Text("Allow Bluetooth access so milo. can show your device's name.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(bottom = 8.dp))
+            Pill("Allow", null, true) { if (android.os.Build.VERSION.SDK_INT >= 31) ask.launch(android.Manifest.permission.BLUETOOTH_CONNECT) }
+            Spacer(Modifier.height(10.dp))
+        }
+        ShareRow("Carry on when headphones reconnect", resume) { resume = it; com.ubayanda.milonative.player.BtOutput.setAutoResume(ctx, it) }
+        ShareRow("Remember volume for each device", vol) { vol = it; com.ubayanda.milonative.player.BtOutput.setRememberVolume(ctx, it) }
+        Text("Lyrics delay on Bluetooth: ${delay.toInt()} ms", color = Milo.text, fontSize = 16.sp, modifier = Modifier.padding(top = 10.dp))
+        Text("Bluetooth sound arrives a little late. Raise this until the highlighted line matches what you hear.", color = Milo.dim, style = Ty.caption)
+        androidx.compose.material3.Slider(
+            value = delay, onValueChange = { delay = it },
+            onValueChangeFinished = { com.ubayanda.milonative.player.BtOutput.setLyricDelay(ctx, delay.toInt()) },
+            valueRange = 0f..800f, steps = 15,
+            colors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Milo.amber, activeTrackColor = Milo.amber),
+        )
+        Pill("Bluetooth settings", null, false) {
+            try { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
+        }
     }
 }

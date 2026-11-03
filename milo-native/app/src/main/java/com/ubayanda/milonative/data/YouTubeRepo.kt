@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit
  * embedded player (see YouTubeScreen), so video, ads and rules stay YouTube's. Results are [Track]s whose address is "yt:<video id>".
  */
 class YouTubeRepo(context: Context) {
+    private val app = context.applicationContext
+    init { YtMusic.init(app) }
     private val prefs = context.getSharedPreferences("milo_yt", Context.MODE_PRIVATE)
     private val http = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).build()
 
@@ -26,7 +28,23 @@ class YouTubeRepo(context: Context) {
 
     private fun idOf(videoId: String): Long = -(1L + (("yt:" + videoId).hashCode().toLong() and 0x7fffffffL))
 
+    /** Songs from YouTube Music; if that is unreachable, the official Data API search below. */
     suspend fun search(term: String): List<Track> = withContext(Dispatchers.IO) {
+        try {
+            val r = YtMusic.searchSongs(term.trim()).map { YtMusic.toTrack(it) }.distinctBy { it.id }
+            if (r.isNotEmpty()) return@withContext r
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { }
+        legacySearch(term)
+    }
+
+    suspend fun artists(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "artist").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
+    suspend fun albums(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "album").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
+    suspend fun page(id: String): YtMusic.Page = withContext(Dispatchers.IO) { YtMusic.page(id) }
+    suspend fun radio(id: String): List<Track> = withContext(Dispatchers.IO) { YtMusic.radio(id).map { YtMusic.toTrack(it) } }
+    /** True when a direct stream can be found, so the song can play in milo.'s own player. */
+    suspend fun canStream(track: Track): Boolean = withContext(Dispatchers.IO) { try { YtMusic.stream(track.uri.removePrefix("yt:")); true } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { false } }
+
+    private suspend fun legacySearch(term: String): List<Track> = withContext(Dispatchers.IO) {
         val k = key.ifEmpty { "AIzaSyAFSMixowk9ptdAnT6ap3aK_gKO9fOmZ0E" }
         val url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoCategoryId=10&maxResults=30&q=" +
             URLEncoder.encode(term.trim(), "UTF-8") + "&key=" + k

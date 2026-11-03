@@ -1,6 +1,8 @@
 package com.ubayanda.milonative.ui.screens
 
+import androidx.compose.animation.togetherWith
 import android.graphics.Bitmap
+import com.ubayanda.milonative.ui.components.shimmer
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.combinedClickable
@@ -45,6 +47,8 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.BluetoothAudio
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
@@ -88,6 +92,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.model.Lyrics
 import com.ubayanda.milonative.model.PlayerUi
@@ -110,13 +115,18 @@ import kotlin.math.roundToInt
 
 private enum class Panel { None, Queue, Sound, Lyrics }
 
+private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
+
 @Composable
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
     var castOpen by remember { mutableStateOf(false) }
     if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
-    val cover = rememberCover(vm, t, 1000).value
+    // the cover for THIS song only (never the previous song's picture while the new one loads)
+    val coverPair by androidx.compose.runtime.produceState<Pair<Long, Bitmap?>>(t.id to null, t.id) { value = t.id to vm.art.cover(t, 1000) }
+    val cover = if (coverPair.first == t.id) coverPair.second else null
+    val coverDone = coverPair.first == t.id
     val soft = rememberSoft(vm, t).value
 
     var lyrics by remember(t.id) { mutableStateOf<Lyrics?>(null) }
@@ -159,10 +169,30 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     )
                 }
             ) {
-                if (cover != null) {
-                    Image(cover.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
-                } else {
-                    Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
+                // next / previous: the new cover glides in from the side it came from while the old one slips away
+                androidx.compose.animation.AnimatedContent(
+                    targetState = ArtKey(t.id, cover, coverDone),
+                    contentKey = { it.id },
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        val d = vm.player.navDir
+                        (androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(420, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { (it * 0.22f * d).toInt() } +
+                            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(380)) +
+                            androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(420, easing = androidx.compose.animation.core.FastOutSlowInEasing), initialScale = 0.94f))
+                            .togetherWith(
+                                androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { (-it * 0.12f * d).toInt() } +
+                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(240)),
+                            )
+                    },
+                    label = "cover",
+                ) { k ->
+                    Box(Modifier.fillMaxSize()) {
+                        if (k.bmp == null && !k.done) Box(Modifier.fillMaxSize().shimmer())
+                        androidx.compose.animation.Crossfade(targetState = k.bmp, animationSpec = androidx.compose.animation.core.tween(320), label = "coverFade") { b ->
+                            if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
+                            else if (k.done) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
+                        }
+                    }
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.3f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f))))
 
@@ -176,13 +206,29 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     MoreMenu(vm, t, ui)
                 }
 
-                Column(Modifier.align(Alignment.BottomStart).padding(start = Sp.gutter, end = 80.dp, bottom = Sp.x6)) {
-                    Text(t.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(t.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
-                    Text(
-                        t.album + if (t.year >= 1900) " · ${t.year}" else "",
-                        color = Color(0xFFC9C3B6), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
+                androidx.compose.animation.AnimatedContent(
+                    targetState = t, contentKey = { it.id },
+                    modifier = Modifier.align(Alignment.BottomStart),
+                    transitionSpec = {
+                        (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(360, delayMillis = 90)) + androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(380, delayMillis = 90)) { it / 6 })
+                            .togetherWith(androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160)))
+                    },
+                    label = "titles",
+                ) { tt ->
+                    Column(Modifier.padding(start = Sp.gutter, end = 80.dp, bottom = Sp.x6)) {
+                        Text(tt.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(tt.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
+                        Text(
+                            tt.album + if (tt.year >= 1900) " · ${tt.year}" else "",
+                            color = Color(0xFFC9C3B6), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+                        if (outNow.kind != "speaker") Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(if (outNow.bt) Icons.Rounded.BluetoothAudio else Icons.Rounded.Headphones, null, tint = Milo.amber, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(outNow.name, color = Milo.amber, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
                 }
             }
 
@@ -436,11 +482,13 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
             Spacer(Modifier.height(8.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
-                    loading -> Text("Finding lyrics…", color = Milo.dim, fontSize = 18.sp, modifier = Modifier.padding(vertical = 24.dp))
+                    loading -> com.ubayanda.milonative.ui.components.SkeletonLines()
                     lyrics == null -> Text("No lyrics found for this song, or you're offline.", color = Milo.dim, fontSize = 18.sp, modifier = Modifier.padding(vertical = 24.dp))
                     lyrics.synced.isNotEmpty() -> {
                         val state = rememberLazyListState()
-                        val idx = lyrics.synced.indexOfLast { it.timeMs <= ui.positionMs + 250 }
+                        val btNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+                        val btDelay = if (btNow.bt) com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx) else 0
+                        val idx = lyrics.synced.indexOfLast { it.timeMs <= ui.positionMs + 250 - btDelay }
                         LaunchedEffect(idx) { if (idx >= 0) state.animateScrollToItem((idx - 2).coerceAtLeast(0)) }
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
                             itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
@@ -451,7 +499,19 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                         onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
                                     ).padding(vertical = 12.dp),
                                 ) {
-                                    Text(
+                                    if (on && line.words.isNotEmpty()) {
+                                        // word-by-word: words already sung are bright, the rest stay dim
+                                        val sung = line.words.count { it.timeMs <= ui.positionMs + 120 }
+                                        Text(
+                                            androidx.compose.ui.text.buildAnnotatedString {
+                                                line.words.forEachIndexed { wi, w ->
+                                                    withStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = if (wi < sung) 1f else 0.42f))) { append(w.text) }
+                                                    if (wi < line.words.lastIndex) append(" ")
+                                                }
+                                            },
+                                            fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
+                                        )
+                                    } else Text(
                                         line.text.ifEmpty { "•   •   •" },
                                         color = Color.White.copy(alpha = if (on) 1f else 0.38f),
                                         fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,

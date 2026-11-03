@@ -38,6 +38,9 @@ data class PlayerUi(
 data class Playlist(val id: String, val name: String, val trackIds: List<Long>)
 
 /** One timed lyric line (synced lyrics). */
-data class LyricLine(val timeMs: Long, val text: String)
+/** One word of an enhanced (word-by-word) lyric line. */
+data class LyricWord(val timeMs: Long, val text: String)
+
+data class LyricLine(val timeMs: Long, val text: String, val words: List<LyricWord> = emptyList())
 
 data class Lyrics(val synced: List<LyricLine>, val plain: String)

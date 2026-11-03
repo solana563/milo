@@ -59,6 +59,7 @@ import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Rad
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val RADIO_TAGS = listOf("Top" to "", "Pop" to "pop", "Hip-hop" to "hip hop", "Jazz" to "jazz", "Rock" to "rock", "News" to "news")
 private val YT_TERMS = listOf("Trending" to "official music video", "Pop" to "pop music", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "Amapiano" to "amapiano", "Rock" to "rock music", "Lo-fi" to "lofi hip hop", "Jazz" to "jazz")
@@ -67,7 +68,7 @@ private val PREVIEW_TERMS = listOf("Trending" to "top hits", "Pop" to "pop", "Hi
 
 /** Online listening: live radio and 30-second previews. Nothing is downloaded or saved. */
 @Composable
-fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (List<Track>, Int) -> Unit) {
+fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (List<Track>, Int) -> Unit, onYtPage: (String) -> Unit = {}) {
     val favs by vm.favs.collectAsState()
     var mode by rememberSaveable { mutableIntStateOf(0) } // 0 = live radio, 1 = previews, 2 = my server
     var query by rememberSaveable { mutableStateOf("") }
@@ -75,6 +76,9 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
     var items by remember { mutableStateOf<List<Track>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf("") }
+    var yArtists by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
+    var yAlbums by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(mode, tag, query) {
         delay(if (query.isEmpty()) 0 else 450) // wait while the person is still typing
@@ -84,7 +88,16 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             items = when (mode) {
                 0 -> vm.discover.radio(query, RADIO_TAGS[tag.coerceIn(0, RADIO_TAGS.lastIndex)].second)
                 1 -> vm.discover.previews(query.ifBlank { PREVIEW_TERMS[tag.coerceIn(0, PREVIEW_TERMS.lastIndex)].second })
-                3 -> vm.youtube.search(query.ifBlank { YT_TERMS[tag.coerceIn(0, YT_TERMS.lastIndex)].second })
+                3 -> {
+                    yArtists = emptyList(); yAlbums = emptyList()
+                    val term = query.ifBlank { YT_TERMS[tag.coerceIn(0, YT_TERMS.lastIndex)].second }
+                    // artists and albums are looked up alongside the songs and appear above them when they arrive
+                    if (query.isNotBlank()) {
+                        launch { yArtists = vm.youtube.artists(term) }
+                        launch { yAlbums = vm.youtube.albums(term) }
+                    }
+                    vm.youtube.search(term)
+                }
                 else -> if (!vm.server.configured) emptyList()
                 else if (query.isNotBlank()) vm.server.search(query)
                 else if (tag == 1) vm.server.starred() else vm.server.random()
@@ -124,19 +137,29 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 3 -> "Songs from YouTube, played in YouTube's own player. Audio stops when you leave the app or lock the screen."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
+            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 3 -> "Songs from YouTube Music, played right here in milo. with background playback, crossfade and the lock screen."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = Sp.gutter, vertical = Sp.x1),
         )
         when {
-            loading && items.isEmpty() -> Text("Loading…", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
+            loading && items.isEmpty() -> com.ubayanda.milonative.ui.components.SkeletonRows(7)
             err.isNotEmpty() -> Text(err, color = Color(0xFFFF8A80), fontSize = 15.sp, modifier = Modifier.padding(20.dp))
             items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+            if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf("Artists", yArtists, vm) { onYtPage(it.id) } }
+            if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf("Albums", yAlbums, vm) { onYtPage(it.id) } }
+            if (mode == 3 && items.isNotEmpty() && (yArtists.isNotEmpty() || yAlbums.isNotEmpty())) item(key = "ysg") {
+                Text("Songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x4, bottom = Sp.x1))
+            }
             itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
                 val on = t.id == ui.currentId
                 Row(
-                    Modifier.fillMaxWidth().clickable { if (mode == 3) onYouTube(items, i) else vm.playRemote(items, i) }.padding(horizontal = 20.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().clickable {
+                        if (mode == 3) scope.launch {
+                            // plays in milo.'s own player; if no direct stream can be found, the old embedded player is the way out
+                            if (vm.youtube.canStream(t)) vm.playRemote(items, i) else onYouTube(items, i)
+                        } else vm.playRemote(items, i)
+                    }.padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Cover(vm, t, 56.dp, Rad.sm, px = 160)

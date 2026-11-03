@@ -82,9 +82,12 @@ fun HomeScreen(
     byId: Map<Long, Track>, ui: PlayerUi, scanning: Boolean, bottomPad: Dp,
     likedCount: Int, liked: Boolean, name: String, initial: String,
     onProfile: () -> Unit, onSearch: () -> Unit, onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit,
-    onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onFriends: () -> Unit = {},
+    onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onFriends: () -> Unit = {}, onYtPage: (String) -> Unit = {},
 ) {
-    val recent = tracks.sortedByDescending { it.addedSec }.take(15)
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadYtHome() }
+    val ytShelves by vm.ytHome.collectAsState()
+    val ytLoading by vm.ytHomeLoading.collectAsState()
+    val recent = tracks.sortedByDescending { it.addedSec }.take(50)
     val tiles = ArrayList<TileData>()
     val favSet = vm.favs.collectAsState().value
     val likedCovers = tracks.filter { it.id in favSet }.distinctBy { it.albumId }.take(4)
@@ -137,6 +140,28 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+        }
+        // online: YouTube Music leads right under the player (recommended playlists, trending artists, charts). Offline: only your own music below.
+        if (ytShelves.isEmpty() && ytLoading) {
+            item(key = "ysk") {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                    com.ubayanda.milonative.ui.components.SkeletonShelf()
+                    com.ubayanda.milonative.ui.components.SkeletonShelf()
+                }
+            }
+        }
+        if (ytShelves.isNotEmpty()) {
+            items(ytShelves.size, key = { "ys" + ytShelves[it].title }) { i ->
+                val sh = ytShelves[i]
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                    YtShelf(sh.title, sh.cards, vm) { c -> if (c.kind == "song") vm.playYtCard(c) else onYtPage(c.id) }
+                }
+            }
+        }
+        if (artists.isNotEmpty()) {
+            item {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(top = 6.dp, bottom = 6.dp)) {
                 if (artists.isNotEmpty()) {
                     SectionTitle("Your artists")
                     LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -149,6 +174,7 @@ fun HomeScreen(
                         }
                     }
                     Spacer(Modifier.height(14.dp))
+                }
                 }
             }
         }

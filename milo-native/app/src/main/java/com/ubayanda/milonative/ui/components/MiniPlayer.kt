@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,9 +53,19 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {
             Cover(vm, t, 52.dp, Rad.sm, px = 160)
             Spacer(Modifier.width(Sp.x3))
-            Column(Modifier.weight(1f)) {
-                Text(t.title, color = Milo.text, style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(t.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            androidx.compose.animation.AnimatedContent(
+                targetState = t, contentKey = { it.id }, modifier = Modifier.weight(1f),
+                transitionSpec = {
+                    val d = vm.player.navDir
+                    (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(260, delayMillis = 60)) + androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(300, delayMillis = 60)) { (it / 8) * d })
+                        .togetherWith(androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)))
+                },
+                label = "miniTitles",
+            ) { tt ->
+                Column {
+                    Text(tt.title, color = Milo.text, style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tt.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.player.next() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))

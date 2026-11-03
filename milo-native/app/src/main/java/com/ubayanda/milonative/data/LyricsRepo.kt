@@ -61,13 +61,24 @@ class LyricsRepo(private val context: Context) {
             val plain = o.optString("plainLyrics", "")
             val lines = ArrayList<LyricLine>()
             val re = Regex("""\[(\d+):(\d+)(?:[.:](\d+))?](.*)""")
+            val wordRe = Regex("""<(\d+):(\d+)(?:[.:](\d+))?>([^<]*)""")
             synced.lineSequence().forEach { raw ->
                 val m = re.find(raw.trim()) ?: return@forEach
                 val mm = m.groupValues[1].toLong()
                 val ss = m.groupValues[2].toLong()
                 val frac = m.groupValues[3]
                 val ms = if (frac.isEmpty()) 0L else (frac.padEnd(3, '0').take(3)).toLong()
-                lines.add(LyricLine(mm * 60_000 + ss * 1000 + ms, m.groupValues[4].trim()))
+                val body = m.groupValues[4]
+                // enhanced LRC: <mm:ss.xx>word gives word-by-word timing
+                val words = wordRe.findAll(body).mapNotNull { w ->
+                    val txt = w.groupValues[4].trim()
+                    if (txt.isEmpty()) null else {
+                        val f = w.groupValues[3]
+                        LyricWord(w.groupValues[1].toLong() * 60_000 + w.groupValues[2].toLong() * 1000 + (if (f.isEmpty()) 0L else f.padEnd(3, '0').take(3).toLong()), txt)
+                    }
+                }.toList()
+                val clean = body.replace(Regex("<[^>]*>"), "").replace(Regex("\\s+"), " ").trim()
+                lines.add(LyricLine(mm * 60_000 + ss * 1000 + ms, clean, if (words.size >= 2) words else emptyList()))
             }
             if (lines.isEmpty() && plain.isBlank()) null else Lyrics(lines, plain)
         } catch (e: Exception) {
