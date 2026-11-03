@@ -3,6 +3,7 @@ package com.ubayanda.milonative.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -171,10 +172,10 @@ private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, botto
                     if (p.subtitle.isNotEmpty()) Text(p.subtitle, color = Color(0xFFD8D8D8), style = Ty.caption)
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter, vertical = Sp.x3), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Play", Icons.Rounded.PlayArrow, true, tracks.isNotEmpty()) { vm.player.playQueue(tracks, 0) }
-                Pill("Shuffle", Icons.Rounded.Shuffle, false, tracks.isNotEmpty()) { vm.player.playShuffled(tracks) }
-                if (p.radioId.isNotEmpty()) Pill("Radio", Icons.Rounded.Radio, false) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = Sp.gutter, vertical = Sp.x3), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill("Play", Icons.Rounded.PlayArrow, true, tracks.isNotEmpty(), compact = true) { vm.player.playQueue(tracks, 0) }
+                Pill("Shuffle", Icons.Rounded.Shuffle, false, tracks.isNotEmpty(), compact = true) { vm.player.playShuffled(tracks) }
+                if (p.radioId.isNotEmpty()) Pill("Radio", Icons.Rounded.Radio, false, compact = true) {
                     scope.launch {
                         try {
                             val r = vm.youtube.radio(p.radioId)

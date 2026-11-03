@@ -87,6 +87,9 @@ fun HomeScreen(
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadYtHome() }
     val ytShelves by vm.ytHome.collectAsState()
     val ytLoading by vm.ytHomeLoading.collectAsState()
+    val mixes by vm.mixes.collectAsState()
+    val favNow by vm.favs.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(tracks.size, favNow.size) { vm.buildMixes(tracks) }
     val recent = tracks.sortedByDescending { it.addedSec }.take(50)
     val tiles = ArrayList<TileData>()
     val favSet = vm.favs.collectAsState().value
@@ -156,6 +159,27 @@ fun HomeScreen(
                 val sh = ytShelves[i]
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
                     YtShelf(sh.title, sh.cards, vm) { c -> if (c.kind == "song") vm.playYtCard(c) else onYtPage(c.id) }
+                }
+            }
+        }
+        if (mixes.isNotEmpty()) {
+            item(key = "mixes") {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                    SectionTitle("Made for you")
+                    LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(mixes.size, key = { "mx" + mixes[it].title }) { i ->
+                            val m = mixes[i]
+                            Column(Modifier.width(148.dp).clip(RoundedCornerShape(14.dp)).clickable { vm.player.playQueue(m.tracks, 0) }) {
+                                Box {
+                                    Cover(vm, m.tracks.first(), 148.dp, 14.dp, px = 400)
+                                    if (m.remote) Text("LIVE", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(8.dp).clip(RoundedCornerShape(6.dp)).background(Milo.amber).padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Text(m.title, color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(m.subtitle, color = Milo.dim, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -294,18 +318,18 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
 }
 
 @Composable
-fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = true, compact: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     Row(
         Modifier.clip(shape).background(if (filled) Milo.amber else Milo.card2, shape)
             .border(1.dp, if (filled) Milo.amber else Milo.line, shape)
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 22.dp, vertical = 13.dp),
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = if (compact) 15.dp else 22.dp, vertical = if (compact) 11.dp else 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = if (filled) Color.Black else Milo.text, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(8.dp))
+            Icon(icon, null, tint = if (filled) Color.Black else Milo.text, modifier = Modifier.size(if (compact) 20.dp else 22.dp))
+            Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
         }
-        Text(label, color = if (filled) Color.Black else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = if (filled) Color.Black else Milo.text, fontSize = if (compact) 15.sp else 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
     }
 }

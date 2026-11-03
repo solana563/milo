@@ -28,8 +28,10 @@ object YtSource {
             val s = try {
                 YtMusic.stream(id)
             } catch (e: IOException) {
+                com.ubayanda.milonative.util.ErrorLog.add("stream " + id, e.message)
                 throw e
             } catch (e: Exception) {
+                com.ubayanda.milonative.util.ErrorLog.add("stream " + id, e.javaClass.simpleName + ": " + e.message)
                 throw IOException(e.message ?: "YouTube lookup failed", e)
             }
             return dataSpec.buildUpon()

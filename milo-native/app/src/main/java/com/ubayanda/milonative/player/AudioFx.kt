@@ -45,7 +45,8 @@ object AudioFx {
     )
 
     private var ctx: Context? = null
-    private var sessionId = 0
+    var sessionId = 0
+        private set
 
     /**
      * Remember the player's audio session. The effects themselves are only created once the person

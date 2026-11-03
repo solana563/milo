@@ -110,6 +110,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        com.ubayanda.milonative.util.ErrorLog.init(this)
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
             .setAudioAttributes(
@@ -130,6 +131,7 @@ class PlaybackService : MediaSessionService() {
         BtOutput.start(this, { player.isPlaying }, { player.play() })
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                com.ubayanda.milonative.util.ErrorLog.add("player", error.errorCodeName + ": " + error.message + (error.cause?.let { " / " + it.javaClass.simpleName + ": " + it.message } ?: "") + " | " + player.currentMediaItem?.localConfiguration?.uri)
                 // a YouTube link that expired or was refused: look up a fresh one and carry on from the same place, once per song
                 val u = player.currentMediaItem?.localConfiguration?.uri
                 val vid = if (u?.scheme == "yt") u.schemeSpecificPart.orEmpty() else ""

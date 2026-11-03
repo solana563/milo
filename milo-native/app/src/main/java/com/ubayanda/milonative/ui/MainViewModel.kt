@@ -661,6 +661,50 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _stats.value = StatsUi(statsStore.totalMs, statsStore.plays(), statsStore.topSongs(5), statsStore.topArtists(5))
     }
 
+    // ---- daily mixes: made from what you play and like, new every day ----
+    class Mix(val title: String, val subtitle: String, val tracks: List<Track>, val remote: Boolean)
+    private val _mixes = MutableStateFlow<List<Mix>>(emptyList())
+    val mixes: StateFlow<List<Mix>> = _mixes.asStateFlow()
+    private var mixKey = ""
+    fun buildMixes(all: List<Track>) {
+        val day = System.currentTimeMillis() / 86_400_000L
+        val key = "$day:${all.size}:${_favs.value.size}"
+        if (key == mixKey || all.isEmpty()) return
+        mixKey = key
+        viewModelScope.launch {
+            val local = withContext(Dispatchers.Default) {
+                val rnd = java.util.Random(day * 7919L + all.size)
+                fun k(t: Track) = t.title.lowercase().trim() + "|" + t.artist.lowercase().trim()
+                val played = statsStore.topSongs(200)
+                val playCount = played.associate { (it.title.lowercase().trim() + "|" + it.artist.lowercase().trim()) to it.plays }
+                val favs = _favs.value
+                val out = ArrayList<Mix>()
+                val fav = all.filter { it.id in favs || (playCount[k(it)] ?: 0) >= 2 }.shuffled(rnd).take(40)
+                if (fav.size >= 6) out.add(Mix("Daily mix", "Your favourites, reshuffled", fav, false))
+                val fresh = all.filter { (playCount[k(it)] ?: 0) == 0 && it.id !in favs }.shuffled(rnd).take(40)
+                if (fresh.size >= 8) out.add(Mix("Rediscover", "Songs you haven't played yet", fresh, false))
+                statsStore.topArtists(3).forEach { (a, _) ->
+                    val xs = all.filter { it.artist.equals(a, true) }.shuffled(rnd)
+                    if (xs.size >= 5 && out.size < 5) out.add(Mix("More $a", "${xs.size} songs on your phone", xs.take(40), false))
+                }
+                out
+            }
+            _mixes.value = local
+            // online: a radio built from your most played artist
+            val top = statsStore.topArtists(1).firstOrNull()?.first
+            if (top != null && online()) {
+                try {
+                    val card = youtube.artists(top).firstOrNull()
+                    val radioId = card?.let { youtube.page(it.id).radioId }.orEmpty()
+                    if (radioId.isNotEmpty()) {
+                        val r = youtube.radio(radioId).take(40)
+                        if (r.size >= 8) { rememberRemote(r); _mixes.value = _mixes.value + Mix("$top radio", "Streaming, endless", r, true) }
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) {}
+            }
+        }
+    }
+
     // ---- streaming-style home: YouTube Music shelves while online ----
     private val _ytHome = MutableStateFlow<List<com.ubayanda.milonative.data.YtMusic.Shelf>>(emptyList())
     val ytHome: StateFlow<List<com.ubayanda.milonative.data.YtMusic.Shelf>> = _ytHome.asStateFlow()
@@ -688,7 +732,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- scrobbling and listen together ----
-    val scrobbler = com.ubayanda.milonative.data.Scrobbler(app)
+    val scrobbler = com.ubayanda.milonative.data.Scrobbler(app).also { com.ubayanda.milonative.util.ErrorLog.init(app) }
     private var nowSent: Long? = null
     val together = com.ubayanda.milonative.data.Together(
         token = { cloud.fresh(); cloud.session?.accessToken },

@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Cast
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.BluetoothAudio
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -113,7 +115,7 @@ import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
 
-private enum class Panel { None, Queue, Sound, Lyrics }
+private enum class Panel { None, Queue, Sound, Lyrics, Visual }
 
 private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 
@@ -202,6 +204,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     RoundBtn(Icons.Rounded.QueueMusic, "Queue") { panel = Panel.Queue }
                     RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White) { vm.toggleFav(t.id) }
                     RoundBtn(Icons.Rounded.Tune, "Sound") { panel = Panel.Sound }
+                    RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
                     RoundBtn(Icons.Rounded.Cast, "Cast") { castOpen = true }
                     MoreMenu(vm, t, ui)
                 }
@@ -221,6 +224,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         Text(
                             tt.album + if (tt.year >= 1900) " · ${tt.year}" else "",
                             color = Color(0xFFC9C3B6), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        if (ui.quality.isNotEmpty()) Text(
+                            ui.quality, color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                            modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(6.dp)).border(1.dp, Milo.amber.copy(alpha = 0.6f), RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 2.dp),
                         )
                         val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
                         if (outNow.kind != "speaker") Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -288,6 +295,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             Panel.Queue -> Sheet(0.72f, null, { panel = Panel.None }) { QueueContent(vm, ui) }
             Panel.Sound -> Sheet(0.8f, null, { panel = Panel.None }) { SoundContent(vm, ui) }
             Panel.Lyrics -> LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { panel = Panel.None }
+            Panel.Visual -> VisualPage(vm, t, ui, soft) { panel = Panel.None }
             Panel.None -> {}
         }
     }
@@ -429,6 +437,9 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
         }
     }
     val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 400)
+    var micOk by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    val askMic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { micOk = it }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!micOk) askMic.launch(android.Manifest.permission.RECORD_AUDIO) }
     val tintNow = vm.tint.collectAsState().value
     fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
     Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
@@ -468,6 +479,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
             }
             Spacer(Modifier.height(10.dp))
+            if (ui.isPlaying && micOk) com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.padding(bottom = 10.dp), height = 34.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300)
                 Spacer(Modifier.width(18.dp))
@@ -618,4 +630,37 @@ private fun RoundDark(icon: ImageVector, desc: String, onClick: () -> Unit) {
         Modifier.size(70.dp).clip(CircleShape).background(Milo.card2).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, desc, tint = Milo.text, modifier = Modifier.size(34.dp)) }
+}
+
+
+/** Full-screen visualiser: the cover softly behind, big mirrored bars in the song's colour, title and controls kept simple. */
+@Composable
+private fun VisualPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, onBack: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val tint = vm.tint.collectAsState().value
+    val accent = if (tint == 0) Milo.amber else Color(0xFF000000.toInt() or tint)
+    val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 600)
+    var micOk by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    val askMic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { micOk = it }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!micOk) askMic.launch(android.Manifest.permission.RECORD_AUDIO) }
+    Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
+                Spacer(Modifier.weight(1f))
+                Box(Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
+                    Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            coverBmp?.let { Image(it.asImageBitmap(), null, Modifier.size(220.dp).clip(RoundedCornerShape(28.dp)), contentScale = ContentScale.Crop) }
+            Spacer(Modifier.height(24.dp))
+            if (micOk) com.ubayanda.milonative.ui.components.SpectrumView(accent, height = 180.dp, mirrored = true)
+            else Text("Allow the microphone permission so milo. can analyse the sound it plays. Nothing is recorded.", color = Milo.dim, fontSize = 15.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Spacer(Modifier.height(24.dp))
+            Text(t.title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(t.artist, color = Color(0xFFD6D0C4), fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.weight(1f))
+        }
+    }
 }

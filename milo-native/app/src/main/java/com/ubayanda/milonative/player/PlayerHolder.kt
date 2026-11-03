@@ -175,6 +175,22 @@ class PlayerHolder(context: Context) {
         }
     }
 
+    private fun qualityOf(c: Player): String = try {
+        val f = c.currentTracks.groups.firstOrNull { it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSelected }?.getTrackFormat(0) ?: return ""
+        val mime = (f.sampleMimeType ?: f.containerMimeType ?: "").lowercase()
+        val codec = when {
+            "flac" in mime -> "FLAC"; "opus" in mime -> "Opus"; "vorbis" in mime -> "Vorbis"; "mp4a" in mime || "aac" in mime -> "AAC"
+            "mpeg" in mime || "mp3" in mime -> "MP3"; "alac" in mime -> "ALAC"; "raw" in mime || "wav" in mime -> "WAV"; else -> ""
+        }
+        val parts = ArrayList<String>()
+        if (codec.isNotEmpty()) parts.add(codec)
+        val bits = when (f.pcmEncoding) { androidx.media3.common.C.ENCODING_PCM_24BIT -> "24-bit"; androidx.media3.common.C.ENCODING_PCM_32BIT, androidx.media3.common.C.ENCODING_PCM_FLOAT -> "32-bit"; androidx.media3.common.C.ENCODING_PCM_16BIT -> "16-bit"; else -> "" }
+        if (bits.isNotEmpty()) parts.add(bits)
+        if (f.sampleRate > 0) parts.add((if (f.sampleRate % 1000 == 0) "${f.sampleRate / 1000}" else "%.1f".format(f.sampleRate / 1000f)) + " kHz")
+        if (f.bitrate > 0 && (codec != "FLAC" && codec != "WAV" && codec != "ALAC")) parts.add("${f.bitrate / 1000} kbps")
+        parts.joinToString(" \u00b7 ")
+    } catch (_: Exception) { "" }
+
     private fun refresh() {
         val c = controller ?: return
         val ids = ArrayList<Long>(c.mediaItemCount)
@@ -189,6 +205,7 @@ class PlayerHolder(context: Context) {
             speed = c.playbackParameters.speed,
             queueIds = ids,
             queueIndex = c.currentMediaItemIndex.coerceAtLeast(0),
+            quality = qualityOf(c),
         )
     }
 

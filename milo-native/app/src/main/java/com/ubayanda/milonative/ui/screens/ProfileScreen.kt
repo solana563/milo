@@ -115,6 +115,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         TogetherCard(vm)
         Spacer(Modifier.height(16.dp))
         BluetoothCard()
+        Spacer(Modifier.height(16.dp))
+        ReportCard()
         if (a.signedIn) {
             Spacer(Modifier.height(16.dp))
             SharingCard(vm, a)
@@ -521,5 +523,20 @@ private fun BluetoothCard() {
         Pill("Bluetooth settings", null, false) {
             try { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
         }
+    }
+}
+
+
+@Composable
+private fun ReportCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Something not working?", color = Milo.text, style = Ty.title)
+        Text(
+            "Send the last things that went wrong (a song that wouldn't play, a crash) with your phone model. You choose where it goes, and it holds no account details.",
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        Pill("Send error report", null, true) { com.ubayanda.milonative.util.ErrorLog.share(ctx) }
     }
 }

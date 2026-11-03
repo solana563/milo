@@ -33,6 +33,8 @@ data class PlayerUi(
     val queueIds: List<Long> = emptyList(),
     val queueIndex: Int = 0,
     val sleepLeftMs: Long = 0L,
+    /** What is playing, for example FLAC, 96 kHz. Empty when unknown. */
+    val quality: String = "",
 )
 
 data class Playlist(val id: String, val name: String, val trackIds: List<Long>)
