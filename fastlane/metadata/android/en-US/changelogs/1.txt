@@ -1,1 +1,0 @@
-First F-Droid release: local library playback, crossfade, lyrics, friends and chat, insights, backup and car mode. Back button now returns Home first, then asks to press again to exit.
