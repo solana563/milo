@@ -29,3 +29,12 @@ The native Android app got the same engine (`data/YtMusic.kt`, `player/YtSource.
 ## Motion and Bluetooth
 - Song art and titles glide in the direction you skipped (web and native); shimmer skeletons replace "Loading…" text.
 - Bluetooth: "Playing on" device indicator, carry on when headphones reconnect, remembered volume per device, lyrics delay for Bluetooth lag (native); output-device picker and lyrics delay (web/desktop).
+
+## Visualiser and Discord
+- Native Android: live spectrum strip on the lyrics page and a full-screen visualiser (graphic-EQ button on the player). Uses Android's Visualizer, so it needs the microphone permission; nothing is recorded.
+- Windows desktop: Discord Rich Presence over Discord's local IPC (needs your own Discord Application ID, see Profile > Discord presence).
+
+## Round 1 of the wish list
+- Native Home: "Made for you" daily mixes (favourites, rediscover, more of your top artists, plus an online radio from your most played artist).
+- Native player: quality badge (codec, bit depth, sample rate or bitrate).
+- One-tap error report in Profile on web and native.
