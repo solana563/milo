@@ -12,6 +12,7 @@
   "css/08-performance-smooth-screens.css",
   "css/09-song-art-cards.css",
   "css/10-youtube-music-art.css",
+  "css/11-motion.css",
   "body.html",
   "js/00-start.js",
   "js/01-synth-demo-audio.js",
@@ -81,6 +82,10 @@
   "js/65-song-art-cards.js",
   "js/66-tv-play-from-usb.js",
   "js/67-youtube-music-direct-streams-pages-art.js",
+  "js/68-scrobbling-listen-together.js",
+  "js/69-streaming-home-google-sign-in.js",
+  "js/70-motion.js",
+  "js/71-audio-output-bluetooth.js",
   "foot.html"
  ]
 }

@@ -5,7 +5,10 @@ function applyWash(){const ap=$("app");if(!ap)return;const t=T[S.cur],L=t?lumOf(
   ap.style.setProperty("--lum",Math.min(1,L+(S.hc?.15:0)).toFixed(2));ap.dataset.hc=S.hc?"1":"0"}
 const COLS=["84,120,140","150,100,130","110,140,110","170,110,90","120,110,160","201,151,90"];
 const bn=n=>n.replace(/\.[^.]+$/,"");
-const parseLrc=t=>{const o=[];t.split(/\r?\n/).forEach(l=>{const m=[...l.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)],x=l.replace(/\[[^\]]*\]/g,"").trim();if(x)m.forEach(a=>o.push([+a[1]*60+ +a[2],x]))});return o.sort((a,b)=>a[0]-b[0])};
+const parseLrc=t=>{const o=[];t.split(/\r?\n/).forEach(l=>{const m=[...l.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)],body=l.replace(/\[[^\]]*\]/g,""),x=body.replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim();
+  if(!x)return;let w=null;/* enhanced LRC: <mm:ss.xx>word - gives word-by-word timing */
+  if(/<\d+:\d+/.test(body)){w=[];for(const a of body.matchAll(/<(\d+):(\d+(?:\.\d+)?)>([^<]*)/g)){const s=a[3].trim();if(s)w.push([+a[1]*60+ +a[2],s])}if(w.length<2)w=null}
+  m.forEach(a=>{const r=[+a[1]*60+ +a[2],x];if(w)r.push(w);o.push(r)})});return o.sort((a,b)=>a[0]-b[0])};
 const u8=async(f,a,b)=>new Uint8Array(await f.slice(a,b).arrayBuffer());
 const be=(d,o)=>((d[o]<<24)|(d[o+1]<<16)|(d[o+2]<<8)|d[o+3])>>>0;
 const le=(d,o)=>((d[o+3]<<24)|(d[o+2]<<16)|(d[o+1]<<8)|d[o])>>>0;

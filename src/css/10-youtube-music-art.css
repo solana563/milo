@@ -23,3 +23,9 @@
 .ysklist i{height:54px;border-radius:12px;background:var(--card);animation:ysh 1.2s ease-in-out infinite}
 @keyframes ysh{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){.ysk,.ysk2,.ysklist i{animation:none}}
+
+/* word-by-word lyrics */
+#lyL p .wd{opacity:.45;transition:opacity .15s,color .15s}
+#lyL p.on .wd.sung{opacity:1}
+#lyL p.on .wd:not(.sung){opacity:.45}
+#lyL p.past .wd{opacity:1}

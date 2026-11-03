@@ -1,0 +1,25 @@
+/* ----- premium motion: art transitions, shimmer skeletons, page and press feel ----- */
+:root{--ease:cubic-bezier(.22,1,.36,1)}
+@keyframes artF{from{opacity:0;transform:translateX(34px) scale(.93)}to{opacity:1;transform:none}}
+@keyframes artB{from{opacity:0;transform:translateX(-34px) scale(.93)}to{opacity:1;transform:none}}
+@keyframes txtIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes txtInB{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@keyframes txtInF{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@keyframes skSweep{from{background-position:120% 0}to{background-position:-120% 0}}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.artF{animation:artF .5s var(--ease) both}
+.artB{animation:artB .5s var(--ease) both}
+.txtF{animation:txtInF .42s var(--ease) both}
+.txtB{animation:txtInB .42s var(--ease) both}
+#view.vin{animation:viewIn .3s var(--ease) both}
+/* shimmer skeleton: any element with .sk */
+.sk,.ysk,.ysk2,.ysklist i{background:linear-gradient(100deg,var(--card) 35%,rgba(255,255,255,.085) 50%,var(--card) 65%) 0 0/260% 100%!important;animation:skSweep 1.5s linear infinite!important;color:transparent!important}
+.skl{display:grid;gap:12px;padding:6px 0}.skl i{display:block;height:26px;border-radius:13px;background:var(--card)}
+.skl i:nth-child(1){width:88%}.skl i:nth-child(2){width:64%}.skl i:nth-child(3){width:78%}.skl i:nth-child(4){width:52%}.skl i:nth-child(5){width:70%}
+.skr{display:grid;gap:12px;margin:10px 0}.skr b{display:flex;gap:14px;align-items:center}.skr b i{width:52px;height:52px;border-radius:10px;flex:none}.skr b span{display:grid;gap:8px;flex:1}.skr b span i{height:12px;width:60%;border-radius:6px}.skr b span i+i{width:38%;height:10px}
+/* press feel */
+.cd,.li,.ypo,.pcd,.rb,.ic,.chip{transition:transform .18s var(--ease),opacity .2s}
+.cd:active,.li:active,.ypo:active,.pcd:active{transform:scale(.97)}
+.rb:active,.ic:active{transform:scale(.9)}
+@media (hover:hover){.cd:hover,.ypo:hover{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.artF,.artB,.txtF,.txtB,#view.vin{animation:none}.sk,.ysk,.ysk2,.ysklist i{animation:none!important}.cd:hover,.ypo:hover{transform:none}}

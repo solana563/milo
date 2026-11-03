@@ -12,7 +12,7 @@ function rememberStream(i){const t=T[i];if(!t||!t.stream||!t.raw||t.ph)return;if
 const radioSwitch=()=>`<div class="seg" style="margin-bottom:12px">${[["music","Free music"],["radio","Live radio"]].map(([k,n])=>`<button data-dm="${k}" class="${S.dm===k?"on":""}">${n}</button>`).join("")}</div>`;
 const discoverV=()=>`<h1 style="margin-top:20px">Discover</h1>${radioSwitch()}${S.dm==="radio"?radioPane():musicPane()}`;
 function musicRes(){let h=(typeof vbRow==="function"?vbRow():"")+smChartRow();
-  if(S.mload)h+='<p class="empty">Loading songs…</p>';else if(S.mErr)h+=`<p class="empty">${esc(S.mErr)}</p>`;
+  if(S.mload)h+=(typeof skRows==="function"?skRows(6):'<p class="empty">Loading songs…</p>');else if(S.mErr)h+=`<p class="empty">${esc(S.mErr)}</p>`;
   else if(S.mres.length)h+=`<div class="row"><h2>${esc(S.mg||"Results")}</h2></div>`+list(S.mres,"mr");
   else h+='<p class="empty">Pick a genre or search to start listening for free.</p>';
   const q=encodeURIComponent(S.mqv||S.mg||"");

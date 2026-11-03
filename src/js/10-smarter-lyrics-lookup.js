@@ -37,7 +37,7 @@ function lyHead(){const t=T[S.cur];if(!t)return;$("lyA").textContent=t.a+(t.lyBu
 async function findLyrics(i,manual,force){const t=T[i];
   if(!t||(!t.url&&!t.yt)||t.radio){if(manual)toast("No online lyrics for this one");return}
   if(t.lrc&&!force){if(manual)toast("This song already has synced lyrics");return}
-  t.lyTried=1;t.lyTs=Date.now();t.lyBusy=1;if(S.cur===i){if(!t.lrc&&!t.plain)$("lyL").innerHTML='<p class="none">Searching for lyrics…</p>';lyHead()}
+  t.lyTried=1;t.lyTs=Date.now();t.lyBusy=1;if(S.cur===i){if(!t.lrc&&!t.plain)$("lyL").innerHTML=(typeof skLines==="function"?skLines():'<p class="none">Searching for lyrics…</p>');lyHead()}
   let msg;
   try{const r=await lyLookup(t);
     if(!r)msg=t.plain||t.lrc?"No better lyrics found online":"No lyrics found for this song";
