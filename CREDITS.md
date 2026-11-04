@@ -38,3 +38,11 @@ The native Android app got the same engine (`data/YtMusic.kt`, `player/YtSource.
 - Native Home: "Made for you" daily mixes (favourites, rediscover, more of your top artists, plus an online radio from your most played artist).
 - Native player: quality badge (codec, bit depth, sample rate or bitrate).
 - One-tap error report in Profile on web and native.
+
+## Round 2: offline downloads (native)
+- Download for offline from any YouTube song's menu, or Download on artist, album and playlist pages. Saved songs play with no connection; Home shows a Downloaded section (first when you're offline). Manage in Profile > Downloads.
+
+## Round 3: audio (native)
+- Gapless for streamed songs (the next song's link is looked up while the current one plays); local songs were already gapless with crossfade off.
+- Loudness matching (ReplayGain tags in files, YouTube's own loudness for streams), turn-down only.
+- Parametric EQ: five peaking bands (frequency, gain, Q) inside the player's audio path, with a saved curve per output device.
