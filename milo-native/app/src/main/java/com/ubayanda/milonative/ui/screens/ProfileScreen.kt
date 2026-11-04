@@ -359,6 +359,23 @@ private fun InsightsCard(vm: MainViewModel) {
                     Text("${r.plays}×", color = Milo.dim, fontSize = 14.sp)
                 }
             }
+            val ctxR = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.foundation.layout.Box(Modifier.padding(top = 14.dp)) { Pill("Share my recap", null, false) {
+                val hrs = st.totalMs / 3_600_000.0
+                val txt = buildString {
+                    append("My milo. recap\n")
+                    append(String.format(java.util.Locale.US, "%.1f hours listened \u00b7 %d plays\n", hrs, st.plays))
+                    if (st.artists.isNotEmpty()) append("Top artist: ").append(st.artists[0].first).append("\n")
+                    append("\nTop songs\n")
+                    st.songs.forEachIndexed { i, r -> append("${i + 1}. ").append(r.title).append(" \u00b7 ").append(r.artist).append("\n") }
+                    if (st.artists.size > 1) {
+                        append("\nTop artists\n")
+                        st.artists.forEachIndexed { i, (n, _) -> append("${i + 1}. ").append(n).append("\n") }
+                    }
+                }
+                val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, txt)
+                ctxR.startActivity(android.content.Intent.createChooser(send, "Share my recap").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            } }
             if (st.artists.isNotEmpty()) {
                 Text("Top artists", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
                 st.artists.forEachIndexed { i, (n, c) ->

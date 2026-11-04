@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.data.Invite
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -310,6 +311,12 @@ private fun FriendProfileDialog(vm: MainViewModel, f: Friend, sh: FriendShare?, 
                     Spacer(Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         SmallBtn("Message", true, onChat)
+                        SmallBtn("Listen together", false) {
+                            vm.inviteToTogether(f.id) { c ->
+                                android.widget.Toast.makeText(ctx, if (c != null) "Invite sent. Hosting $c. Play a YouTube song." else "Couldn't start. Sign in first.", android.widget.Toast.LENGTH_LONG).show()
+                                if (c != null) onClose()
+                            }
+                        }
                         if (sh != null && sh.playlists.isNotEmpty()) SmallBtn("Playlists", false) { showPl = true }
                     }
                     Text(
@@ -560,7 +567,11 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                                         }
                                     }
                                     "song" -> SongBubble(vm, m, fg)
-                                    else -> Text(m.shown, color = fg, style = Ty.body.copy(fontWeight = FontWeight.Normal))
+                                    else -> {
+                                        val inv = if (m.kind == "text") Invite.parse(m.body) else null
+                                        if (inv != null) InviteBubble(vm, inv, m.mine, fg)
+                                        else Text(m.shown, color = fg, style = Ty.body.copy(fontWeight = FontWeight.Normal))
+                                    }
                                 }
                             }
                             if (m.rx.isNotEmpty()) {
@@ -682,6 +693,22 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
         }
     }
     if (profile) FriendProfileDialog(vm, f, sh, onChat = { profile = false }, onClose = { profile = false })
+}
+
+/** "Listen together" invite: shows the code and a Join button. */
+@Composable
+private fun InviteBubble(vm: MainViewModel, code: String, mine: Boolean, fg: Color) {
+    val ctx = LocalContext.current
+    val cur by vm.together.code.collectAsState()
+    Column(Modifier.widthIn(min = 200.dp)) {
+        Text("\uD83C\uDFA7 Listen together", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text("Code $code", color = fg.copy(alpha = 0.75f), fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+        if (cur == code) Text(if (vm.together.host) "You're hosting" else "You're listening in", color = fg.copy(alpha = 0.75f), fontSize = 12.sp)
+        else if (!mine) SmallBtn("Join", true) {
+            vm.joinTogether(code, false) { ok -> android.widget.Toast.makeText(ctx, if (ok) "Joined $code" else "Couldn't join. The session may have ended.", android.widget.Toast.LENGTH_SHORT).show() }
+        }
+        else Text("Session may have ended", color = fg.copy(alpha = 0.6f), fontSize = 12.sp)
+    }
 }
 
 /** A shared song: cover, title and artist. Tap to play it if it's on this phone or online. */

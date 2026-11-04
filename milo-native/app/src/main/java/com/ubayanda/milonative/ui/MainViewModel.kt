@@ -748,6 +748,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { done(together.join(code, asHost, com.ubayanda.milonative.data.CloudApi.URL, com.ubayanda.milonative.data.CloudApi.KEY)) }
     }
 
+    /** One tap: start (or reuse) a hosted session and send its code to a friend in chat. */
+    fun inviteToTogether(friendId: String, done: (String?) -> Unit) {
+        if (!signedIn) { done(null); return }
+        viewModelScope.launch {
+            var c = together.code.value
+            if (c.isEmpty() || !together.host) {
+                c = (1..6).map { "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".random() }.joinToString("")
+                if (!together.join(c, true, com.ubayanda.milonative.data.CloudApi.URL, com.ubayanda.milonative.data.CloudApi.KEY)) { done(null); return@launch }
+            }
+            social.send(friendId, "text", com.ubayanda.milonative.data.Invite.make(c), null)
+            done(c)
+        }
+    }
+
     private suspend fun followHost(j: org.json.JSONObject) {
         val vid = j.optString("yt"); if (vid.isEmpty()) return
         val playing = j.optBoolean("playing")

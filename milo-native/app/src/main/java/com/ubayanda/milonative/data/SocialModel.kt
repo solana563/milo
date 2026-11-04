@@ -38,6 +38,13 @@ data class ChatMsg(
         }
 }
 
+/** A Listen-together invite travels as an ordinary text message, so web and older apps still show something readable. */
+object Invite {
+    private val re = Regex("Listen together \\u00b7 code ([A-Z0-9]{4,8})")
+    fun make(code: String) = "\uD83C\uDFA7 Listen together \u00b7 code $code"
+    fun parse(body: String): String? = re.find(body)?.groupValues?.get(1)
+}
+
 /** A song a friend shares: just its description. [local] ones only exist on their phone, so they can be seen but not played. */
 data class SharedSong(val title: String, val artist: String, val id: String, val url: String, val img: String, val local: Boolean, val durSec: Int, val yt: String)
 data class SharedPlaylist(val id: String, val name: String, val songs: List<SharedSong>)
