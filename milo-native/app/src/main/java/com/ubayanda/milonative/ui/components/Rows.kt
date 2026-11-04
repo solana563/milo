@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.runtime.mutableFloatStateOf
@@ -82,6 +83,10 @@ fun TrackRow(
     val selecting by remember { androidx.compose.runtime.derivedStateOf { selState.value.isNotEmpty() } }
     val picked by remember(t.id) { androidx.compose.runtime.derivedStateOf { t.id in selState.value } }
     var menu by remember { mutableStateOf(false) }
+    val savedItems = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value
+    val isYt = t.uri.startsWith("yt:")
+    val saved = isYt && savedItems.any { it.id == t.uri.removePrefix("yt:") }
+    val dlNow = com.ubayanda.milonative.data.OfflineStore.progress.collectAsState().value[t.uri.removePrefix("yt:")]
     var dx by remember { mutableFloatStateOf(0f) }
     val limit = with(LocalDensity.current) { 96.dp.toPx() }
     val swipeOn = handle == null && !selecting
@@ -134,6 +139,8 @@ fun TrackRow(
                     color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (saved) Icon(Icons.Rounded.DownloadDone, "Saved on this phone", tint = Milo.amber, modifier = Modifier.padding(end = 6.dp).size(16.dp))
+            else if (dlNow != null && dlNow >= 0f) Text("${(dlNow * 100).toInt()}%", color = Milo.amber, style = Ty.caption, modifier = Modifier.padding(end = 6.dp))
             Text(fmtTime(t.durationMs), color = Milo.dim, style = Ty.caption)
             if (handle != null) {
                 Icon(Icons.Rounded.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
@@ -149,6 +156,14 @@ fun TrackRow(
                     DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { menu = false; actions.addToPlaylist(t) })
                     DropdownMenuItem(text = { Text("Select multiple") }, onClick = { menu = false; vm.toggleSelect(t.id) })
                     DropdownMenuItem(text = { Text("Share") }, onClick = { menu = false; actions.share(t) })
+                    if (isYt) DropdownMenuItem(
+                        text = { Text(if (saved) "Remove download" else "Download for offline") },
+                        onClick = {
+                            menu = false
+                            if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); Toast.makeText(ctx, "Removed from this phone", Toast.LENGTH_SHORT).show() }
+                            else { vm.rememberRemote(listOf(t)); com.ubayanda.milonative.data.OfflineStore.enqueue(listOf(t)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved for offline" else e ?: "Couldn't download", Toast.LENGTH_SHORT).show() }; Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show() }
+                        },
+                    )
                     extra.forEach { a -> DropdownMenuItem(text = { Text(a.label) }, onClick = { menu = false; a.run() }) }
                 }
             }

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
@@ -175,6 +176,11 @@ private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, botto
             Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = Sp.gutter, vertical = Sp.x3), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("Play", Icons.Rounded.PlayArrow, true, tracks.isNotEmpty(), compact = true) { vm.player.playQueue(tracks, 0) }
                 Pill("Shuffle", Icons.Rounded.Shuffle, false, tracks.isNotEmpty(), compact = true) { vm.player.playShuffled(tracks) }
+                Pill("Download", Icons.Rounded.Download, false, tracks.isNotEmpty(), compact = true) {
+                    vm.rememberRemote(tracks)
+                    Toast.makeText(ctx, "Downloading ${tracks.size} songs…", Toast.LENGTH_SHORT).show()
+                    com.ubayanda.milonative.data.OfflineStore.enqueue(tracks) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Nothing new to save", Toast.LENGTH_SHORT).show() }
+                }
                 if (p.radioId.isNotEmpty()) Pill("Radio", Icons.Rounded.Radio, false, compact = true) {
                     scope.launch {
                         try {

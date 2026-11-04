@@ -375,6 +375,17 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
             colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
         )
 
+        Label("Loudness matching")
+        val fxp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
+        var rg by remember { mutableStateOf(fxp.getBoolean("rg", true)) }
+        Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Turns louder songs down to match quieter ones, using ReplayGain tags in your files and YouTube's own loudness. It never boosts, so nothing distorts. Applies from the next song.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(checked = rg, onCheckedChange = { rg = it; fxp.edit().putBoolean("rg", it).apply() },
+                colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
+        }
+
+        ParametricSection()
+
         Label("Equaliser")
         if (!fx.available) {
             Text("This phone doesn't expose an equaliser. Speed still works.", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -662,5 +673,45 @@ private fun VisualPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
             Text(t.artist, color = Color(0xFFD6D0C4), fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.weight(1f))
         }
+    }
+}
+
+
+/** Five-band parametric equaliser, remembered for each output (phone speaker, each pair of headphones). */
+@Composable
+private fun ParametricSection() {
+    val peq by com.ubayanda.milonative.player.ParamEq.state.collectAsState()
+    Label("Parametric EQ")
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(if (peq.device == "default") "For: phone speaker and anything without its own curve" else "For: " + peq.device, color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("Set each band's frequency, gain and width (Q). It works on every output, and each pair of headphones keeps its own curve.", color = Milo.dim, fontSize = 13.sp)
+        }
+        androidx.compose.material3.Switch(checked = peq.enabled, onCheckedChange = { com.ubayanda.milonative.player.ParamEq.setEnabled(it) },
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
+    }
+    if (peq.enabled) {
+        peq.bands.forEachIndexed { i, b ->
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                Text("Band ${i + 1}  ·  " + (if (b.hz >= 1000f) "%.1f kHz".format(b.hz / 1000f) else "${b.hz.roundToInt()} Hz") + "  ·  " + "%+.1f dB".format(b.db) + "  ·  Q %.1f".format(b.q), color = Color.White, fontSize = 13.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Freq", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
+                    Slider(
+                        value = (Math.log10((b.hz / 20f).toDouble()) / 3.0).toFloat(), valueRange = 0f..1f,
+                        onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(hz = (20.0 * Math.pow(1000.0, x.toDouble())).toFloat())) },
+                        colors = amberSlider(), modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Gain", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
+                    Slider(value = b.db, valueRange = -12f..12f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(db = (x * 2).roundToInt() / 2f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Q", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
+                    Slider(value = b.q, valueRange = 0.3f..4f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(q = (x * 10).roundToInt() / 10f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        MiloChip("Reset curve", false, Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) { com.ubayanda.milonative.player.ParamEq.reset() }
     }
 }

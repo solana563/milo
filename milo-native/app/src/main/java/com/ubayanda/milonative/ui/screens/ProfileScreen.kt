@@ -116,6 +116,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         BluetoothCard()
         Spacer(Modifier.height(16.dp))
+        DownloadsCard(vm)
+        Spacer(Modifier.height(16.dp))
         ReportCard()
         if (a.signedIn) {
             Spacer(Modifier.height(16.dp))
@@ -538,5 +540,26 @@ private fun ReportCard() {
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         Pill("Send error report", null, true) { com.ubayanda.milonative.util.ErrorLog.share(ctx) }
+    }
+}
+
+
+@Composable
+private fun DownloadsCard(vm: MainViewModel) {
+    val items by vm.offline.collectAsState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    val mb = items.sumOf { it.bytes } / 1048576.0
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).padding(Sp.x6)) {
+        Text("Downloads", color = Milo.text, style = Ty.title)
+        Text(
+            if (items.isEmpty()) "Nothing saved yet. Open a YouTube song's menu and choose Download, or tap Download on an artist, album or playlist."
+            else "${items.size} song" + (if (items.size == 1) "" else "s") + " saved · " + "%.1f".format(mb) + " MB. They play with no connection.",
+            color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
+        )
+        if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
+            com.ubayanda.milonative.data.OfflineStore.clear()
+            android.widget.Toast.makeText(ctx, "Downloads removed", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 }

@@ -25,6 +25,8 @@ object YtSource {
             val u = dataSpec.uri
             if (u.scheme != "yt") return dataSpec
             val id = u.schemeSpecificPart.orEmpty()
+            // saved on the phone: play the file, no connection needed
+            com.ubayanda.milonative.data.OfflineStore.fileOf(id)?.let { return dataSpec.buildUpon().setUri(Uri.fromFile(it)).build() }
             val s = try {
                 YtMusic.stream(id)
             } catch (e: IOException) {
@@ -43,6 +45,7 @@ object YtSource {
 
     fun dataSourceFactory(context: Context): DataSource.Factory {
         YtMusic.init(context)
+        com.ubayanda.milonative.data.OfflineStore.init(context)
         val http = DefaultHttpDataSource.Factory().setConnectTimeoutMs(12_000).setReadTimeoutMs(20_000).setAllowCrossProtocolRedirects(true)
         return ResolvingDataSource.Factory(DefaultDataSource.Factory(context, http), resolver)
     }

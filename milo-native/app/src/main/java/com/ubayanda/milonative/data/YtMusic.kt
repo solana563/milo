@@ -199,7 +199,7 @@ object YtMusic {
         val radioId: String, val isCollage: Boolean,
     )
 
-    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int)
+    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int, val loudnessDb: Double = 0.0)
 
     private fun songOf(n: JSONObject): Song? {
         val cols = n.optJSONArray("flexColumns")
@@ -393,12 +393,18 @@ object YtMusic {
         val sd = j.optJSONObject("streamingData") ?: throw java.io.IOException("no stream data")
         val f = pick(sd) ?: throw java.io.IOException("no direct audio stream")
         val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
-        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0)
+        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0)
         streams[videoId] = s
         return s
     }
 
     fun forget(videoId: String) { streams.remove(videoId) }
+
+    /** How much louder than YouTube's reference this song is (dB, 0 when unknown). Used to even out volume between songs. */
+    fun loudness(videoId: String): Double = streams[videoId]?.loudnessDb ?: 0.0
+
+    /** Look the stream up ahead of time so the next song starts without a pause. */
+    fun warm(videoId: String) { try { stream(videoId) } catch (_: Exception) {} }
 
     // ---- into the app's own model ----
     private fun hashId(s: String): Long = (s.hashCode().toLong() and 0x7fffffffL)

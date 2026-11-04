@@ -661,6 +661,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _stats.value = StatsUi(statsStore.totalMs, statsStore.plays(), statsStore.topSongs(5), statsStore.topArtists(5))
     }
 
+    val offline = com.ubayanda.milonative.data.OfflineStore.also { it.init(app) }.items
+
     // ---- daily mixes: made from what you play and like, new every day ----
     class Mix(val title: String, val subtitle: String, val tracks: List<Track>, val remote: Boolean)
     private val _mixes = MutableStateFlow<List<Mix>>(emptyList())

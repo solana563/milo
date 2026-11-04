@@ -88,6 +88,8 @@ fun HomeScreen(
     val ytShelves by vm.ytHome.collectAsState()
     val ytLoading by vm.ytHomeLoading.collectAsState()
     val mixes by vm.mixes.collectAsState()
+    val savedSongs by vm.offline.collectAsState()
+    val offlineNow = !vm.online()
     val favNow by vm.favs.collectAsState()
     androidx.compose.runtime.LaunchedEffect(tracks.size, favNow.size) { vm.buildMixes(tracks) }
     val recent = tracks.sortedByDescending { it.addedSec }.take(50)
@@ -145,6 +147,8 @@ fun HomeScreen(
                 }
             }
         }
+        // saved songs: first when you're offline, after the streaming shelves when you're online
+        if (savedSongs.isNotEmpty() && offlineNow) item(key = "dl-top") { DownloadedCard(vm, ui, card) }
         // online: YouTube Music leads right under the player (recommended playlists, trending artists, charts). Offline: only your own music below.
         if (ytShelves.isEmpty() && ytLoading) {
             item(key = "ysk") {
@@ -162,6 +166,7 @@ fun HomeScreen(
                 }
             }
         }
+        if (savedSongs.isNotEmpty() && !offlineNow) item(key = "dl") { DownloadedCard(vm, ui, card) }
         if (mixes.isNotEmpty()) {
             item(key = "mixes") {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
@@ -331,5 +336,20 @@ fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = 
             Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
         }
         Text(label, color = if (filled) Color.Black else Milo.text, fontSize = if (compact) 15.sp else 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+    }
+}
+
+
+@Composable
+private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compose.ui.graphics.Shape) {
+    val list = remember(vm.offline.collectAsState().value) { com.ubayanda.milonative.data.OfflineStore.tracks() }
+    Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+        SectionTitle("Downloaded")
+        Text("${list.size} song" + (if (list.size == 1) "" else "s") + " that play with no connection", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp))
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Pill("Play all", Icons.Rounded.PlayArrow, true, compact = true) { vm.rememberRemote(list); vm.player.playQueue(list, 0) }
+            Pill("Shuffle", Icons.Rounded.Shuffle, false, compact = true) { vm.rememberRemote(list); vm.player.playShuffled(list) }
+        }
+        list.take(8).forEach { t -> TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.rememberRemote(list); vm.player.playQueue(list, list.indexOf(t)) } }
     }
 }

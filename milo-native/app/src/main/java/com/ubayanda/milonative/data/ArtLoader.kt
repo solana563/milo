@@ -58,6 +58,17 @@ class ArtLoader(private val context: Context) {
 
     /** A cover picture from the web (radio logos, iTunes artwork), decoded down to about [target] pixels. */
     private fun remote(url: String, target: Int): Bitmap? = try {
+        if (url.startsWith("/")) {
+            // a cover saved with an offline song
+            val f = java.io.File(url)
+            if (!f.exists()) null else {
+                val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(url, o)
+                var sample = 1
+                while (o.outWidth / (sample * 2) >= target && o.outHeight / (sample * 2) >= target) sample *= 2
+                BitmapFactory.decodeFile(url, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
+        } else {
         val req = okhttp3.Request.Builder().url(url).header("User-Agent", "milo-native/1.0").build()
         http.newCall(req).execute().use { r ->
             val bytes = r.body?.bytes()
@@ -68,6 +79,7 @@ class ArtLoader(private val context: Context) {
                 while (o.outWidth / (sample * 2) >= target && o.outHeight / (sample * 2) >= target) sample *= 2
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
             }
+        }
         }
     } catch (e: Exception) {
         null

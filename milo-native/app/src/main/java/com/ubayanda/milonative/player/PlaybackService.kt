@@ -18,6 +18,9 @@ class PlaybackService : MediaSessionService() {
     private var castBridge: CastBridge? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val ytRetried = HashSet<String>()
+    private val svcScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
+    private var rgScale = 1f
+    private var rgPrev = 1f
     private val fxPrefs by lazy { getSharedPreferences("milo_fx", MODE_PRIVATE) }
 
     // ---- true crossfade: a second, short-lived player carries the tail of the old song while the main player starts the next one ----
@@ -27,7 +30,18 @@ class PlaybackService : MediaSessionService() {
     private var xfLen = 0L
     private var lastTick = 0L
 
-    private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this)
+    /** Renderers whose audio goes through the parametric equaliser first. */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun eqRenderers() = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+        override fun buildAudioSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): androidx.media3.exoplayer.audio.AudioSink =
+            androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor()))
+                .build()
+    }
+
+    private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this, eqRenderers())
         .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
         .setHandleAudioBecomingNoisy(false)
@@ -61,7 +75,7 @@ class PlaybackService : MediaSessionService() {
             val f = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
             v = Math.sin(f * Math.PI / 2).toFloat()
             ghost?.let { g ->
-                g.volume = Math.cos(f * Math.PI / 2).toFloat()
+                g.volume = Math.cos(f * Math.PI / 2).toFloat() * rgPrev
                 g.playWhenReady = p.playWhenReady
             }
             if (f >= 1f) endGhost()
@@ -86,7 +100,7 @@ class PlaybackService : MediaSessionService() {
                     val g = ghostPlayer()
                     // already waiting at the right spot; only nudge it if the two clocks disagree
                     if (Math.abs(g.currentPosition - p.currentPosition) > 300L) g.seekTo(p.currentPosition)
-                    g.volume = 1f
+                    g.volume = rgPrev
                     g.playWhenReady = true
                     xfLen = toEnd.coerceIn(500L, x)
                     xfT0 = now
@@ -105,13 +119,53 @@ class PlaybackService : MediaSessionService() {
                 ghost?.takeIf { xfLen > 0L }?.let { it.volume = minOf(it.volume, left / 30_000f) }
             }
         }
-        if (p.volume != v) p.volume = v
+        val tv = v * rgScale
+        if (p.volume != tv) p.volume = tv
+    }
+
+    /** Loudness matching: songs that are louder than average are turned down to match (never boosted, so nothing clips). */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun updateGain(p: Player) {
+        if (!fxPrefs.getBoolean("rg", true)) { rgScale = 1f; return }
+        var db = Double.NaN
+        val u = p.currentMediaItem?.localConfiguration?.uri
+        if (u?.scheme == "yt") {
+            val l = com.ubayanda.milonative.data.YtMusic.loudness(u.schemeSpecificPart.orEmpty())
+            if (l != 0.0) db = -l
+        } else {
+            for (g in p.currentTracks.groups) {
+                if (g.type != C.TRACK_TYPE_AUDIO || !g.isSelected) continue
+                val md = g.getTrackFormat(0).metadata ?: continue
+                for (i in 0 until md.length()) {
+                    val e = md[i]
+                    var key = ""; var value = ""
+                    if (e is androidx.media3.extractor.metadata.id3.TextInformationFrame) { key = e.description.orEmpty(); value = e.values.firstOrNull().orEmpty() }
+                    else if (e is androidx.media3.extractor.metadata.vorbis.VorbisComment) { key = e.key; value = e.value }
+                    val num = Regex("-?\\d+(\\.\\d+)?").find(value)?.value?.toDoubleOrNull() ?: continue
+                    if (key.equals("REPLAYGAIN_TRACK_GAIN", true)) db = num
+                    else if (key.equals("R128_TRACK_GAIN", true) && db.isNaN()) db = num / 256.0 + 5.0
+                }
+            }
+        }
+        rgScale = if (db.isNaN()) 1f else Math.pow(10.0, minOf(db, 0.0) / 20.0).toFloat().coerceIn(0.05f, 1f)
+    }
+
+    /** Gapless for streamed songs: look up the next song's link while the current one plays. */
+    private fun warmNext(p: Player) {
+        val n = p.currentMediaItemIndex + 1
+        if (n >= p.mediaItemCount) return
+        val u = p.getMediaItemAt(n).localConfiguration?.uri ?: return
+        if (u.scheme != "yt") return
+        val vid = u.schemeSpecificPart.orEmpty()
+        if (vid.isEmpty() || com.ubayanda.milonative.data.OfflineStore.has(vid)) return
+        Thread { com.ubayanda.milonative.data.YtMusic.warm(vid) }.start()
     }
 
     override fun onCreate() {
         super.onCreate()
         com.ubayanda.milonative.util.ErrorLog.init(this)
-        val player = ExoPlayer.Builder(this)
+        ParamEq.init(this)
+        val player = ExoPlayer.Builder(this, eqRenderers())
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -129,6 +183,7 @@ class PlaybackService : MediaSessionService() {
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player).also { it.init() }
         BtOutput.start(this, { player.isPlaying }, { player.play() })
+        svcScope.launch { BtOutput.now.collect { ParamEq.useDevice(if (it.kind == "speaker") "default" else it.name) } }
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 com.ubayanda.milonative.util.ErrorLog.add("player", error.errorCodeName + ": " + error.message + (error.cause?.let { " / " + it.javaClass.simpleName + ": " + it.message } ?: "") + " | " + player.currentMediaItem?.localConfiguration?.uri)
@@ -143,6 +198,12 @@ class PlaybackService : MediaSessionService() {
                 // dead stream: drop it right here so the session never carries a broken timeline
                 endGhost(); player.stop(); player.clearMediaItems()
             }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                rgPrev = rgScale
+                updateGain(player)
+                warmNext(player)
+            }
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { updateGain(player) }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) ytRetried.clear() else BtOutput.saveVolume(this@PlaybackService) }
             override fun onEvents(p: Player, events: Player.Events) {
                 if (events.containsAny(
@@ -168,6 +229,7 @@ class PlaybackService : MediaSessionService() {
         try { castBridge?.release() } catch (_: Throwable) {}
         castBridge = null
         BtOutput.stop(this)
+        svcScope.cancel()
         handler.removeCallbacksAndMessages(null)
         com.ubayanda.milonative.widget.WidgetUpdater.clear(this)
         try { ghost?.release() } catch (_: Throwable) {}
