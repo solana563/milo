@@ -7,6 +7,8 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * The music player itself. It lives in a foreground service, so playback carries on with the screen off,
