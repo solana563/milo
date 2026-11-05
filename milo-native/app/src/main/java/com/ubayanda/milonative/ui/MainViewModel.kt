@@ -880,34 +880,79 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val autoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
     fun setAutoplay(on: Boolean) { _autoplay.value = on; fxPrefs.edit().putBoolean("autoplay", on).apply() }
 
+    /** Songs the autoplay added, so the queue can say so. */
+    private val _autoIds = MutableStateFlow<Set<Long>>(emptySet())
+    val autoIds: StateFlow<Set<Long>> = _autoIds.asStateFlow()
+
+    /**
+     * Autoplay: keeps the queue topped up BEFORE it runs out (when 2 songs are left), so there is never a gap.
+     * Songs streamed from YouTube get YouTube Music's own "up next" radio for the current song; songs from this phone
+     * are scored on artist, album, era, likes and plays, minus anything already played or skipped this session,
+     * and no artist appears more than twice in one batch.
+     */
     private suspend fun autoLoop() {
         var lastSig = ""
+        val played = HashSet<Long>()
+        val skipArtists = HashMap<String, Int>()
+        var prevId: Long? = null
+        var prevPos = 0L
+        var prevDur = 0L
         while (true) {
             delay(2000)
-            if (!_autoplay.value) continue
             val st = player.state.value
+            val curId = st.currentId
+            if (curId != prevId) {
+                // a song that was left within its first 20 s (or 30 %) counts as a skip
+                val pid = prevId
+                if (pid != null && prevDur > 0 && prevPos < 20_000L && prevPos < prevDur * 0.3) trackById(pid)?.let { skipArtists.merge(it.artist, 1, Int::plus) }
+                prevId = curId
+            }
+            prevPos = st.positionMs; prevDur = st.durationMs
+            if (curId != null) played.add(curId)
+            if (!_autoplay.value) continue
             if (!st.isPlaying || st.shuffle || st.repeat != 0 || st.queueIds.isEmpty()) continue
-            if (st.queueIndex < st.queueIds.size - 1) continue
-            val cur = trackById(st.currentId) ?: continue
-            if (cur.id < 0) continue // only for songs from this phone
+            if (st.queueIndex < st.queueIds.size - 3) continue
+            val cur = trackById(curId) ?: continue
             val sig = st.queueIds.size.toString() + ":" + cur.id
             if (sig == lastSig) continue
             lastSig = sig
             val inQueue = st.queueIds.toHashSet()
-            val queueArtists = st.queueIds.mapNotNull { trackById(it)?.artist }.toHashSet()
-            val favs = _favs.value
-            val rnd = kotlin.random.Random(System.nanoTime())
-            val picks = withContext(Dispatchers.Default) {
-                _tracks.value.asSequence().filter { it.id !in inQueue && it.durationMs > 30_000L }.map { t ->
-                    var sc = rnd.nextFloat() * 1.6f
-                    if (t.artist == cur.artist && cur.artist != "Unknown artist") sc += 3f
-                    if (t.albumId == cur.albumId) sc += 1.5f
-                    if (t.id in favs) sc += 1f
-                    if (t.artist in queueArtists) sc += 0.7f
-                    t to sc
-                }.sortedByDescending { it.second }.take(10).map { it.first }.toList()
+            val queueTracks = st.queueIds.mapNotNull { trackById(it) }
+            val picks: List<Track> = if (cur.uri.startsWith("yt:")) {
+                val have = queueTracks.map { com.ubayanda.milonative.data.LibrarySync.key(it.title, it.artist) }.toHashSet()
+                val perArtist = HashMap<String, Int>()
+                try {
+                    youtube.radio("RDAMVM" + cur.uri.removePrefix("yt:")).filter { it.id !in inQueue && it.id !in played }
+                        .filter { have.add(com.ubayanda.milonative.data.LibrarySync.key(it.title, it.artist)) }
+                        .filter { (skipArtists[it.artist] ?: 0) < 2 }
+                        .filter { perArtist.merge(it.artist, 1, Int::plus)!! <= 2 }.take(8)
+                } catch (_: Exception) { emptyList() }
+            } else if (cur.id >= 0) {
+                val queueArtists = queueTracks.map { it.artist }.toHashSet()
+                val favs = _favs.value
+                val rnd = kotlin.random.Random(System.nanoTime())
+                withContext(Dispatchers.Default) {
+                    val scored = _tracks.value.asSequence().filter { it.id !in inQueue && it.id !in played && it.durationMs > 30_000L }.map { t ->
+                        var sc = rnd.nextFloat() * 1.3f
+                        val known = cur.artist != "Unknown artist"
+                        if (known && t.artist == cur.artist) sc += 2.6f
+                        if (t.albumId == cur.albumId) sc += 1f
+                        if (cur.year > 0 && t.year > 0) sc += (0.8f - kotlin.math.abs(t.year - cur.year) * 0.12f).coerceAtLeast(0f)
+                        if (t.id in favs) sc += 1.2f
+                        sc += minOf(statsStore.playsOf(t.title, t.artist), 10) * 0.12f
+                        if (t.artist in queueArtists) sc += 0.5f
+                        sc -= (skipArtists[t.artist] ?: 0) * 1.8f
+                        t to sc
+                    }.sortedByDescending { it.second }.map { it.first }.take(60).toList()
+                    val perArtist = HashMap<String, Int>()
+                    scored.filter { perArtist.merge(it.artist, 1, Int::plus)!! <= 2 }.take(8)
+                }
+            } else emptyList()
+            if (picks.isNotEmpty()) {
+                if (picks.any { it.uri.startsWith("yt:") }) rememberRemote(picks)
+                player.addManyToQueue(picks)
+                _autoIds.value = (_autoIds.value + picks.map { it.id }).let { if (it.size > 400) picks.map { p -> p.id }.toSet() else it }
             }
-            if (picks.isNotEmpty()) player.addManyToQueue(picks)
         }
     }
 

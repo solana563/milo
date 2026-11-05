@@ -334,7 +334,23 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
         )
     }
     LazyColumn(state = listState) {
-        item { Text("Up next", color = Color.White, style = Ty.title, modifier = Modifier.padding(Sp.gutter)) }
+        item {
+            val auto by vm.autoplay.collectAsState()
+            val autoIds by vm.autoIds.collectAsState()
+            val added = local.count { it.id in autoIds }
+            Column(Modifier.padding(Sp.gutter)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Up next", color = Color.White, style = Ty.title, modifier = Modifier.weight(1f))
+                    MiloChip(if (auto) "Autoplay on" else "Autoplay off", auto) { vm.setAutoplay(!auto) }
+                }
+                Text(
+                    if (!auto) "Turn Autoplay on and milo. keeps similar songs coming when the queue runs low."
+                    else if (added > 0) "Autoplay added $added similar song" + (if (added == 1) "" else "s") + " to this queue."
+                    else "milo. adds similar songs when the queue runs low.",
+                    color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
         itemsIndexed(local, key = { i, _ -> keys.getOrElse(i) { "q$i" } }) { i, t ->
             val key = keys.getOrElse(i) { "q$i" }
             val idx by rememberUpdatedState(i)

@@ -59,3 +59,5 @@ Round 8 (phone app): glass design pass. Rim-lit translucent panels, capsule cont
 
 ## Round 9
 Full-bleed art hero on album/artist/playlist pages; "Brought to you by" card (theLEAF foundation) in Profile; stronger now-playing highlight with animated bars; Now playing button only on lists that contain the song; release signing via env secrets + AAB build in CI; allowBackup off; draft privacy.html / terms.html.
+
+Autoplay: tops up at 2 songs left, YouTube radio for streamed songs, smarter local scoring, skip learning, queue header toggle.
