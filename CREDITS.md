@@ -56,3 +56,6 @@ Round 6 (phone app): smart playlists, .m3u import/export, skip silence / mono / 
 Round 7 (phone app): ten-band graphic EQ with fader UI, visualiser rebuilt on the player's own audio (no microphone permission), crossfade fixes (skip during a fade, wait for the next song), pressable button feel.
 
 Round 8 (phone app): glass design pass. Rim-lit translucent panels, capsule controls, glass tab bar and mini player, big-knob sliders, glowing switches, glass segmented control, larger corner radii.
+
+## Round 9
+Full-bleed art hero on album/artist/playlist pages; "Brought to you by" card (theLEAF foundation) in Profile; stronger now-playing highlight with animated bars; Now playing button only on lists that contain the song; release signing via env secrets + AAB build in CI; allowBackup off; draft privacy.html / terms.html.
