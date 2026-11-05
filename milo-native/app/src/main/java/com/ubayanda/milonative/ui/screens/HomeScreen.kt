@@ -1,5 +1,8 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.components.glass
+import com.ubayanda.milonative.ui.components.pressable
+import com.ubayanda.milonative.ui.components.glassStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -224,7 +227,7 @@ fun HomeScreen(
 private fun Tile(vm: MainViewModel, t: TileData, modifier: Modifier) {
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Row(
-        modifier.height(60.dp).clip(shape).background(Milo.card, shape).border(1.dp, Milo.line, shape).clickable(onClick = t.onClick),
+        modifier.height(60.dp).clip(shape).glass(shape).clickable(onClick = t.onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (t.collage.size >= 2) {
@@ -326,9 +329,10 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
 fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = true, compact: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     Row(
-        Modifier.clip(shape).background(if (filled) Milo.amber else Milo.card2, shape)
-            .border(1.dp, if (filled) Milo.amber else Milo.line, shape)
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = if (compact) 15.dp else 22.dp, vertical = if (compact) 11.dp else 13.dp),
+        Modifier.pressable(enabled, onClick).clip(shape)
+            .background(if (filled) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.amber.copy(alpha = 1f), Milo.amber.copy(alpha = 0.86f))) else androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.card2, Milo.card)), shape)
+            .border(1.dp, glassStroke(if (filled) 0.9f else 1f), shape)
+            .padding(horizontal = if (compact) 15.dp else 22.dp, vertical = if (compact) 11.dp else 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {

@@ -51,6 +51,27 @@ class MainActivity : ComponentActivity() {
                 if (t != null) CrashScreen(t) { crashFile.delete(); trace = null } else Root()
             }
         }
+        if (savedInstanceState == null) handleLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLink(intent)
+    }
+
+    /** A YouTube / YouTube Music link opened or shared to milo. */
+    private fun handleLink(i: Intent?) {
+        when (i?.action) {
+            "com.ubayanda.milonative.SHUFFLE" -> { vm.runShortcut("shuffle"); return }
+            "com.ubayanda.milonative.LIKED" -> { vm.runShortcut("liked"); return }
+        }
+        val raw = when (i?.action) {
+            Intent.ACTION_VIEW -> i.dataString
+            Intent.ACTION_SEND -> i.getStringExtra(Intent.EXTRA_TEXT)
+            else -> null
+        } ?: return
+        vm.openLink(raw)
     }
 
     @Composable

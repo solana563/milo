@@ -20,9 +20,32 @@ class LyricsRepo(private val context: Context) {
     suspend fun get(t: Track): Lyrics? = withContext(Dispatchers.IO) {
         val f = File(dir, "${t.id}.json")
         val cached = try { if (f.exists()) f.readText() else null } catch (e: Exception) { null }
-        val body = cached ?: fetch(t)?.also { try { f.writeText(it) } catch (_: Exception) {} }
+        // lyrics saved together with a downloaded song, so they work with no connection
+        val pinned = if (cached == null && t.uri.startsWith("yt:")) try { File(context.filesDir, "offline/" + t.uri.removePrefix("yt:") + ".lrc").takeIf { it.exists() }?.readText() } catch (e: Exception) { null } else null
+        val body = cached ?: pinned ?: fetch(t)?.also { try { f.writeText(it) } catch (_: Exception) {} }
         body?.let { parse(it) }
     }
+
+    /** Songs whose saved lyrics contain [query]: (track id, the matching line). Only songs whose lyrics were opened before are searchable. */
+    suspend fun searchCached(query: String): List<Pair<Long, String>> = withContext(Dispatchers.IO) {
+        val needle = query.trim().lowercase()
+        if (needle.length < 3) return@withContext emptyList()
+        val out = ArrayList<Pair<Long, String>>()
+        for (f in dir.listFiles().orEmpty()) {
+            val id = f.nameWithoutExtension.toLongOrNull() ?: continue
+            try {
+                val j = org.json.JSONObject(f.readText())
+                val text = j.optString("plainLyrics").ifEmpty { j.optString("syncedLyrics").replace(Regex("\\[[^\\]]*\\]"), "") }
+                val line = text.lines().firstOrNull { it.lowercase().contains(needle) }?.trim()
+                if (line != null) out.add(id to line)
+            } catch (_: Exception) {}
+            if (out.size >= 30) break
+        }
+        out
+    }
+
+    /** Saves the lyrics of [t] into [f] (used when a song is downloaded). */
+    fun fetchTo(f: File, t: Track) { try { fetch(t)?.let { f.writeText(it) } } catch (_: Exception) {} }
 
     private fun q(s: String) = URLEncoder.encode(s, "UTF-8")
 

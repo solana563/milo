@@ -27,7 +27,7 @@ fun NameDialog(title: String, initial: String, okLabel: String, onOk: (String) -
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Milo.card,
+        containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
         title = { Text(title, color = Milo.text) },
         text = {
             OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, placeholder = { Text("Playlist name") })
@@ -38,10 +38,33 @@ fun NameDialog(title: String, initial: String, okLabel: String, onOk: (String) -
 }
 
 @Composable
+fun EditInfoDialog(title0: String, artist0: String, album0: String, edited: Boolean, onSave: (String, String, String) -> Unit, onReset: () -> Unit, onDismiss: () -> Unit) {
+    var t by remember { mutableStateOf(title0) }
+    var a by remember { mutableStateOf(artist0) }
+    var al by remember { mutableStateOf(album0) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+        title = { Text("Edit song info", color = Milo.text) },
+        text = {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = t, onValueChange = { t = it }, singleLine = true, label = { Text("Title") })
+                OutlinedTextField(value = a, onValueChange = { a = it }, singleLine = true, label = { Text("Artist") })
+                OutlinedTextField(value = al, onValueChange = { al = it }, singleLine = true, label = { Text("Album") })
+                Text("Saved inside milo. The audio file isn't changed.", color = Milo.dim, fontSize = 12.sp)
+                if (edited) Text("Undo my changes", color = Milo.amber, fontSize = 14.sp, modifier = Modifier.clickable { onReset() }.padding(vertical = 6.dp))
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(t, a, al) }) { Text("Save", color = Milo.amber) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = Milo.dim) } },
+    )
+}
+
+@Composable
 fun PlaylistPicker(playlists: List<Playlist>, onPick: (Playlist) -> Unit, onNew: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Milo.card,
+        containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
         title = { Text("Add to playlist", color = Milo.text) },
         text = {
             Column {

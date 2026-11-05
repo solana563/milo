@@ -199,7 +199,7 @@ object YtMusic {
         val radioId: String, val isCollage: Boolean,
     )
 
-    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int, val loudnessDb: Double = 0.0)
+    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int, val loudnessDb: Double = 0.0, val title: String = "", val author: String = "")
 
     private fun songOf(n: JSONObject): Song? {
         val cols = n.optJSONArray("flexColumns")
@@ -393,7 +393,7 @@ object YtMusic {
         val sd = j.optJSONObject("streamingData") ?: throw java.io.IOException("no stream data")
         val f = pick(sd) ?: throw java.io.IOException("no direct audio stream")
         val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
-        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0)
+        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic"))
         streams[videoId] = s
         return s
     }

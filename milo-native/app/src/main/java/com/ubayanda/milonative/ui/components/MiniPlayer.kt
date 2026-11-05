@@ -47,7 +47,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
     val shape = RoundedCornerShape(Rad.xl)
     Column(
         modifier.fillMaxWidth().padding(horizontal = Sp.x3)
-            .clip(shape).artBackdrop(soft, 0.55f).border(1.dp, Milo.line, shape)
+            .lift(shape, 20f).clip(shape).artBackdrop(soft, 0.55f).border(1.dp, glassStroke(1.1f), shape)
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {
@@ -67,11 +67,11 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
                     Text(tt.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.player.next() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).clip(CircleShape).pressable { vm.player.next() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
             }
             Box(
-                Modifier.size(48.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                Modifier.size(48.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))
@@ -90,8 +90,8 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
 fun NowPlayingPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(30.dp)
     Row(
-        modifier.clip(shape).background(Milo.card.copy(alpha = 0.97f), shape).border(1.dp, Milo.line, shape)
-            .clickable(onClick = onClick).padding(horizontal = 22.dp, vertical = 14.dp),
+        modifier.lift(shape, 14f).glass(shape, 1.2f, Milo.card.copy(alpha = 0.95f))
+            .pressable(true, onClick).padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Rounded.MyLocation, null, tint = Milo.text, modifier = Modifier.size(22.dp))

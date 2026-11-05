@@ -26,6 +26,7 @@ object OfflineStore {
     data class Item(val id: String, val title: String, val artist: String, val album: String, val art: String, val durationMs: Long, val file: String, val bytes: Long, val at: Long)
 
     private var dir: File? = null
+    private var appCtx: Context? = null
     private val _items = MutableStateFlow<List<Item>>(emptyList())
     val items: StateFlow<List<Item>> = _items.asStateFlow()
     /** 0..1 while a song is downloading, -1 when it failed. */
@@ -50,6 +51,7 @@ object OfflineStore {
 
     @Synchronized fun init(c: Context) {
         if (dir != null) return
+        appCtx = c.applicationContext
         val d = File(c.applicationContext.filesDir, "offline").also { it.mkdirs() }
         dir = d
         try {
@@ -85,7 +87,7 @@ object OfflineStore {
 
     fun remove(videoId: String) {
         val it = _items.value.firstOrNull { x -> x.id == videoId } ?: return
-        dir?.let { d -> File(d, it.file).delete(); File(d, videoId + ".jpg").delete() }
+        dir?.let { d -> File(d, it.file).delete(); File(d, videoId + ".jpg").delete(); File(d, videoId + ".lrc").delete() }
         _items.value = _items.value.filter { x -> x.id != videoId }
         save()
     }
@@ -143,6 +145,7 @@ object OfflineStore {
             } catch (_: Exception) {}
             _items.value = _items.value.filter { it.id != id } + Item(id, t.title, t.artist, if (t.album == "YouTube Music" || t.album == "YouTube") "" else t.album, art, t.durationMs, name, f.length(), System.currentTimeMillis())
             save()
+            try { appCtx?.let { com.ubayanda.milonative.data.LyricsRepo(it).fetchTo(File(d, "$id.lrc"), t) } } catch (_: Exception) {}
             setProgress(id, null)
             null
         } catch (e: kotlinx.coroutines.CancellationException) {

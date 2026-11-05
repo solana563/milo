@@ -586,10 +586,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private var pendingShortcut: String? = null
+    /** Long-press shortcuts on the app icon. If the library isn't loaded yet, wait for it. */
+    fun runShortcut(kind: String) {
+        if (!_scanned.value) { pendingShortcut = kind; return }
+        val list = if (kind == "liked") _favs.value.mapNotNull { trackById(it) } else _tracks.value.shuffled()
+        if (list.isEmpty()) { android.widget.Toast.makeText(getApplication(), "Nothing to play yet", android.widget.Toast.LENGTH_SHORT).show(); return }
+        if (kind == "liked") playRemoteOrLocal(list.shuffled()) else player.playQueue(list, 0)
+    }
+    private fun playRemoteOrLocal(list: List<Track>) { if (list.any { it.id < 0 }) playRemote(list, 0) else player.playQueue(list, 0) }
+
+    fun editInfo(id: Long, title: String, artist: String, album: String) {
+        com.ubayanda.milonative.data.MetaEdits.init(getApplication())
+        com.ubayanda.milonative.data.MetaEdits.set(id, title, artist, album); scan()
+    }
+    fun resetInfo(id: Long) { com.ubayanda.milonative.data.MetaEdits.reset(id); scan() }
+
     fun scan() {
         viewModelScope.launch {
             _scanning.value = true
-            val list = repo.scan()
+            com.ubayanda.milonative.data.MetaEdits.init(getApplication())
+            val list = com.ubayanda.milonative.data.MetaEdits.apply(repo.scan())
             val (albums, artists) = withContext(Dispatchers.Default) {
                 val al = list.groupBy { it.albumId to it.album }.map { (k, v) ->
                     val sorted = v.sortedWith(compareBy({ it.trackNo }, { NaturalOrder.key(it.title) }))
@@ -605,6 +622,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _scanning.value = false
             _scanned.value = true
             resolvePending()
+            pendingShortcut?.let { pendingShortcut = null; runShortcut(it) }
         }
     }
 
@@ -634,6 +652,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     })
 
     /** Create a playlist holding all of [ids] (the multi-select "new playlist"). */
+    /** Smart playlists, built from listening history and when songs were added. Local songs only. */
+    fun smartTracks(kind: String): List<Track> {
+        val all = _tracks.value
+        return when (kind) {
+            "most" -> all.map { it to statsStore.playsOf(it.title, it.artist) }.filter { it.second > 0 }.sortedByDescending { it.second }.take(100).map { it.first }
+            "recent" -> all.sortedByDescending { it.addedSec }.take(100)
+            else -> all.filter { statsStore.playsOf(it.title, it.artist) == 0 }.sortedByDescending { it.addedSec }
+        }
+    }
+
+    /** Make a playlist from a parsed .m3u. Returns (songs found, songs in the file). */
+    fun importM3u(name: String, entries: List<Pair<String, String>>): Pair<Int, Int> {
+        val all = _tracks.value
+        val byKey = HashMap<String, Track>(); val byTitle = HashMap<String, Track>()
+        all.forEach { byKey.putIfAbsent(LibrarySync.key(it.title, it.artist), it); byTitle.putIfAbsent(it.title.trim().lowercase(), it) }
+        val ids = entries.mapNotNull { (t, a) -> (if (a.isNotEmpty()) byKey[LibrarySync.key(t, a)] else null) ?: byTitle[t.trim().lowercase()] }.map { it.id }
+        if (ids.isNotEmpty()) createPlaylistWith(name, ids)
+        return ids.distinct().size to entries.size
+    }
+
     fun createPlaylistWith(name: String, ids: List<Long>): String {
         ids.forEach { ensureSaved(it) }
         val pid = "p" + System.currentTimeMillis()
@@ -657,6 +695,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     class StatsUi(val totalMs: Long = 0L, val plays: Int = 0, val songs: List<com.ubayanda.milonative.data.StatsStore.Row> = emptyList(), val artists: List<Pair<String, Int>> = emptyList())
     private val _stats = MutableStateFlow(StatsUi())
     val stats: StateFlow<StatsUi> = _stats.asStateFlow()
+    fun statYears(): List<Int> = statsStore.years()
+    fun statsFor(y: Int) = StatsUi(statsStore.yearMs(y), statsStore.yearPlays(y), statsStore.yearTopSongs(y, 5), statsStore.yearTopArtists(y, 5))
     private fun refreshStats() {
         _stats.value = StatsUi(statsStore.totalMs, statsStore.plays(), statsStore.topSongs(5), statsStore.topArtists(5))
     }
@@ -728,6 +768,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _ytHomeLoading.value = false
         }
     }
+    /** Universal search helpers: songs on YouTube Music, and songs on this phone whose saved lyrics contain the text. */
+    suspend fun ytSearch(q: String): List<Track> = withContext(Dispatchers.IO) {
+        try { com.ubayanda.milonative.data.YtMusic.searchSongs(q).take(15).map { com.ubayanda.milonative.data.YtMusic.toTrack(it) } } catch (_: Exception) { emptyList() }
+    }
+    suspend fun lyricSearch(q: String): List<Pair<Track, String>> =
+        lyricsRepo.searchCached(q).mapNotNull { (id, line) -> trackById(id)?.let { it to line } }
+
+    /** Plays the song behind a YouTube / YouTube Music link. */
+    fun openLink(raw: String) {
+        val id = Regex("""(?:[?&]v=|youtu\.be/|shorts/|embed/)([A-Za-z0-9_-]{11})""").find(raw)?.groupValues?.get(1)
+        if (id == null) { android.widget.Toast.makeText(getApplication(), "milo. can't play that link", android.widget.Toast.LENGTH_SHORT).show(); return }
+        viewModelScope.launch {
+            val t = withContext(Dispatchers.IO) {
+                try {
+                    com.ubayanda.milonative.data.YtMusic.init(getApplication())
+                    val s = com.ubayanda.milonative.data.YtMusic.stream(id)
+                    com.ubayanda.milonative.data.YtMusic.toTrack(com.ubayanda.milonative.data.YtMusic.Song(id, s.title.ifEmpty { "YouTube song" }, s.author, "", "", "", s.durationSec, "https://i.ytimg.com/vi/$id/hqdefault.jpg"))
+                } catch (_: Exception) { null }
+            }
+            if (t == null) android.widget.Toast.makeText(getApplication(), "Couldn't open that link", android.widget.Toast.LENGTH_SHORT).show()
+            else playRemote(listOf(t), 0)
+        }
+    }
+
     fun playYtCard(c: com.ubayanda.milonative.data.YtMusic.Card) {
         val s = com.ubayanda.milonative.data.YtMusic.Song(c.id, c.title, c.sub, "", "", "", 0, c.thumb)
         playRemote(listOf(com.ubayanda.milonative.data.YtMusic.toTrack(s, c.thumb)), 0)

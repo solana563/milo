@@ -19,6 +19,20 @@ class PlaybackService : MediaSessionService() {
     private var exo: ExoPlayer? = null
     private var castBridge: CastBridge? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var resumedFor: String? = null
+    private val resumeSaver = object : Runnable {
+        override fun run() {
+            val p = exo
+            try {
+                val id = p?.currentMediaItem?.mediaId
+                if (p != null && id != null && resumedFor == id && p.duration >= Resume.LONG_MS) {
+                    if (p.currentPosition > p.duration - 30_000) Resume.drop(this@PlaybackService, id)
+                    else if (p.isPlaying) Resume.put(this@PlaybackService, id, p.currentPosition, p.playbackParameters.speed)
+                }
+            } catch (_: Throwable) {}
+            handler.postDelayed(this, 10_000)
+        }
+    }
     private val ytRetried = HashSet<String>()
     private val svcScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
     private var rgScale = 1f
@@ -30,6 +44,11 @@ class PlaybackService : MediaSessionService() {
     private var primedKey: String? = null
     private var xfT0 = 0L
     private var xfLen = 0L
+    /** The new song hasn't started yet: the old one stays at full volume until it has, then the fade begins. */
+    private var xfWait = false
+    private var xfStart = 0L
+    /** Set just before the crossfade itself moves to the next song, so a skip by the person can be told apart. */
+    private var xfOwn = false
     private var lastTick = 0L
 
     /** Renderers whose audio goes through the parametric equaliser first. */
@@ -39,7 +58,7 @@ class PlaybackService : MediaSessionService() {
             androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor()))
+                .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
                 .build()
     }
 
@@ -51,6 +70,7 @@ class PlaybackService : MediaSessionService() {
 
     private fun endGhost() {
         xfLen = 0L
+        xfWait = false
         primedKey = null
         ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
     }
@@ -58,6 +78,7 @@ class PlaybackService : MediaSessionService() {
     private val fader = object : Runnable {
         override fun run() {
             val p = exo ?: return
+            Extras.loopCheck(p)
             val now = android.os.SystemClock.elapsedRealtime()
             val dt = now - lastTick
             lastTick = now
@@ -73,14 +94,29 @@ class PlaybackService : MediaSessionService() {
         var v = 1f
         if (xfLen > 0L) {
             // a crossfade is running: old song (ghost) goes down, new song goes up, equal power
-            if (!p.playWhenReady) xfT0 += dt // paused: hold the fade where it is
-            val f = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
-            v = Math.sin(f * Math.PI / 2).toFloat()
-            ghost?.let { g ->
-                g.volume = Math.cos(f * Math.PI / 2).toFloat() * rgPrev
-                g.playWhenReady = p.playWhenReady
+            val g = ghost
+            if (xfWait) {
+                // hold the old song at full volume until the new one is really playing (a slow link would otherwise fade into silence)
+                if (p.playbackState == Player.STATE_READY && p.playWhenReady) {
+                    xfWait = false
+                    xfT0 = now
+                    val rem = if (g != null && g.duration != C.TIME_UNSET) g.duration - g.currentPosition else xfLen
+                    xfLen = rem.coerceIn(400L, xfLen)
+                } else if (now - xfStart > 8000L) {
+                    endGhost()   // the next song didn't start: stop waiting
+                }
+                v = 0f
+                g?.let { it.volume = rgPrev; it.playWhenReady = p.playWhenReady }
+            } else {
+                if (!p.playWhenReady) xfT0 += dt // paused: hold the fade where it is
+                val f = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
+                v = Math.sin(f * Math.PI / 2).toFloat()
+                g?.let {
+                    it.volume = Math.cos(f * Math.PI / 2).toFloat() * rgPrev
+                    it.playWhenReady = p.playWhenReady
+                }
+                if (f >= 1f) endGhost()
             }
-            if (f >= 1f) endGhost()
         } else if (x > 0L && p.isPlaying && session?.player === p && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
             val dur = p.duration
             val item = p.currentMediaItem
@@ -106,6 +142,9 @@ class PlaybackService : MediaSessionService() {
                     g.playWhenReady = true
                     xfLen = toEnd.coerceIn(500L, x)
                     xfT0 = now
+                    xfStart = now
+                    xfWait = true
+                    xfOwn = true
                     v = 0f
                     p.volume = 0f
                     p.seekToNextMediaItem()
@@ -167,6 +206,8 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         com.ubayanda.milonative.util.ErrorLog.init(this)
         ParamEq.init(this)
+        Extras.init(this)
+        GraphicEq.init(this)
         val player = ExoPlayer.Builder(this, eqRenderers())
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
             .setAudioAttributes(
@@ -181,10 +222,12 @@ class PlaybackService : MediaSessionService() {
             .build()
         exo = player
         handler.post(fader)
+        handler.postDelayed(resumeSaver, 10_000)
         session = MediaSession.Builder(this, player).build()
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player).also { it.init() }
         BtOutput.start(this, { player.isPlaying }, { player.play() })
+        svcScope.launch { Extras.state.collect { player.skipSilenceEnabled = it.skipSilence } }
         svcScope.launch { BtOutput.now.collect { ParamEq.useDevice(if (it.kind == "speaker") "default" else it.name) } }
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
@@ -200,7 +243,25 @@ class PlaybackService : MediaSessionService() {
                 // dead stream: drop it right here so the session never carries a broken timeline
                 endGhost(); player.stop(); player.clearMediaItems()
             }
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_READY) {
+                    val id = player.currentMediaItem?.mediaId
+                    if (id != null && resumedFor != id) {
+                        resumedFor = id
+                        val d = player.duration
+                        if (d >= Resume.LONG_MS) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
+                            if (pos > 10_000 && pos < d - 30_000) { player.seekTo(pos); if (sp > 0f && sp != player.playbackParameters.speed) player.setPlaybackSpeed(sp) }
+                        }
+                    }
+                } else if (state == Player.STATE_ENDED) {
+                    player.currentMediaItem?.mediaId?.let { Resume.drop(this@PlaybackService, it) }
+                }
+            }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                // the person skipped, or the queue changed, in the middle of a crossfade: drop the old song's tail at once
+                if (xfOwn) xfOwn = false else if (xfLen > 0L || ghost != null) endGhost()
+                resumedFor = null
+                Extras.clearLoop()
                 rgPrev = rgScale
                 updateGain(player)
                 warmNext(player)

@@ -33,7 +33,7 @@ fun SelectionBar(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(26.dp)
-    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).clip(shape).background(Milo.card2, shape).border(1.dp, Milo.line, shape).padding(14.dp)) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).clip(shape).glass(shape, 1.3f, Milo.card2).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.Close, "Cancel selection", tint = Milo.text, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClose).padding(6.dp))
             Spacer(Modifier.width(10.dp))

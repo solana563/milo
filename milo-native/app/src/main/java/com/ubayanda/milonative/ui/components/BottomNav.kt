@@ -42,10 +42,10 @@ enum class Tab(val label: String, val icon: ImageVector) {
 /** The web milo. pill nav: tinted rounded bar, the active tab sits in a raised lighter pill. Solid colours, no blur effect. */
 @Composable
 fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier, avatar: String = "", name: String = "") {
-    val bar = RoundedCornerShape(40.dp)
+    val bar = RoundedCornerShape(44.dp)
     Row(
         modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
-            .clip(bar).background(Milo.card.copy(alpha = 0.96f), bar).border(1.dp, Milo.line, bar).padding(8.dp),
+            .lift(bar, 18f).glass(bar, 1.2f, Milo.card.copy(alpha = 0.94f)).padding(8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
     ) {
         Tab.values().forEach { tab ->
@@ -54,10 +54,9 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifi
             Box(
                 Modifier.width(if (on) 84.dp else 60.dp).height(56.dp).clip(pill)
                     .then(
-                        if (on) Modifier.background(Brush.verticalGradient(listOf(lerp(Milo.card2, Color.White, 0.10f), Milo.card2)), pill)
-                            .border(1.dp, Milo.line, pill) else Modifier
+                        if (on) Modifier.glass(pill, 1.7f, Milo.card2) else Modifier
                     )
-                    .clickable { onSelect(tab) },
+                    .pressable(true) { onSelect(tab) },
                 contentAlignment = Alignment.Center,
             ) {
                 androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {

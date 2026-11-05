@@ -19,10 +19,10 @@ object Sp {
 }
 
 object Rad {
-    val sm = 12.dp
-    val md = 16.dp
-    val lg = 24.dp
-    val xl = 32.dp
+    val sm = 14.dp
+    val md = 20.dp
+    val lg = 28.dp
+    val xl = 36.dp
 }
 
 object Ty {

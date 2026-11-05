@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.components.glass
 import com.ubayanda.milonative.data.Invite
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -124,7 +125,7 @@ private fun SmallBtn(label: String, filled: Boolean, onClick: () -> Unit) {
 @Composable
 private fun Field(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier, imeAction: ImeAction = ImeAction.Default, onGo: () -> Unit = {}) {
     val shape = RoundedCornerShape(Rad.lg)
-    Box(modifier.clip(shape).background(Milo.card2, shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 14.dp)) {
+    Box(modifier.clip(shape).glass(shape, 1.3f, Milo.card2).padding(horizontal = 18.dp, vertical = 14.dp)) {
         if (value.isEmpty()) Text(hint, color = Milo.dim, fontSize = 16.sp)
         BasicTextField(
             value = value, onValueChange = onChange, singleLine = true,
@@ -348,7 +349,7 @@ private fun FriendPlaylistsDialog(vm: MainViewModel, who: String, lists: List<Sh
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var open by remember { mutableStateOf<String?>(null) }
     androidx.compose.material3.AlertDialog(
-        onDismissRequest = onClose, containerColor = Milo.card,
+        onDismissRequest = onClose, containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
         title = { Text("$who's playlists", color = Milo.text) },
         text = {
             LazyColumn(Modifier.heightIn(max = 380.dp)) {

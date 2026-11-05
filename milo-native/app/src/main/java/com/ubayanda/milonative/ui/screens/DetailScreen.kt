@@ -65,6 +65,7 @@ fun DetailScreen(
     rowExtra: (Track) -> List<RowAction> = { emptyList() },
     /** Draw this picture as the cover instead of the first song's (an online playlist's own cover, say). */
     coverTrack: Track? = null,
+    headerAction2: Pair<String, () -> Unit>? = null,
 ) {
     val lead = coverTrack ?: tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
@@ -98,6 +99,13 @@ fun DetailScreen(
                     Text(
                         "Select", color = Milo.dim, fontSize = 14.sp,
                         modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { vm.selectAll(tracks.map { it.id }) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+                if (headerAction2 != null) {
+                    Text(
+                        headerAction2.first, color = Milo.dim, fontSize = 14.sp,
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { headerAction2.second() }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                     )
                 }

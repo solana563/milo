@@ -22,6 +22,15 @@ object TintState {
     var card2 by mutableStateOf(Color(0xFF1D1A17))
     var line by mutableStateOf(Color(0xFF2B2723))
     var art by mutableStateOf(false)
+    var accent by mutableStateOf(Color(0xFFF99C00))
+}
+
+/** The accent colour the person picked (amber by default). */
+object Accent {
+    val choices = listOf(0xFFF99C00, 0xFFFF6B6B, 0xFFE06BFF, 0xFF6B9BFF, 0xFF3DDC97, 0xFFF4EFE4).map { Color(it) }
+    private fun p(c: android.content.Context) = c.getSharedPreferences("milo_ui", android.content.Context.MODE_PRIVATE)
+    fun load(c: android.content.Context) { val v = p(c).getLong("accent", 0L); if (v != 0L) TintState.accent = Color(v.toULong()) }
+    fun set(c: android.content.Context, col: Color) { TintState.accent = col; p(c).edit().putLong("accent", col.value.toLong()).apply() }
 }
 
 /** The same palette as the web milo.: near-black, warm cream text, amber accent; panels, cards and lines pick up the song's colour. */
@@ -34,7 +43,7 @@ object Milo {
     val text = Color(0xFFF3EDE0)
     val cream = Color(0xFFF4EFE4)
     val dim = Color(0xFFA8A194)
-    val amber = Color(0xFFF99C00)
+    val amber: Color get() = TintState.accent
 }
 
 val Figtree = FontFamily(
@@ -51,6 +60,8 @@ val Fraunces = FontFamily(
 
 @Composable
 fun MiloTheme(content: @Composable () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.remember { Accent.load(ctx) }
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Milo.amber,
@@ -60,6 +71,16 @@ fun MiloTheme(content: @Composable () -> Unit) {
             onSurface = Milo.text,
             onBackground = Milo.text,
             surfaceVariant = Milo.card2,
+            surfaceContainer = Milo.card2,
+            surfaceContainerHigh = Milo.card2,
+            surfaceContainerHighest = Milo.card2,
+        ),
+        shapes = androidx.compose.material3.Shapes(
+            extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+            small = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+            medium = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+            large = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+            extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(34.dp),
         ),
     ) {
         ProvideTextStyle(TextStyle(fontFamily = Figtree)) { content() }

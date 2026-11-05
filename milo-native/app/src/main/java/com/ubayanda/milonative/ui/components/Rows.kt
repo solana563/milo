@@ -83,6 +83,7 @@ fun TrackRow(
     val selecting by remember { androidx.compose.runtime.derivedStateOf { selState.value.isNotEmpty() } }
     val picked by remember(t.id) { androidx.compose.runtime.derivedStateOf { t.id in selState.value } }
     var menu by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf(false) }
     val savedItems = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value
     val isYt = t.uri.startsWith("yt:")
     val saved = isYt && savedItems.any { it.id == t.uri.removePrefix("yt:") }
@@ -149,6 +150,10 @@ fun TrackRow(
                 IconButton(onClick = { menu = true }) {
                     Icon(Icons.Rounded.MoreHoriz, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
                 }
+                if (editing) EditInfoDialog(
+                    t.title, t.artist.takeIf { it != "Unknown artist" } ?: "", t.album, com.ubayanda.milonative.data.MetaEdits.has(t.id),
+                    { n, a, al -> editing = false; vm.editInfo(t.id, n, a, al) }, { editing = false; vm.resetInfo(t.id) }, { editing = false },
+                )
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Play next") }, onClick = { menu = false; vm.player.playNext(t) })
                     DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menu = false; vm.player.addToQueue(t) })
@@ -156,6 +161,7 @@ fun TrackRow(
                     DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { menu = false; actions.addToPlaylist(t) })
                     DropdownMenuItem(text = { Text("Select multiple") }, onClick = { menu = false; vm.toggleSelect(t.id) })
                     DropdownMenuItem(text = { Text("Share") }, onClick = { menu = false; actions.share(t) })
+                    if (t.id >= 0 && t.uri.startsWith("content:")) DropdownMenuItem(text = { Text("Edit info") }, onClick = { menu = false; editing = true })
                     if (isYt) DropdownMenuItem(
                         text = { Text(if (saved) "Remove download" else "Download for offline") },
                         onClick = {
@@ -213,8 +219,8 @@ fun MiloChip(label: String, on: Boolean, modifier: Modifier = Modifier, onClick:
     Text(
         label, color = if (on) Color.Black else Milo.text, style = Ty.label,
         textAlign = TextAlign.Center, maxLines = 1, softWrap = false,
-        modifier = modifier.heightIn(min = 44.dp).clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
-            .border(1.dp, if (on) Milo.amber else Milo.line, shape).clickable(onClick = onClick)
+        modifier = modifier.heightIn(min = 44.dp).pressable(true, onClick).clip(shape).background(if (on) Milo.amber else Milo.card2, shape)
+            .border(1.dp, glassStroke(if (on) 0.9f else 1f), shape)
             .padding(horizontal = Sp.x3, vertical = 11.dp),
     )
 }

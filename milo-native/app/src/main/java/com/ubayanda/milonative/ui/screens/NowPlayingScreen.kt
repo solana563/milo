@@ -1,5 +1,7 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.components.MiloSlider
+import com.ubayanda.milonative.ui.components.pressable
 import androidx.compose.animation.togetherWith
 import android.graphics.Bitmap
 import com.ubayanda.milonative.ui.components.shimmer
@@ -258,7 +260,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     IconTap(Icons.Rounded.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
                     RoundDark(Icons.Rounded.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
-                        Modifier.size(88.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                        Modifier.size(88.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
@@ -370,7 +372,7 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
             if (xf < 1f) "Off. Songs play gaplessly back to back." else "${xf.roundToInt()} s: the end of one song overlaps the start of the next, fading out while the next fades in.",
             color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
         )
-        Slider(
+        MiloSlider(
             value = xf, onValueChange = { xf = it; vm.player.setCrossfade(it.roundToInt()) }, valueRange = 0f..12f, steps = 11,
             colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
         )
@@ -380,39 +382,29 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         var rg by remember { mutableStateOf(fxp.getBoolean("rg", true)) }
         Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Turns louder songs down to match quieter ones, using ReplayGain tags in your files and YouTube's own loudness. It never boosts, so nothing distorts. Applies from the next song.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            androidx.compose.material3.Switch(checked = rg, onCheckedChange = { rg = it; fxp.edit().putBoolean("rg", it).apply() },
+            com.ubayanda.milonative.ui.components.MiloSwitch(checked = rg, onCheckedChange = { rg = it; fxp.edit().putBoolean("rg", it).apply() },
                 colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
         }
 
-        ParametricSection()
+        ExtrasSection(ui)
 
         Label("Equaliser")
-        if (!fx.available) {
-            Text("This phone doesn't expose an equaliser. Speed still works.", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp))
-        } else {
-            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(AudioFx.presets.keys.toList()) { name -> MiloChip(name, fx.preset == name) { AudioFx.applyPreset(name) } }
-            }
-            Spacer(Modifier.height(8.dp))
-            fx.levelsDb.forEachIndexed { i, db ->
-                val hz = fx.freqsHz.getOrElse(i) { 0 }
-                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (hz >= 1000) "${hz / 1000}k" else "$hz", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(40.dp))
-                    Slider(
-                        value = db, onValueChange = { AudioFx.setBand(i, it) },
-                        valueRange = fx.minDb..(if (fx.maxDb > fx.minDb) fx.maxDb else fx.minDb + 1f),
-                        colors = amberSlider(), modifier = Modifier.weight(1f),
-                    )
-                    Text("${db.roundToInt()} dB", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(48.dp))
-                }
-            }
-            Label("Bass boost")
-            Slider(
+        com.ubayanda.milonative.ui.components.GraphicEqPanel()
+
+        var fine by remember { mutableStateOf(false) }
+        Label("Fine tuning")
+        MiloChip(if (fine) "Hide parametric EQ" else "Show parametric EQ", fine, Modifier.padding(horizontal = 20.dp)) { fine = !fine }
+        if (fine) ParametricSection()
+
+        if (fx.available) {
+            Label("Effects")
+            Text("Bass boost", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
+            MiloSlider(
                 value = fx.bass.toFloat(), onValueChange = { AudioFx.setBass(it.roundToInt()) }, valueRange = 0f..1000f,
                 colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
             )
-            Label("Spatial")
-            Slider(
+            Text("Spatial", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
+            MiloSlider(
                 value = fx.spatial.toFloat(), onValueChange = { AudioFx.setSpatial(it.roundToInt()) }, valueRange = 0f..1000f,
                 colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
             )
@@ -424,6 +416,40 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
 private fun amberSlider() = SliderDefaults.colors(
     thumbColor = Milo.amber, activeTrackColor = Milo.amber, inactiveTrackColor = Color.White.copy(alpha = 0.2f),
 )
+
+@Composable
+private fun ExtrasSection(ui: PlayerUi) {
+    val ex by com.ubayanda.milonative.player.Extras.state.collectAsState()
+    val lp by com.ubayanda.milonative.player.Extras.loop.collectAsState()
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Listening extras")
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Skip silence between and inside songs", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = ex.skipSilence, onCheckedChange = { com.ubayanda.milonative.player.Extras.set(ex.copy(skipSilence = it)) }, colors = sw)
+    }
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Mono (both ears hear the same mix)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = ex.mono, onCheckedChange = { com.ubayanda.milonative.player.Extras.set(ex.copy(mono = it)) }, colors = sw)
+    }
+    Text(
+        "Balance  " + if (ex.balance < -0.02f) "left ${(-ex.balance * 100).roundToInt()}%" else if (ex.balance > 0.02f) "right ${(ex.balance * 100).roundToInt()}%" else "centre",
+        color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, top = 6.dp),
+    )
+    MiloSlider(
+        value = ex.balance, onValueChange = { com.ubayanda.milonative.player.Extras.set(ex.copy(balance = if (kotlin.math.abs(it) < 0.04f) 0f else it)) },
+        valueRange = -1f..1f, colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
+    )
+    val loopText = when {
+        lp.a < 0 -> "Set A"
+        lp.b < 0 -> "Set B (A at ${fmtTime(lp.a)})"
+        else -> "Looping ${fmtTime(lp.a)} to ${fmtTime(lp.b)}. Tap to clear"
+    }
+    Text(
+        "A-B loop: " + loopText, color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp))
+            .clickable { com.ubayanda.milonative.player.Extras.markLoop(ui.positionMs) }.padding(horizontal = 6.dp, vertical = 8.dp),
+    )
+}
 
 @Composable
 private fun Label(text: String) {
@@ -448,9 +474,6 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
         }
     }
     val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 400)
-    var micOk by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
-    val askMic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { micOk = it }
-    androidx.compose.runtime.LaunchedEffect(Unit) { if (!micOk) askMic.launch(android.Manifest.permission.RECORD_AUDIO) }
     val tintNow = vm.tint.collectAsState().value
     fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
     Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
@@ -485,12 +508,12 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                     Spacer(Modifier.width(10.dp))
                 }
                 Box(
-                    Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() },
+                    Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                     contentAlignment = Alignment.Center,
                 ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
             }
             Spacer(Modifier.height(10.dp))
-            if (ui.isPlaying && micOk) com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.padding(bottom = 10.dp), height = 34.dp)
+            if (ui.isPlaying) com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.padding(bottom = 10.dp), height = 34.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300)
                 Spacer(Modifier.width(18.dp))
@@ -651,23 +674,21 @@ private fun VisualPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val tint = vm.tint.collectAsState().value
     val accent = if (tint == 0) Milo.amber else Color(0xFF000000.toInt() or tint)
     val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 600)
-    var micOk by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
-    val askMic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { micOk = it }
-    androidx.compose.runtime.LaunchedEffect(Unit) { if (!micOk) askMic.launch(android.Manifest.permission.RECORD_AUDIO) }
     Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
                 Spacer(Modifier.weight(1f))
-                Box(Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).clickable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
                     Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp))
                 }
             }
             Spacer(Modifier.weight(1f))
             coverBmp?.let { Image(it.asImageBitmap(), null, Modifier.size(220.dp).clip(RoundedCornerShape(28.dp)), contentScale = ContentScale.Crop) }
             Spacer(Modifier.height(24.dp))
-            if (micOk) com.ubayanda.milonative.ui.components.SpectrumView(accent, height = 180.dp, mirrored = true)
-            else Text("Allow the microphone permission so milo. can analyse the sound it plays. Nothing is recorded.", color = Milo.dim, fontSize = 15.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            var vstyle by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(1) }
+            com.ubayanda.milonative.ui.components.SpectrumView(accent, Modifier.clickable { vstyle = (vstyle + 1) % com.ubayanda.milonative.ui.components.SPECTRUM_STYLES }, height = 180.dp, style = vstyle)
+            Text("Tap the visual to change its look", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
             Spacer(Modifier.height(24.dp))
             Text(t.title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text(t.artist, color = Color(0xFFD6D0C4), fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -687,7 +708,7 @@ private fun ParametricSection() {
             Text(if (peq.device == "default") "For: phone speaker and anything without its own curve" else "For: " + peq.device, color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Text("Set each band's frequency, gain and width (Q). It works on every output, and each pair of headphones keeps its own curve.", color = Milo.dim, fontSize = 13.sp)
         }
-        androidx.compose.material3.Switch(checked = peq.enabled, onCheckedChange = { com.ubayanda.milonative.player.ParamEq.setEnabled(it) },
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = peq.enabled, onCheckedChange = { com.ubayanda.milonative.player.ParamEq.setEnabled(it) },
             colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
     }
     if (peq.enabled) {
@@ -696,7 +717,7 @@ private fun ParametricSection() {
                 Text("Band ${i + 1}  ·  " + (if (b.hz >= 1000f) "%.1f kHz".format(b.hz / 1000f) else "${b.hz.roundToInt()} Hz") + "  ·  " + "%+.1f dB".format(b.db) + "  ·  Q %.1f".format(b.q), color = Color.White, fontSize = 13.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Freq", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
-                    Slider(
+                    MiloSlider(
                         value = (Math.log10((b.hz / 20f).toDouble()) / 3.0).toFloat(), valueRange = 0f..1f,
                         onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(hz = (20.0 * Math.pow(1000.0, x.toDouble())).toFloat())) },
                         colors = amberSlider(), modifier = Modifier.weight(1f),
@@ -704,11 +725,11 @@ private fun ParametricSection() {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Gain", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
-                    Slider(value = b.db, valueRange = -12f..12f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(db = (x * 2).roundToInt() / 2f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
+                    MiloSlider(value = b.db, valueRange = -12f..12f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(db = (x * 2).roundToInt() / 2f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Q", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.width(38.dp))
-                    Slider(value = b.q, valueRange = 0.3f..4f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(q = (x * 10).roundToInt() / 10f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
+                    MiloSlider(value = b.q, valueRange = 0.3f..4f, onValueChange = { x -> com.ubayanda.milonative.player.ParamEq.setBand(i, b.copy(q = (x * 10).roundToInt() / 10f)) }, colors = amberSlider(), modifier = Modifier.weight(1f))
                 }
             }
         }

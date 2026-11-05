@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="shuffle" android:enabled="true" android:shortcutShortLabel="@string/sc_shuffle" android:icon="@mipmap/ic_launcher">
+        <intent android:action="com.ubayanda.milonative.SHUFFLE" android:targetPackage="com.ubayanda.milonative" android:targetClass="com.ubayanda.milonative.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="liked" android:enabled="true" android:shortcutShortLabel="@string/sc_liked" android:icon="@mipmap/ic_launcher">
+        <intent android:action="com.ubayanda.milonative.LIKED" android:targetPackage="com.ubayanda.milonative" android:targetClass="com.ubayanda.milonative.MainActivity" />
+    </shortcut>
+</shortcuts>

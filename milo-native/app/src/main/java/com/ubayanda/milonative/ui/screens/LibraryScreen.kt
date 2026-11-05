@@ -69,18 +69,14 @@ import kotlinx.coroutines.launch
 fun LibraryScreen(
     vm: MainViewModel, tracks: List<Track>, albums: List<Album>, artists: List<Artist>, playlists: List<Playlist>,
     likedCount: Int, ui: PlayerUi, section: Int, onSection: (Int) -> Unit, bottomPad: Dp,
-    onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit, onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit,
+    onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit, onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onSmart: (String) -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Your library")
-        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Songs", "Albums", "Artists", "Playlists").forEachIndexed { i, label ->
-                MiloChip(label, i == section, Modifier.weight(1f)) { onSection(i) }
-            }
-        }
+        com.ubayanda.milonative.ui.components.GlassSegmented(listOf("Songs", "Albums", "Artists", "Playlists"), section, onSection, Modifier.padding(horizontal = 18.dp))
         Spacer(Modifier.padding(top = 10.dp))
         when {
-            section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked)
+            section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked, onSmart)
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
             section == 0 -> SongsList(vm, tracks, ui, bottomPad)
             section == 1 -> LazyVerticalGrid(
@@ -158,12 +154,25 @@ private fun IconRow(icon: ImageVector, hot: Boolean, title: String, sub: String,
 @Composable
 private fun PlaylistsList(
     vm: MainViewModel, playlists: List<Playlist>, likedCount: Int, bottomPad: Dp,
-    onOpen: (Playlist) -> Unit, onLiked: () -> Unit,
+    onOpen: (Playlist) -> Unit, onLiked: () -> Unit, onSmart: (String) -> Unit,
 ) {
     var creating by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val text = try { ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: "" } catch (e: Exception) { "" }
+            val name = (ctx.contentResolver.query(uri, null, null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(c.getColumnIndexOrThrow("_display_name")) else null } ?: "Imported playlist").substringBeforeLast('.')
+            val (found, total) = vm.importM3u(name, com.ubayanda.milonative.util.M3u.parse(text))
+            android.widget.Toast.makeText(ctx, if (found == 0) "None of those songs are on this phone." else "Imported $found of $total songs.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
         item { IconRow(Icons.Rounded.Add, false, "New playlist", "Make your own mix", { creating = true }) }
+        item { IconRow(Icons.Rounded.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
         item { IconRow(Icons.Rounded.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
+        item { IconRow(Icons.Rounded.QueueMusic, false, "Most played", "Built from your listening", { onSmart("most") }) }
+        item { IconRow(Icons.Rounded.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
+        item { IconRow(Icons.Rounded.QueueMusic, false, "Never played", "Songs waiting for you", { onSmart("never") }) }
         items(playlists, key = { it.id }) { p ->
             IconRow(Icons.Rounded.QueueMusic, false, p.name, plural(p.trackIds.size, "song")) { onOpen(p) }
         }

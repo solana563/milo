@@ -80,6 +80,7 @@ private sealed class Detail {
     data class ArtistD(val artist: Artist) : Detail()
     object Liked : Detail()
     data class PlaylistD(val id: String) : Detail()
+    data class Smart(val kind: String) : Detail()
 }
 
 @Composable
@@ -213,15 +214,30 @@ fun MiloApp(vm: MainViewModel) {
                         is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, rowExtra = { t ->
                             listOf(RowAction("Remove from Liked songs") { vm.toggleFav(t.id) })
                         })
+                        is Detail.Smart -> DetailScreen(
+                            vm, when (d.kind) { "most" -> "Most played"; "recent" -> "Recently added"; else -> "Never played" },
+                            "Made for you", remember(d.kind, tracks, ui.currentId) { vm.smartTracks(d.kind) }, ui, bottomPad, { detail = null },
+                        )
                         is Detail.PlaylistD -> {
                             val p = playlists.firstOrNull { it.id == d.id }
                             LaunchedEffect(p == null) { if (p == null) detail = null }
                             if (p != null) {
                                 var renaming by remember { mutableStateOf(false) }
+                                var exporting by remember { mutableStateOf(false) }
                                 val list = p.trackIds.mapNotNull { byId[it] }
+                                val ctxE = androidx.compose.ui.platform.LocalContext.current
+                                val saver = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("audio/x-mpegurl")) { uri ->
+                                    if (uri != null) {
+                                        try { ctxE.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(com.ubayanda.milonative.util.M3u.export(list)) }
+                                            android.widget.Toast.makeText(ctxE, "Playlist saved", android.widget.Toast.LENGTH_SHORT).show()
+                                        } catch (e: Exception) { android.widget.Toast.makeText(ctxE, "Couldn't save the file", android.widget.Toast.LENGTH_SHORT).show() }
+                                    }
+                                }
+                                LaunchedEffect(exporting) { if (exporting) { exporting = false; saver.launch(p.name.replace(Regex("[^A-Za-z0-9 _-]"), "") + ".m3u") } }
                                 DetailScreen(
                                     vm, p.name, "Playlist", list, ui, bottomPad, { detail = null },
                                     headerAction = "Rename" to { renaming = true },
+                                    headerAction2 = "Export" to { exporting = true },
                                     onMove = { f, t -> vm.movePlaylistItem(p.id, f, t) },
                                     rowExtra = { t -> listOf(RowAction("Remove from this playlist") { vm.removeFromPlaylist(p.id, t.id) }) },
                                 )
@@ -245,9 +261,10 @@ fun MiloApp(vm: MainViewModel) {
                             Tab.Library -> LibraryScreen(
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
+                                onSmart = { detail = Detail.Smart(it) },
                             )
                             Tab.Discover -> DiscoverScreen(vm, ui, bottomPad, { l, i -> yt = l to i }, { ytPages = ytPages + it })
-                            Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) })
+                            Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, onOpenPlaylist = { detail = Detail.PlaylistD(it.id) }, onOpenFriend = { chatWith = it; friendsOpen = true })
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
                     }
@@ -293,6 +310,7 @@ fun MiloApp(vm: MainViewModel) {
             AnimatedVisibility(visible = car, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.CarScreen(vm, current, ui, current != null && favs.contains(current.id)) { car = false }
             }
+            com.ubayanda.milonative.ui.screens.TourOverlay()
         }
 
         pickFor?.let { t ->

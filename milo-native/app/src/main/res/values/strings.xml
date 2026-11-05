@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">milo.</string>
+    <string name="sc_shuffle">Shuffle all</string>
+    <string name="sc_liked">Liked songs</string>
 </resources>
