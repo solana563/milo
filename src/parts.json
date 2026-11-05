@@ -88,6 +88,7 @@
   "js/71-audio-output-bluetooth.js",
   "js/72-discord-presence.js",
   "js/73-error-report.js",
+  "js/74-desktop-offline-downloads.js",
   "foot.html"
  ]
 }
