@@ -32,8 +32,14 @@ function loadCfg() {
 function saveCfg() { try { fs.writeFileSync(cfgFile(), JSON.stringify(cfg)); } catch {} }
 const AUDIO = /\.(mp3|m4a|aac|flac|wav|ogg|opus|weba)$/i;
 const sameP = (a, b) => process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+const offDir = () => path.join(app.getPath("userData"), "offline");
+const offIdx = () => path.join(offDir(), "index.json");
+function readOff() { try { return JSON.parse(fs.readFileSync(offIdx(), "utf8")); } catch { return {}; } }
+function writeOff(o) { fs.mkdirSync(offDir(), { recursive: true }); fs.writeFileSync(offIdx(), JSON.stringify(o)); }
 function inside(file) {
   const f = path.resolve(file);
+  const od = path.resolve(offDir()) + path.sep;
+  if (process.platform === "win32" ? f.toLowerCase().startsWith(od.toLowerCase()) : f.startsWith(od)) return true; // saved songs
   return loadCfg().folders.some((d) => { const r = path.resolve(d); return sameP(f, r) || (process.platform === "win32" ? f.toLowerCase().startsWith((r + path.sep).toLowerCase()) : f.startsWith(r + path.sep)); });
 }
 async function walkDir(root, rel, out, lrc) {
@@ -224,6 +230,50 @@ if (!app.requestSingleInstanceLock()) {
         h.set("Access-Control-Allow-Origin", "*");
         return new Response(r.body, { status: r.status, headers: h });
       } catch (e) { return new Response("Bad gateway", { status: 502 }); }
+    });
+    /* Offline songs: the audio file is saved in bounded pieces (same reason as milostream) into <app data>/offline and played back through milofile */
+    const dlBusy = new Set();
+    ipcMain.handle("dsk:dl-list", () => { const o = readOff(), out = {}; for (const k of Object.keys(o)) { if (o[k] && fs.existsSync(o[k].file)) out[k] = o[k]; } return out; });
+    ipcMain.handle("dsk:dl-remove", (_e, vid) => {
+      const o = readOff(); const x = o[String(vid)];
+      if (x) { try { fs.unlinkSync(x.file); } catch {} delete o[String(vid)]; writeOff(o); }
+      return true;
+    });
+    ipcMain.handle("dsk:dl-start", async (e, r) => {
+      const vid = String(r.vid || "");
+      if (!/^[\w-]{6,20}$/.test(vid)) throw new Error("bad id");
+      if (!/^https:\/\/[a-z0-9.-]+\.googlevideo\.com\//i.test(String(r.url))) throw new Error("blocked host");
+      if (dlBusy.has(vid)) return false;
+      dlBusy.add(vid);
+      const ext = /webm|opus/i.test(String(r.mime || "")) ? "webm" : "m4a";
+      const file = path.join(offDir(), vid + "." + ext), tmp = file + ".part";
+      try {
+        fs.mkdirSync(offDir(), { recursive: true });
+        const fd = fs.openSync(tmp, "w");
+        let pos = 0, total = 0;
+        try {
+          const CH = 4 * 1024 * 1024;
+          while (!total || pos < total) {
+            const headers = { Range: "bytes=" + pos + "-" + (pos + CH - 1) };
+            if (r.ua) headers["User-Agent"] = String(r.ua);
+            const res = await net.fetch(r.url, { headers });
+            if (res.status !== 206 && res.status !== 200) throw new Error("HTTP " + res.status);
+            const buf = Buffer.from(await res.arrayBuffer());
+            const m = /\/(\d+)$/.exec(res.headers.get("content-range") || "");
+            total = m ? +m[1] : buf.length;
+            fs.writeSync(fd, buf, 0, buf.length, pos);
+            pos += buf.length;
+            try { e.sender.send("dsk:dl-progress", { vid, pct: total ? pos / total : 0 }); } catch {}
+            if (!buf.length || res.status === 200) break;
+          }
+        } finally { fs.closeSync(fd); }
+        fs.renameSync(tmp, file);
+        const o = readOff();
+        o[vid] = { file, ext, t: String(r.t || ""), a: String(r.a || ""), d: +r.d || 0, size: pos, at: Date.now() };
+        writeOff(o);
+        return true;
+      } catch (err) { try { fs.unlinkSync(tmp); } catch {} throw err; }
+      finally { dlBusy.delete(vid); }
     });
     ipcMain.handle("dsk:folders", () => loadCfg().folders.slice());
     ipcMain.handle("dsk:pick", async () => {

@@ -46,3 +46,13 @@ The native Android app got the same engine (`data/YtMusic.kt`, `player/YtSource.
 - Gapless for streamed songs (the next song's link is looked up while the current one plays); local songs were already gapless with crossfade off.
 - Loudness matching (ReplayGain tags in files, YouTube's own loudness for streams), turn-down only.
 - Parametric EQ: five peaking bands (frequency, gain, Q) inside the player's audio path, with a saved curve per output device.
+
+Round 4 (social): Listen-together invites travel as plain chat text ("Listen together · code XXXXXX"), so no database changes are needed. Recap share is plain text.
+
+Round 5: universal search (library, playlists, friends, saved-lyrics search, YouTube Music), per-year recap, Windows offline downloads (stored in the app data folder, played through the same local file protocol as linked folders).
+
+Round 6 (phone app): smart playlists, .m3u import/export, skip silence / mono / balance / A-B loop, long-recording resume, lyrics saved with downloads, YouTube links, song info editing (kept in the app), app shortcuts, accent colour, first-run tour.
+
+Round 7 (phone app): ten-band graphic EQ with fader UI, visualiser rebuilt on the player's own audio (no microphone permission), crossfade fixes (skip during a fade, wait for the next song), pressable button feel.
+
+Round 8 (phone app): glass design pass. Rim-lit translucent panels, capsule controls, glass tab bar and mini player, big-knob sliders, glowing switches, glass segmented control, larger corner radii.

@@ -24,5 +24,9 @@ contextBridge.exposeInMainWorld("miloDesktop", {
     const b = (x) => btoa(unescape(encodeURIComponent(x))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     return "milostream://s/" + b(url) + "?ua=" + b(ua || "");
   },
+  dlStart: (r) => ipcRenderer.invoke("dsk:dl-start", r),
+  dlList: () => ipcRenderer.invoke("dsk:dl-list"),
+  dlRemove: (vid) => ipcRenderer.invoke("dsk:dl-remove", vid),
+  onDlProgress: (cb) => ipcRenderer.on("dsk:dl-progress", (_e, p) => cb(p)),
   onFoldersChanged: (cb) => ipcRenderer.on("dsk:changed", () => cb()),
 });
