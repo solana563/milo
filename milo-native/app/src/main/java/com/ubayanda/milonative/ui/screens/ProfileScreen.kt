@@ -131,6 +131,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
             Spacer(Modifier.height(16.dp))
             SharingCard(vm, a)
         }
+        Spacer(Modifier.height(16.dp))
+        BroughtByCard()
         if (a.signedIn) {
             Spacer(Modifier.height(18.dp))
             Text(
@@ -612,6 +614,35 @@ private fun DownloadsCard(vm: MainViewModel) {
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()
             android.widget.Toast.makeText(ctx, "Downloads removed", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
+
+@Composable
+private fun BroughtByCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    fun open(url: String, mail: Boolean = false) {
+        try {
+            val i = android.content.Intent(if (mail) android.content.Intent.ACTION_SENDTO else android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+            if (mail) i.putExtra(android.content.Intent.EXTRA_SUBJECT, "milo.")
+            ctx.startActivity(i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(ctx, "Couldn't open that", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Brought to you by", color = Milo.dim, style = Ty.caption)
+        Text("theLEAF foundation", color = Milo.text, style = Ty.title, modifier = Modifier.padding(top = 2.dp))
+        Text(
+            "milo. is part of theLEAF foundation \u00a92021.\nmilo. \u2014 my music played my way.",
+            color = Milo.dim, style = Ty.caption, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Pill("Instagram  @ubayanda.rsa", null, false) { open("https://instagram.com/ubayanda.rsa") }
+            Pill("WhatsApp channel", null, false) { open("https://whatsapp.com/channel/0029Vb8fzZ76hENyyzsta30d") }
+            Pill("ubayanda563@gmail.com", null, false) { open("mailto:ubayanda563@gmail.com", true) }
         }
     }
 }

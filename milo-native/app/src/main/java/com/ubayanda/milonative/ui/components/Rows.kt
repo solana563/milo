@@ -95,7 +95,10 @@ fun TrackRow(
         // what the swipe will do, shown behind the row
         if (dx > 8f) Text("Play next", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterStart).padding(start = 22.dp))
         if (dx < -8f) Text(if (liked) "Unlike" else "Like", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp))
-        val hot = Modifier.padding(horizontal = Sp.x2).clip(RoundedCornerShape(Rad.lg)).background(Milo.card)
+        val hotShape = RoundedCornerShape(Rad.lg)
+        val hot = Modifier.padding(horizontal = Sp.x2).clip(hotShape)
+            .background(if (current) androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(accent.copy(alpha = 0.26f), accent.copy(alpha = 0.08f))) else androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Milo.card, Milo.card)), hotShape)
+            .border(1.dp, if (current) accent.copy(alpha = 0.55f) else Milo.line, hotShape)
         Row(
             Modifier.graphicsLayer { translationX = dx * 0.55f }
                 .then(if (current || picked) hot else Modifier).fillMaxWidth()
@@ -132,7 +135,7 @@ fun TrackRow(
             Spacer(Modifier.width(Sp.x3))
             Column(Modifier.weight(1f)) {
                 Text(
-                    t.title, color = if (current) Milo.amber else Milo.text, style = Ty.body,
+                    t.title, color = if (current) accent else Milo.text, style = Ty.body,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -142,7 +145,8 @@ fun TrackRow(
             }
             if (saved) Icon(Icons.Rounded.DownloadDone, "Saved on this phone", tint = Milo.amber, modifier = Modifier.padding(end = 6.dp).size(16.dp))
             else if (dlNow != null && dlNow >= 0f) Text("${(dlNow * 100).toInt()}%", color = Milo.amber, style = Ty.caption, modifier = Modifier.padding(end = 6.dp))
-            Text(fmtTime(t.durationMs), color = Milo.dim, style = Ty.caption)
+            if (current) PlayingBars(accent)
+            Text(fmtTime(t.durationMs), color = if (current) accent else Milo.dim, style = Ty.caption)
             if (handle != null) {
                 Icon(Icons.Rounded.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
             }
@@ -223,4 +227,17 @@ fun MiloChip(label: String, on: Boolean, modifier: Modifier = Modifier, onClick:
             .border(1.dp, glassStroke(if (on) 0.9f else 1f), shape)
             .padding(horizontal = Sp.x3, vertical = 11.dp),
     )
+}
+
+
+/** Three little bars that dance beside the song that is playing. */
+@Composable
+fun PlayingBars(color: Color) {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "bars")
+    val a by t.animateFloat(0.3f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(520), androidx.compose.animation.core.RepeatMode.Reverse), label = "a")
+    val b by t.animateFloat(1f, 0.35f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(430), androidx.compose.animation.core.RepeatMode.Reverse), label = "b")
+    val c by t.animateFloat(0.5f, 0.95f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(610), androidx.compose.animation.core.RepeatMode.Reverse), label = "c")
+    Row(Modifier.padding(end = 8.dp).height(14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
+        listOf(a, b, c).forEach { h -> Box(Modifier.width(3.dp).height((14f * h).dp).clip(RoundedCornerShape(2.dp)).background(color)) }
+    }
 }

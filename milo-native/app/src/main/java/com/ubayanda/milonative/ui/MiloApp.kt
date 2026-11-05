@@ -281,7 +281,7 @@ fun MiloApp(vm: MainViewModel) {
                         onLike = { vm.likeMany(selection.toList()); vm.clearSelection() },
                         onPlaylist = { pickMany = true },
                     )
-                } else if (current != null && tab != Tab.Home) {
+                } else if (current != null && tab != Tab.Home && vm.canJump?.invoke() == true) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })

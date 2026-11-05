@@ -154,7 +154,8 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
                 val on = t.id == ui.currentId
                 Row(
-                    Modifier.fillMaxWidth().clickable {
+                    Modifier.fillMaxWidth().padding(horizontal = if (on) 8.dp else 0.dp)
+                        .then(if (on) Modifier.clip(RoundedCornerShape(Rad.lg)).background(Milo.amber.copy(alpha = 0.16f)) else Modifier).clickable {
                         if (mode == 3) scope.launch {
                             // plays in milo.'s own player; if no direct stream can be found, the old embedded player is the way out
                             if (vm.youtube.canStream(t)) vm.playRemote(items, i) else onYouTube(items, i)

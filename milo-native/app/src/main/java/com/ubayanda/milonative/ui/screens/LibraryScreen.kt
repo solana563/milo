@@ -209,8 +209,9 @@ private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bott
             val i = rows.indexOfFirst { it is Track && it.id == curId }
             if (i >= 0) { scope.launch { state.animateScrollToItem((i - 2).coerceAtLeast(0)) }; true } else false
         }
-        vm.jumper = j
-        onDispose { if (vm.jumper === j) vm.jumper = null }
+        val can: () -> Boolean = { rows.any { it is Track && it.id == curId } }
+        vm.jumper = j; vm.canJump = can
+        onDispose { if (vm.jumper === j) { vm.jumper = null; vm.canJump = null } }
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = state, contentPadding = PaddingValues(end = 18.dp, bottom = bottomPad)) {
