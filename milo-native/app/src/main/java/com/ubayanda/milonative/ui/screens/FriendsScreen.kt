@@ -80,7 +80,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.animateFloat
 import com.ubayanda.milonative.data.ChatMedia
+import com.ubayanda.milonative.ui.components.glassStroke
+import com.ubayanda.milonative.ui.components.lift
+import com.ubayanda.milonative.ui.components.pressable
+import androidx.compose.material.icons.rounded.ChatBubble
 import com.ubayanda.milonative.data.ChatMsg
 import com.ubayanda.milonative.data.Friend
 import com.ubayanda.milonative.data.FriendShare
@@ -148,6 +153,8 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
     var name by remember { mutableStateOf("") }
     var addOpen by remember { mutableStateOf(false) }
     var profile by remember { mutableStateOf<Friend?>(null) }
+    var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
+    var q by remember { mutableStateOf("") }
     LaunchedEffect(acct.signedIn) {
         while (acct.signedIn) {
             vm.social.refresh()
@@ -176,7 +183,16 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
         val fr = s.friends.filter { it.status == "friend" }.sortedWith(
             compareByDescending<Friend> { it.id in s.unread }.thenByDescending { s.last[it.id]?.at ?: 0L }.thenBy { it.name.lowercase() }
         )
-        val listening = fr.filter { s.shared[it.id]?.now != null }
+        val frShown = if (q.isBlank()) fr else fr.filter { it.name.contains(q.trim(), true) || it.username.contains(q.trim(), true) }
+        val badge = s.unread.size + req.size
+        com.ubayanda.milonative.ui.components.GlassSegmented(
+            listOf("Feed", if (badge > 0) "Chats \u00b7 $badge" else "Chats"), tab, { tab = it }, Modifier.padding(horizontal = 18.dp, vertical = 6.dp),
+        )
+        if (tab == 0) {
+            FeedContent(vm, fr, s, Modifier.weight(1f), onChat = onChat, onProfile = { profile = it }, onToChats = { tab = 1 }, requests = req.size)
+            profile?.let { f -> FriendProfileDialog(vm, f, s.shared[f.id], onChat = { profile = null; onChat(f) }, onClose = { profile = null }) }
+            return@Column
+        }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 40.dp)) {
             if (addOpen) item(key = "add") {
                 Column(Modifier.padding(horizontal = 18.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -188,24 +204,6 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
             }
             if (s.err.isNotEmpty()) item(key = "err") { Text(s.err, color = DANGER, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
             if (s.note.isNotEmpty()) item(key = "note") { Text(s.note, color = Milo.amber, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
-            if (listening.isNotEmpty()) {
-                item(key = "lhead") { Text("Listening now", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 10.dp)) }
-                item(key = "lrow") {
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        items(listening, key = { "l" + it.id }) { f ->
-                            val now = s.shared[f.id]?.now ?: return@items
-                            Column(Modifier.width(128.dp).clip(RoundedCornerShape(20.dp)).clickable { onChat(f) }) {
-                                Box {
-                                    Cover(vm, sharedTrack(now), 128.dp, 20.dp, px = 300)
-                                    UserAvatar(f.name, f.avatar, 44.dp, Modifier.align(Alignment.BottomStart).padding(6.dp), ring = true)
-                                }
-                                Text(now.title, color = Milo.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
-                                Text(f.name, color = Milo.dim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-            }
             if (req.isNotEmpty()) {
                 item(key = "rhead") { Text("Requests", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp)) }
                 items(req, key = { "q" + it.id }) { f ->
@@ -221,6 +219,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
                     }
                 }
             }
+            if (fr.size > 3) item(key = "search") { Field(q, { q = it }, "Search chats", Modifier.padding(horizontal = 18.dp, vertical = 6.dp).fillMaxWidth()) }
             item(key = "chead") { Text("Messages", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 4.dp)) }
             if (fr.isEmpty()) item(key = "empty") {
                 Text(
@@ -228,7 +227,7 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
                     color = Milo.dim, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             }
-            items(fr, key = { "f" + it.id }) { f ->
+            items(frShown, key = { "f" + it.id }) { f ->
                 ChatRow(f, s.last[f.id], f.id in s.unread, s.shared[f.id]?.now, onClick = { onChat(f) }, onLong = { profile = f })
             }
             if (out.isNotEmpty()) {
@@ -748,4 +747,157 @@ private fun MenuLine(label: String, danger: Boolean = false, onClick: () -> Unit
         label, color = if (danger) DANGER else Milo.text, fontSize = 16.sp,
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 12.dp),
     )
+}
+
+
+// ============================== feed ==============================
+
+private val FEED_REACTIONS = listOf("\uD83D\uDD25", "\u2764\uFE0F", "\uD83D\uDC4F", "\uD83D\uDE2E")
+
+@Composable
+private fun LiveDot() {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "live")
+    val a by t.animateFloat(0.35f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(800), androidx.compose.animation.core.RepeatMode.Reverse), label = "liveA")
+    Box(Modifier.size(8.dp).graphicsLayer { alpha = a }.clip(CircleShape).background(Milo.amber))
+}
+
+private fun react(vm: MainViewModel, ctx: android.content.Context, f: Friend, now: SharedSong, emoji: String) {
+    vm.social.send(f.id, "text", emoji + " " + now.title, null)
+    android.widget.Toast.makeText(ctx, "Sent to " + f.name, android.widget.Toast.LENGTH_SHORT).show()
+}
+
+@Composable
+private fun EmojiTile(emoji: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(44.dp).clip(CircleShape).background(Milo.card2).border(1.dp, Milo.line, CircleShape)
+            .pressable(true, onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(emoji, fontSize = 20.sp) }
+}
+
+/** The social feed: who is listening to what right now, with one-tap reactions, plus the playlists friends share. */
+@Composable
+private fun FeedContent(
+    vm: MainViewModel, fr: List<Friend>, s: com.ubayanda.milonative.data.SocialUi, modifier: Modifier,
+    onChat: (Friend) -> Unit, onProfile: (Friend) -> Unit, onToChats: () -> Unit, requests: Int,
+) {
+    val ctx = LocalContext.current
+    var story by remember { mutableStateOf<Friend?>(null) }
+    var plFor by remember { mutableStateOf<Friend?>(null) }
+    val live = fr.filter { s.shared[it.id]?.now != null }
+    val withPl = fr.filter { s.shared[it.id]?.playlists?.isNotEmpty() == true }
+    val ordered = live + fr.filter { it !in live }
+    val shape = RoundedCornerShape(Rad.xl)
+    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 40.dp)) {
+        if (requests > 0) item(key = "req") {
+            Row(
+                Modifier.padding(horizontal = 18.dp, vertical = 6.dp).fillMaxWidth().lift(RoundedCornerShape(Rad.lg), 8f).clip(RoundedCornerShape(Rad.lg))
+                    .background(Milo.amber.copy(alpha = 0.16f)).pressable(true, onToChats).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.PersonAdd, null, tint = Milo.amber, modifier = Modifier.size(22.dp))
+                Text(if (requests == 1) "1 friend request is waiting" else "$requests friend requests are waiting", color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp).weight(1f))
+                Text("View", color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (fr.isNotEmpty()) item(key = "stories") {
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(ordered, key = { "st" + it.id }) { f ->
+                    val isLive = s.shared[f.id]?.now != null
+                    Column(
+                        Modifier.width(74.dp).clip(RoundedCornerShape(16.dp)).pressable(true) { if (isLive) story = f else onProfile(f) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        UserAvatar(f.name, f.avatar, 64.dp, ring = isLive)
+                        Text(f.name.substringBefore(' '), color = if (isLive) Milo.text else Milo.dim, fontSize = 12.sp, fontWeight = if (isLive) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+                        if (isLive) Text("listening", color = Milo.amber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+        if (fr.isEmpty()) item(key = "nofr") {
+            Column(Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Your feed starts with friends", color = Milo.text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Add someone from the Chats tab (the person icon). You will see what they are playing and can react with one tap.", color = Milo.dim, fontSize = 15.sp)
+                SmallBtn("Open chats", true, onToChats)
+            }
+        } else if (live.isEmpty() && withPl.isEmpty()) item(key = "quiet") {
+            Column(Modifier.padding(horizontal = 24.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("It's quiet right now", color = Milo.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("When a friend plays something and shares it, it shows up here. Turn on sharing in Profile so they can see yours too.", color = Milo.dim, fontSize = 14.sp)
+            }
+        }
+        if (live.isNotEmpty()) item(key = "lh") { Text("Listening now", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 2.dp)) }
+        items(live, key = { "nc" + it.id }) { f ->
+            val now = s.shared[f.id]?.now ?: return@items
+            Column(
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().lift(shape, 14f).glass(shape, 1.2f, Milo.card).border(1.dp, glassStroke(0.8f), shape).padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    UserAvatar(f.name, f.avatar, 42.dp, ring = true)
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(f.name, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Row(verticalAlignment = Alignment.CenterVertically) { LiveDot(); Text("  listening now", color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    }
+                    Text("Chat", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(14.dp)).pressable(true) { onChat(f) }.padding(horizontal = 12.dp, vertical = 8.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Cover(vm, sharedTrack(now), 92.dp, Rad.md, px = 260)
+                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                        Text(now.title, color = Milo.text, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(now.artist, color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                        if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) Box(Modifier.padding(top = 10.dp)) { SmallBtn("Listen too", true) { playShared(vm, ctx, now) } }
+                        else Text("On their phone only", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FEED_REACTIONS.forEach { e -> EmojiTile(e) { react(vm, ctx, f, now, e) } }
+                    Spacer(Modifier.weight(1f))
+                    SmallBtn("Reply", false) { onChat(f) }
+                }
+            }
+        }
+        if (withPl.isNotEmpty()) item(key = "ph") { Text("Shared playlists", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 2.dp)) }
+        items(withPl, key = { "pc" + it.id }) { f ->
+            val lists = s.shared[f.id]?.playlists ?: return@items
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().lift(shape, 10f).glass(shape, 1.1f, Milo.card).border(1.dp, glassStroke(0.7f), shape)
+                    .pressable(true) { plFor = f }.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                UserAvatar(f.name, f.avatar, 46.dp)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(f.name + " shared " + lists.size + (if (lists.size == 1) " playlist" else " playlists"), color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(lists.take(3).joinToString(" \u00b7 ") { it.name }, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(Icons.Rounded.PlayArrow, null, tint = Milo.amber, modifier = Modifier.size(26.dp))
+            }
+        }
+    }
+    story?.let { f ->
+        val now = s.shared[f.id]?.now
+        if (now == null) story = null else com.ubayanda.milonative.ui.components.MiloPopup({ story = null }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                UserAvatar(f.name, f.avatar, 40.dp, ring = true)
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text(f.name, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("listening now", color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Cover(vm, sharedTrack(now), 220.dp, Rad.lg, px = 500) }
+            Text(now.title, color = Milo.text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 14.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(now.artist, color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                FEED_REACTIONS.forEach { e -> EmojiTile(e) { react(vm, ctx, f, now, e); story = null } }
+            }
+            Spacer(Modifier.height(8.dp))
+            if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.PlayArrow, "Listen too") { story = null; playShared(vm, ctx, now) }
+            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.ChatBubble, "Message " + f.name.substringBefore(' ')) { story = null; onChat(f) }
+        }
+    }
+    plFor?.let { f -> FriendPlaylistsDialog(vm, f.name, s.shared[f.id]?.playlists ?: emptyList()) { plFor = null } }
 }

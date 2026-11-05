@@ -67,3 +67,5 @@ Liquid glass nav bubble + animated screen transitions (BottomNav.kt, MiloApp.kt)
 Round 10: blurred pop-up cards (MiloPopup, BlurBehind on dialogs), raised cards, Local/Both/International region choice for Discover.
 
 Discover is now a YouTube-first feed (trending songs, trending artists, new releases) with a prominent Live radio button; visualiser removed from the lyrics screen.
+
+Social: Feed tab (stories, listening-now cards with reactions, shared playlists), chat search.
