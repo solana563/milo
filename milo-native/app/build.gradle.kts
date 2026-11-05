@@ -12,8 +12,19 @@ android {
         applicationId = "com.ubayanda.milonative"
         minSdk = 29
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (System.getenv("MILO_VERSION_CODE") ?: "1").toInt()
+        versionName = System.getenv("MILO_VERSION_NAME") ?: "1.0"
+    }
+
+    // Release signing comes from environment variables (CI secrets), never from the repo. Without them the build falls back to the debug key.
+    val releaseKey = System.getenv("MILO_KEYSTORE_FILE")?.takeIf { it.isNotBlank() && file(it).exists() }
+    signingConfigs {
+        if (releaseKey != null) create("release") {
+            storeFile = file(releaseKey)
+            storePassword = System.getenv("MILO_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("MILO_KEY_ALIAS")
+            keyPassword = System.getenv("MILO_KEY_PASSWORD")
+        }
     }
 
     // "full" has Google Cast; "fdroid" leaves out every proprietary Google library so F-Droid can build it.
@@ -21,7 +32,7 @@ android {
     productFlavors {
         create("full") {
             dimension = "store"
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKey != null) "release" else "debug")
         }
         create("fdroid") { dimension = "store" }
     }
