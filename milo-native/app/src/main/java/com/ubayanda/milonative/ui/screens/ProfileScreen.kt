@@ -2,6 +2,7 @@ package com.ubayanda.milonative.ui.screens
 
 import com.ubayanda.milonative.ui.components.MiloSlider
 import com.ubayanda.milonative.ui.components.glass
+import com.ubayanda.milonative.ui.components.lift
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
@@ -177,7 +178,7 @@ private fun EditProfileDialog(vm: MainViewModel, a: AccountUi, onClose: () -> Un
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!busy) onClose() },
         containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp), titleContentColor = Milo.text, textContentColor = Milo.text,
-        title = { Text("Edit profile") },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text("Edit profile") },
         text = {
             Column {
                 ServerField(name, "Display name", false) { name = it }
@@ -217,7 +218,7 @@ private fun DeleteAccountDialog(vm: MainViewModel, onClose: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!busy) onClose() },
         containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp), titleContentColor = Milo.text, textContentColor = Milo.text,
-        title = { Text("Delete your account?") },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text("Delete your account?") },
         text = {
             Column {
                 Text("This permanently deletes your account, friends, messages and cloud backup. Songs on this phone are not touched.", color = Milo.dim, style = Ty.caption)
@@ -244,7 +245,7 @@ private fun ServerCard(vm: MainViewModel) {
     var status by remember { mutableStateOf(if (vm.server.configured) "Connected to " + vm.server.url else "") }
     var busy by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("My server", color = Milo.text, style = Ty.title)
         Text(
             "Stream your own library from Navidrome or any Subsonic server. It shows up under Discover.",
@@ -280,7 +281,7 @@ private fun ServerCard(vm: MainViewModel) {
 @Composable
 private fun SharingCard(vm: MainViewModel, a: AccountUi) {
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Sharing with friends", color = Milo.text, style = Ty.title)
         Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
@@ -304,7 +305,7 @@ private fun YouTubeKeyCard(vm: MainViewModel) {
     var key by rememberSaveable { mutableStateOf(vm.youtube.key) }
     var saved by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("YouTube", color = Milo.text, style = Ty.title)
         Text(
             "YouTube songs now search and stream inside milo. without a key. This key is only a backup for the old search if the main one ever fails (free from Google Cloud).",
@@ -354,7 +355,7 @@ private fun InsightsCard(vm: MainViewModel) {
     val years = remember(stAll) { vm.statYears() }
     val st = remember(stAll, year) { year?.let { vm.statsFor(it) } ?: stAll }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text(if (year == null) "Your listening" else "Your $year recap", color = Milo.text, style = Ty.title)
         if (years.isNotEmpty()) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill("All time", null, year == null, compact = true) { year = null }
@@ -425,7 +426,7 @@ private fun ToolsCard(vm: MainViewModel) {
         }
     }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Tools", color = Milo.text, style = Ty.title)
         ShareRow("Smart autoplay (keep similar songs coming)", auto) { vm.setAutoplay(it) }
         Spacer(Modifier.height(10.dp))
@@ -452,7 +453,7 @@ private fun ScrobbleCard(vm: MainViewModel) {
     var fmOn by remember { mutableStateOf(sc.fmOn) }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     fun toast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_SHORT).show()
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Scrobbling", color = Milo.text, style = Ty.title)
         Text(
             "Send what you play to ListenBrainz and Last.fm. A play is sent once it counts (30 seconds, or half of a short song).",
@@ -493,7 +494,7 @@ private fun TogetherCard(vm: MainViewModel) {
     var join by rememberSaveable { mutableStateOf("") }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     fun toast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_SHORT).show()
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Listen together", color = Milo.text, style = Ty.title)
         Text(
             "Host a session and share the code, or enter a friend's code, to hear the same song at the same spot. Works for YouTube songs, and everyone needs to be signed in. Web and phone can join the same session.",
@@ -535,7 +536,7 @@ private fun BluetoothCard() {
         named = it; com.ubayanda.milonative.player.BtOutput.refresh(ctx)
     }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Bluetooth and output", color = Milo.text, style = Ty.title)
         Text(
             "Playing on: " + out.name + when (out.kind) { "bluetooth" -> " (Bluetooth)"; "usb" -> " (USB)"; else -> "" },
@@ -567,7 +568,7 @@ private fun BluetoothCard() {
 private fun AccentCard() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Accent colour", color = Milo.text, style = Ty.title)
         Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             com.ubayanda.milonative.ui.theme.Accent.choices.forEach { c ->
@@ -587,7 +588,7 @@ private fun AccentCard() {
 private fun ReportCard() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Something not working?", color = Milo.text, style = Ty.title)
         Text(
             "Send the last things that went wrong (a song that wouldn't play, a crash) with your phone model. You choose where it goes, and it holds no account details.",
@@ -604,7 +605,7 @@ private fun DownloadsCard(vm: MainViewModel) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     val mb = items.sumOf { it.bytes } / 1048576.0
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Downloads", color = Milo.text, style = Ty.title)
         Text(
             if (items.isEmpty()) "Nothing saved yet. Open a YouTube song's menu and choose Download, or tap Download on an artist, album or playlist."
@@ -632,7 +633,7 @@ private fun BroughtByCard() {
             android.widget.Toast.makeText(ctx, "Couldn't open that", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).clip(shape).glass(shape).padding(Sp.x6), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Brought to you by", color = Milo.dim, style = Ty.caption)
         Text("theLEAF foundation", color = Milo.text, style = Ty.title, modifier = Modifier.padding(top = 2.dp))
         Text(

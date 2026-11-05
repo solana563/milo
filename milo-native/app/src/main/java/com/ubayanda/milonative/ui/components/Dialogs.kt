@@ -28,7 +28,7 @@ fun NameDialog(title: String, initial: String, okLabel: String, onOk: (String) -
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
-        title = { Text(title, color = Milo.text) },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text(title, color = Milo.text) },
         text = {
             OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, placeholder = { Text("Playlist name") })
         },
@@ -45,7 +45,7 @@ fun EditInfoDialog(title0: String, artist0: String, album0: String, edited: Bool
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
-        title = { Text("Edit song info", color = Milo.text) },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text("Edit song info", color = Milo.text) },
         text = {
             Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = t, onValueChange = { t = it }, singleLine = true, label = { Text("Title") })
@@ -65,7 +65,7 @@ fun PlaylistPicker(playlists: List<Playlist>, onPick: (Playlist) -> Unit, onNew:
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
-        title = { Text("Add to playlist", color = Milo.text) },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text("Add to playlist", color = Milo.text) },
         text = {
             Column {
                 Text(

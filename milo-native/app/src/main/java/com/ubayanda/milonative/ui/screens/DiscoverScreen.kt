@@ -27,6 +27,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
+import com.ubayanda.milonative.ui.components.lift
+import com.ubayanda.milonative.ui.components.pressable
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,11 +73,18 @@ private val YT_TERMS = listOf("Trending" to "official music video", "Pop" to "po
 private val SERVER_VIEWS = listOf("Random mix", "Starred")
 private val PREVIEW_TERMS = listOf("Trending" to "top hits", "Pop" to "pop", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "R&B" to "r&b", "Amapiano" to "amapiano")
 
+private fun feedTitle(label: String) = when (label) { "Trending" -> "Trending songs"; "New releases" -> "Latest songs"; else -> "$label songs" }
+
 /** Online listening: live radio and 30-second previews. Nothing is downloaded or saved. */
 @Composable
 fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (List<Track>, Int) -> Unit, onYtPage: (String) -> Unit = {}) {
     val favs by vm.favs.collectAsState()
-    var mode by rememberSaveable { mutableIntStateOf(0) } // 0 = live radio, 1 = previews, 2 = my server
+    val rctx = androidx.compose.ui.platform.LocalContext.current
+    remember { com.ubayanda.milonative.data.Region.init(rctx) }
+    val region by com.ubayanda.milonative.data.Region.mode.collectAsState()
+    val rChips = remember(region) { com.ubayanda.milonative.data.Region.chips(region) }
+    var mode by rememberSaveable { mutableIntStateOf(3) } // 3 = the YouTube feed (opens here), 0 = live radio, 1 = previews, 2 = my server
+    var sources by remember { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var tag by rememberSaveable { mutableIntStateOf(0) }
     var items by remember { mutableStateOf<List<Track>>(emptyList()) }
@@ -80,23 +94,44 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
     var yAlbums by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    LaunchedEffect(mode, tag, query) {
+    LaunchedEffect(mode, tag, query, region) {
         delay(if (query.isEmpty()) 0 else 450) // wait while the person is still typing
         loading = true
         err = ""
         try {
             items = when (mode) {
-                0 -> vm.discover.radio(query, RADIO_TAGS[tag.coerceIn(0, RADIO_TAGS.lastIndex)].second)
-                1 -> vm.discover.previews(query.ifBlank { PREVIEW_TERMS[tag.coerceIn(0, PREVIEW_TERMS.lastIndex)].second })
+                0 -> vm.discover.radio(query, RADIO_TAGS[tag.coerceIn(0, RADIO_TAGS.lastIndex)].second, com.ubayanda.milonative.data.Region.radioCountry(region))
+                1 -> {
+                    val qs = if (query.isNotBlank()) com.ubayanda.milonative.data.Region.forSearch(query.trim(), region) else rChips[tag.coerceIn(0, rChips.lastIndex)].qs
+                    com.ubayanda.milonative.data.Region.mix(qs.map { vm.discover.previews(it.term, it.country) }) { it.id }
+                }
                 3 -> {
                     yArtists = emptyList(); yAlbums = emptyList()
-                    val term = query.ifBlank { YT_TERMS[tag.coerceIn(0, YT_TERMS.lastIndex)].second }
-                    // artists and albums are looked up alongside the songs and appear above them when they arrive
+                    // artists and albums appear above the songs when they arrive
+                    val qs = if (query.isNotBlank()) com.ubayanda.milonative.data.Region.forSearch(query.trim(), region) else rChips[tag.coerceIn(0, rChips.lastIndex)].qs
                     if (query.isNotBlank()) {
-                        launch { yArtists = vm.youtube.artists(term) }
-                        launch { yAlbums = vm.youtube.albums(term) }
+                        launch { yArtists = vm.youtube.artists(query) }
+                        launch { yAlbums = vm.youtube.albums(query) }
+                    } else {
+                        // the feed: new releases, and the artists behind the trending songs
+                        launch {
+                            yAlbums = com.ubayanda.milonative.data.Region.mix(com.ubayanda.milonative.data.Region.albumQs(region).map { q ->
+                                com.ubayanda.milonative.data.Region.inCountry(q.country) { vm.youtube.albums(q.term) }
+                            }) { it.id }
+                        }
                     }
-                    vm.youtube.search(term)
+                    val songs = com.ubayanda.milonative.data.Region.mix(qs.map { q ->
+                        com.ubayanda.milonative.data.Region.inCountry(q.country) { vm.youtube.search(q.term) }
+                    }) { it.id }
+                    if (query.isBlank()) launch {
+                        val cc = qs.firstOrNull()?.country.orEmpty()
+                        val names = songs.map { it.artist }.filter { it.isNotBlank() && it != "Unknown artist" }.distinct().take(10)
+                        for (n in names) {
+                            val c = com.ubayanda.milonative.data.Region.inCountry(cc) { vm.youtube.artists(n).firstOrNull() }
+                            if (c != null && yArtists.none { it.id == c.id }) yArtists = yArtists + c
+                        }
+                    }
+                    songs
                 }
                 else -> if (!vm.server.configured) emptyList()
                 else if (query.isNotBlank()) vm.server.search(query)
@@ -113,16 +148,48 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
 
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Discover")
-        Row(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MiloChip("Radio", mode == 0, Modifier.weight(1f)) { mode = 0; tag = 0 }
-            MiloChip("Previews", mode == 1, Modifier.weight(1f)) { mode = 1; tag = 0 }
-            MiloChip("YouTube", mode == 3, Modifier.weight(1f)) { mode = 3; tag = 0 }
-            MiloChip("Server", mode == 2, Modifier.weight(1f)) { mode = 2; tag = 0 }
+        Row(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            // the radio button is big and always there: tap it for stations, tap again to go back to the feed
+            val rShape = RoundedCornerShape(Rad.lg)
+            Row(
+                Modifier.weight(1f).height(56.dp).lift(rShape, 12f).clip(rShape)
+                    .background(if (mode == 0) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.amber, Milo.amber.copy(alpha = 0.85f))) else androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.card2, Milo.card)), rShape)
+                    .border(1.dp, com.ubayanda.milonative.ui.components.glassStroke(1f), rShape)
+                    .pressable(true) { query = ""; tag = 0; mode = if (mode == 0) 3 else 0 }.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.Icon(Icons.Rounded.Radio, null, tint = if (mode == 0) Color.Black else Milo.amber, modifier = Modifier.size(26.dp))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Live radio", color = if (mode == 0) Color.Black else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(if (mode == 0) "Tap to go back to the feed" else "Stations from around the world", color = if (mode == 0) Color.Black.copy(alpha = 0.7f) else Milo.dim, style = Ty.micro)
+                }
+                Text("LIVE", color = if (mode == 0) Color.Black else Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Box(
+                Modifier.size(56.dp).clip(RoundedCornerShape(Rad.lg)).background(if (mode == 1 || mode == 2) Milo.amber.copy(alpha = 0.25f) else Milo.card2)
+                    .border(1.dp, com.ubayanda.milonative.ui.components.glassStroke(1f), RoundedCornerShape(Rad.lg))
+                    .pressable(true) { sources = true },
+                contentAlignment = Alignment.Center,
+            ) { androidx.compose.material3.Icon(Icons.Rounded.MoreHoriz, "More sources", tint = Milo.text, modifier = Modifier.size(26.dp)) }
+        }
+        if (sources) com.ubayanda.milonative.ui.components.MiloPopup({ sources = false }) {
+            Text("Sources", color = Milo.text, style = Ty.title, modifier = Modifier.padding(start = 14.dp, bottom = 8.dp))
+            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.Home, "YouTube feed") { sources = false; query = ""; tag = 0; mode = 3 }
+            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.PlayArrow, "30-second previews (iTunes)") { sources = false; query = ""; tag = 0; mode = 1 }
+            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.Storage, "My server (Navidrome / Subsonic)") { sources = false; query = ""; tag = 0; mode = 2 }
+        }
+        if (mode != 2) {
+            Spacer(Modifier.height(Sp.x3))
+            com.ubayanda.milonative.ui.components.GlassSegmented(
+                listOf("Local \u00b7 " + com.ubayanda.milonative.data.Region.home, "Both", "International"), region,
+                { tag = 0; com.ubayanda.milonative.data.Region.set(it) }, Modifier.padding(horizontal = Sp.gutter),
+            )
         }
         Spacer(Modifier.height(Sp.x3))
         val shape = RoundedCornerShape(Rad.lg)
         Box(Modifier.padding(horizontal = Sp.gutter).fillMaxWidth().clip(shape).background(Color.Black.copy(alpha = 0.3f), shape).border(1.dp, Milo.line, shape).padding(horizontal = Sp.gutter, vertical = 14.dp)) {
-            if (query.isEmpty()) Text(when (mode) { 0 -> "Search radio stations"; 1 -> "Search songs to preview"; 3 -> "Search YouTube"; else -> "Search your server" }, color = Milo.dim, fontSize = 16.sp)
+            if (query.isEmpty()) Text(when (mode) { 0 -> "Search radio stations"; 1 -> "Search songs to preview"; 3 -> "Search songs, artists, albums"; else -> "Search your server" }, color = Milo.dim, fontSize = 16.sp)
             BasicTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
                 textStyle = TextStyle(color = Milo.text, fontSize = 16.sp), cursorBrush = SolidColor(Milo.amber),
@@ -131,13 +198,13 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             )
         }
         Spacer(Modifier.height(10.dp))
-        val chips = when (mode) { 0 -> RADIO_TAGS.map { it.first }; 1 -> PREVIEW_TERMS.map { it.first }; 3 -> YT_TERMS.map { it.first }; else -> SERVER_VIEWS }
+        val chips = when (mode) { 0 -> RADIO_TAGS.map { it.first }; 1, 3 -> rChips.map { it.label }; else -> SERVER_VIEWS }
         LazyRow(contentPadding = PaddingValues(horizontal = Sp.gutter), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(chips) { i, label -> MiloChip(label, i == tag && query.isEmpty()) { query = ""; tag = i } }
         }
         Spacer(Modifier.height(8.dp))
-        Text(
-            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 3 -> "Songs from YouTube Music, played right here in milo. with background playback, crossfade and the lock screen."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
+        if (mode != 3) Text(
+            when (mode) { 0 -> "Live streams from the free radio-browser directory."; 1 -> "30-second previews from iTunes. To hear full songs, add them to your phone."; else -> if (vm.server.configured) "Streaming from " + vm.server.url else "Connect your Navidrome or Subsonic server in Profile." },
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = Sp.gutter, vertical = Sp.x1),
         )
         when {
@@ -146,10 +213,10 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
-            if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf("Artists", yArtists, vm) { onYtPage(it.id) } }
-            if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf("Albums", yAlbums, vm) { onYtPage(it.id) } }
-            if (mode == 3 && items.isNotEmpty() && (yArtists.isNotEmpty() || yAlbums.isNotEmpty())) item(key = "ysg") {
-                Text("Songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x4, bottom = Sp.x1))
+            if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf(if (query.isBlank()) "Trending artists" else "Artists", yArtists, vm) { onYtPage(it.id) } }
+            if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf(if (query.isBlank()) "New releases" else "Albums", yAlbums, vm) { onYtPage(it.id) } }
+            if (mode == 3 && items.isNotEmpty() && (yArtists.isNotEmpty() || yAlbums.isNotEmpty() || query.isBlank())) item(key = "ysg") {
+                Text(if (query.isBlank()) feedTitle(rChips[tag.coerceIn(0, rChips.lastIndex)].label) else "Songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x4, bottom = Sp.x1))
             }
             itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
                 val on = t.id == ui.currentId

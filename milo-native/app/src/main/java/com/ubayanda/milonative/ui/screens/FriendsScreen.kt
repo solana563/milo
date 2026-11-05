@@ -350,7 +350,7 @@ private fun FriendPlaylistsDialog(vm: MainViewModel, who: String, lists: List<Sh
     var open by remember { mutableStateOf<String?>(null) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onClose, containerColor = Milo.card, shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
-        title = { Text("$who's playlists", color = Milo.text) },
+        title = { com.ubayanda.milonative.ui.components.BlurBehind(); Text("$who's playlists", color = Milo.text) },
         text = {
             LazyColumn(Modifier.heightIn(max = 380.dp)) {
                 lists.forEach { p ->

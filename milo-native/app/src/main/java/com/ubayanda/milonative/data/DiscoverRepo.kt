@@ -51,9 +51,9 @@ class DiscoverRepo {
     private fun albumKey(id: Long): Long = 4_000_000_000_000L + (-id)
 
     /** Live radio. [query] searches by station name; [tag] filters by genre/tag; both empty = the most voted stations. */
-    suspend fun radio(query: String, tag: String): List<Track> {
+    suspend fun radio(query: String, tag: String, country: String = ""): List<Track> {
         val base = "https://de1.api.radio-browser.info/json/stations/search?limit=50&hidebroken=true&order=votes&reverse=true"
-        val url = base + (if (query.isNotBlank()) "&name=" + enc(query.trim()) else "") + (if (tag.isNotBlank()) "&tag=" + enc(tag) else "")
+        val url = base + (if (query.isNotBlank()) "&name=" + enc(query.trim()) else "") + (if (tag.isNotBlank()) "&tag=" + enc(tag) else "") + (if (country.length == 2) "&countrycode=" + country else "")
         val arr = JSONArray(get(url))
         val out = ArrayList<Track>()
         for (i in 0 until arr.length()) {
@@ -76,8 +76,8 @@ class DiscoverRepo {
     }
 
     /** 30-second song previews. */
-    suspend fun previews(term: String): List<Track> {
-        val obj = JSONObject(get("https://itunes.apple.com/search?media=music&entity=song&limit=50&term=" + enc(term.trim())))
+    suspend fun previews(term: String, country: String = ""): List<Track> {
+        val obj = JSONObject(get("https://itunes.apple.com/search?media=music&entity=song&limit=50" + (if (country.length == 2) "&country=" + country else "") + "&term=" + enc(term.trim())))
         val arr = obj.optJSONArray("results") ?: return emptyList()
         val out = ArrayList<Track>()
         for (i in 0 until arr.length()) {

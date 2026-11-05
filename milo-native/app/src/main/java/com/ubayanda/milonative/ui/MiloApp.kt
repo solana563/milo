@@ -3,6 +3,7 @@ package com.ubayanda.milonative.ui
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
@@ -74,6 +75,8 @@ import com.ubayanda.milonative.ui.screens.SearchScreen
 import com.ubayanda.milonative.ui.screens.ProfileScreen
 import com.ubayanda.milonative.ui.theme.Milo
 import androidx.compose.runtime.CompositionLocalProvider
+
+private data class ScreenKey(val yt: String?, val detail: Detail?, val tab: Tab, val depth: Int)
 
 private sealed class Detail {
     data class AlbumD(val album: Album) : Detail()
@@ -202,13 +205,35 @@ fun MiloApp(vm: MainViewModel) {
                     if (ownCards) Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.bg, panelShape)
                     else Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
                 ) {
-                    if (ytPages.isNotEmpty()) {
+                    // every screen change animates: deeper pages slide in from the right, going back slides out, switching tabs glides sideways
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = ScreenKey(ytPages.lastOrNull(), detail, tab, if (ytPages.isNotEmpty()) 10 + ytPages.size else if (detail != null) 1 else 0),
+                        transitionSpec = {
+                            val ease = androidx.compose.animation.core.CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
+                            val depthChange = targetState.depth != initialState.depth || targetState.yt != initialState.yt || targetState.detail != initialState.detail
+                            if (depthChange) {
+                                val forward = targetState.depth >= initialState.depth
+                                if (forward)
+                                    (androidx.compose.animation.slideInHorizontally(tween(340, easing = ease)) { it / 3 } + androidx.compose.animation.fadeIn(tween(260)) + androidx.compose.animation.scaleIn(tween(340, easing = ease), 0.96f)) togetherWith
+                                        (androidx.compose.animation.slideOutHorizontally(tween(340, easing = ease)) { -it / 6 } + androidx.compose.animation.fadeOut(tween(200)) + androidx.compose.animation.scaleOut(tween(340, easing = ease), 0.96f))
+                                else
+                                    (androidx.compose.animation.slideInHorizontally(tween(340, easing = ease)) { -it / 6 } + androidx.compose.animation.fadeIn(tween(260)) + androidx.compose.animation.scaleIn(tween(340, easing = ease), 0.96f)) togetherWith
+                                        (androidx.compose.animation.slideOutHorizontally(tween(340, easing = ease)) { it / 3 } + androidx.compose.animation.fadeOut(tween(200)) + androidx.compose.animation.scaleOut(tween(340, easing = ease), 0.96f))
+                            } else {
+                                val dir = if (targetState.tab.ordinal > initialState.tab.ordinal) 1 else -1
+                                (androidx.compose.animation.slideInHorizontally(tween(300, easing = ease)) { dir * it / 8 } + androidx.compose.animation.fadeIn(tween(240, delayMillis = 50))) togetherWith
+                                    (androidx.compose.animation.slideOutHorizontally(tween(260, easing = ease)) { -dir * it / 8 } + androidx.compose.animation.fadeOut(tween(140)))
+                            }
+                        },
+                        label = "screen",
+                    ) { sc ->
+                    if (sc.yt != null) {
                         BackHandler(enabled = !playerOpen && yt == null) { ytPages = ytPages.dropLast(1) }
-                        androidx.compose.runtime.key(ytPages.last()) {
-                            com.ubayanda.milonative.ui.screens.YtPageScreen(vm, ytPages.last(), ui, bottomPad, { ytPages = ytPages + it }) { ytPages = ytPages.dropLast(1) }
+                        androidx.compose.runtime.key(sc.yt) {
+                            com.ubayanda.milonative.ui.screens.YtPageScreen(vm, sc.yt, ui, bottomPad, { ytPages = ytPages + it }) { ytPages = ytPages.dropLast(1) }
                         }
                     } else
-                    when (val d = detail) {
+                    when (val d = sc.detail) {
                         is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
                         is Detail.ArtistD -> DetailScreen(vm, d.artist.name, "Artist", d.artist.tracks, ui, bottomPad, { detail = null })
                         is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, rowExtra = { t ->
@@ -244,7 +269,7 @@ fun MiloApp(vm: MainViewModel) {
                                 if (renaming) NameDialog("Rename playlist", p.name, "Save", { n -> vm.renamePlaylist(p.id, n); renaming = false }, { renaming = false })
                             }
                         }
-                        null -> when (tab) {
+                        null -> when (sc.tab) {
                             Tab.Home -> HomeScreen(
                                 vm, tracks, albums, artists, playlists, byId, ui, scanning, bottomPad,
                                 likedTracks.size, current != null && favs.contains(current.id), acct.username,
@@ -267,6 +292,7 @@ fun MiloApp(vm: MainViewModel) {
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, onOpenPlaylist = { detail = Detail.PlaylistD(it.id) }, onOpenFriend = { chatWith = it; friendsOpen = true })
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
+                    }
                     }
                 }
             }

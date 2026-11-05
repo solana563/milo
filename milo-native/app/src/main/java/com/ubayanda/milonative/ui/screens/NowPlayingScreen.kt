@@ -529,7 +529,6 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
             }
             Spacer(Modifier.height(10.dp))
-            if (ui.isPlaying) com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.padding(bottom = 10.dp), height = 34.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300)
                 Spacer(Modifier.width(18.dp))

@@ -9,6 +9,17 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.PlaylistAdd
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.RemoveCircleOutline
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -159,23 +170,38 @@ fun TrackRow(
                     t.title, t.artist.takeIf { it != "Unknown artist" } ?: "", t.album, com.ubayanda.milonative.data.MetaEdits.has(t.id),
                     { n, a, al -> editing = false; vm.editInfo(t.id, n, a, al) }, { editing = false; vm.resetInfo(t.id) }, { editing = false },
                 )
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Play next") }, onClick = { menu = false; vm.player.playNext(t) })
-                    DropdownMenuItem(text = { Text("Add to queue") }, onClick = { menu = false; vm.player.addToQueue(t) })
-                    DropdownMenuItem(text = { Text(if (liked) "Remove from Liked songs" else "Add to Liked songs") }, onClick = { menu = false; vm.toggleFav(t.id) })
-                    DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { menu = false; actions.addToPlaylist(t) })
-                    DropdownMenuItem(text = { Text("Select multiple") }, onClick = { menu = false; vm.toggleSelect(t.id) })
-                    DropdownMenuItem(text = { Text("Share") }, onClick = { menu = false; actions.share(t) })
-                    if (t.id >= 0 && t.uri.startsWith("content:")) DropdownMenuItem(text = { Text("Edit info") }, onClick = { menu = false; editing = true })
-                    if (isYt) DropdownMenuItem(
-                        text = { Text(if (saved) "Remove download" else "Download for offline") },
-                        onClick = {
-                            menu = false
-                            if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); Toast.makeText(ctx, "Removed from this phone", Toast.LENGTH_SHORT).show() }
-                            else { vm.rememberRemote(listOf(t)); com.ubayanda.milonative.data.OfflineStore.enqueue(listOf(t)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved for offline" else e ?: "Couldn't download", Toast.LENGTH_SHORT).show() }; Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show() }
-                        },
-                    )
-                    extra.forEach { a -> DropdownMenuItem(text = { Text(a.label) }, onClick = { menu = false; a.run() }) }
+                if (menu) MiloPopup({ menu = false }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Cover(vm, t, 68.dp, Rad.md, px = 200)
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t.title, color = Milo.text, style = Ty.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (t.album.isBlank() || t.album == "Unknown album") t.artist else t.artist + " \u00b7 " + t.album,
+                                color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PopupQuick(Icons.Rounded.SkipNext, "Play next") { menu = false; vm.player.playNext(t) }
+                        PopupQuick(Icons.Rounded.QueueMusic, "Queue") { menu = false; vm.player.addToQueue(t) }
+                        PopupQuick(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, if (liked) "Liked" else "Like", on = liked) { menu = false; vm.toggleFav(t.id) }
+                        PopupQuick(Icons.Rounded.PlaylistAdd, "Playlist") { menu = false; actions.addToPlaylist(t) }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    PopupAction(Icons.Rounded.Checklist, "Select multiple") { menu = false; vm.toggleSelect(t.id) }
+                    PopupAction(Icons.Rounded.Share, "Share") { menu = false; actions.share(t) }
+                    if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(Icons.Rounded.Edit, "Edit info") { menu = false; editing = true }
+                    if (isYt) PopupAction(
+                        if (saved) Icons.Rounded.DeleteOutline else Icons.Rounded.Download,
+                        if (saved) "Remove download" else "Download for offline",
+                    ) {
+                        menu = false
+                        if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); Toast.makeText(ctx, "Removed from this phone", Toast.LENGTH_SHORT).show() }
+                        else { vm.rememberRemote(listOf(t)); com.ubayanda.milonative.data.OfflineStore.enqueue(listOf(t)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved for offline" else e ?: "Couldn't download", Toast.LENGTH_SHORT).show() }; Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show() }
+                    }
+                    extra.forEach { a -> PopupAction(Icons.Rounded.RemoveCircleOutline, a.label, Color(0xFFFF8A80)) { menu = false; a.run() } }
                 }
             }
         }

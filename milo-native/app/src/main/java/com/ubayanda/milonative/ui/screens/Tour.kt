@@ -1,6 +1,7 @@
 package com.ubayanda.milonative.ui.screens
 
 import com.ubayanda.milonative.ui.components.glass
+import com.ubayanda.milonative.ui.components.lift
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,7 +69,7 @@ fun TourOverlay() {
     fun close() { Tour.mark(ctx); Tour.open.value = false; i = 0 }
     val shape = RoundedCornerShape(Rad.xl)
     Box(Modifier.fillMaxSize().background(Color(0xCC000000)).clickable(enabled = false) {}, contentAlignment = Alignment.Center) {
-        Column(Modifier.padding(24.dp).fillMaxWidth().clip(shape).glass(shape).padding(24.dp)) {
+        Column(Modifier.padding(24.dp).fillMaxWidth().lift(shape, 14f).glass(shape).padding(24.dp)) {
             Text("${i + 1} of ${PAGES.size}", color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Text(PAGES[i].title, color = Milo.text, style = Ty.title, modifier = Modifier.padding(top = 8.dp))
             Text(PAGES[i].body, color = Milo.dim, style = Ty.body, modifier = Modifier.padding(top = 8.dp, bottom = 20.dp))

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,30 +41,50 @@ enum class Tab(val label: String, val icon: ImageVector) {
     Profile("Profile", Icons.Outlined.PersonOutline),
 }
 
-/** The web milo. pill nav: tinted rounded bar, the active tab sits in a raised lighter pill. Solid colours, no blur effect. */
+/**
+ * Liquid glass nav: one glass bubble slides under the chosen tab. Its leading edge races ahead and the trailing edge
+ * follows a beat later, so it stretches like a drop of liquid and then settles with a little bounce.
+ */
 @Composable
 fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier, avatar: String = "", name: String = "") {
     val bar = RoundedCornerShape(44.dp)
-    Row(
+    val tabs = Tab.values()
+    val idx = current.ordinal
+    var prev by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(idx) }
+    val right = idx >= prev
+    androidx.compose.runtime.SideEffect { prev = idx }
+    androidx.compose.foundation.layout.BoxWithConstraints(
         modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
             .lift(bar, 18f).glass(bar, 1.2f, Milo.card.copy(alpha = 0.94f)).padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Tab.values().forEach { tab ->
-            val on = tab == current
-            val pill = RoundedCornerShape(32.dp)
-            Box(
-                Modifier.width(if (on) 84.dp else 60.dp).height(56.dp).clip(pill)
-                    .then(
-                        if (on) Modifier.glass(pill, 1.7f, Milo.card2) else Modifier
-                    )
-                    .pressable(true) { onSelect(tab) },
-                contentAlignment = Alignment.Center,
-            ) {
-                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (tab == Tab.Profile && avatar.isNotEmpty()) UserAvatar(name, avatar, if (on) 26.dp else 32.dp, ring = on)
-                    else Icon(tab.icon, tab.label, tint = if (on) Milo.amber else Milo.text, modifier = Modifier.size(if (on) 24.dp else 28.dp))
-                    if (on) androidx.compose.material3.Text(tab.label, color = Milo.amber, style = com.ubayanda.milonative.ui.theme.Ty.micro)
+        val slot = maxWidth / tabs.size
+        val fast = androidx.compose.animation.core.spring<androidx.compose.ui.unit.Dp>(0.78f, 520f)
+        val slow = androidx.compose.animation.core.spring<androidx.compose.ui.unit.Dp>(0.80f, 150f)
+        val left by androidx.compose.animation.core.animateDpAsState(slot * idx, if (right) slow else fast, label = "navL")
+        val rightEdge by androidx.compose.animation.core.animateDpAsState(slot * (idx + 1), if (right) fast else slow, label = "navR")
+        val pill = RoundedCornerShape(32.dp)
+        val w = (rightEdge - left + 14.dp).coerceAtLeast(44.dp)
+        Box(
+            Modifier.offset(x = left - 7.dp).width(w).height(56.dp).clip(pill)
+                .glass(pill, 1.7f, Milo.card2)
+                .background(Brush.radialGradient(listOf(Milo.amber.copy(alpha = 0.16f), Color.Transparent))),
+        )
+        Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+            tabs.forEach { tab ->
+                val on = tab == current
+                val lift by androidx.compose.animation.core.animateFloatAsState(if (on) 1f else 0f, androidx.compose.animation.core.spring(0.6f, 380f), label = "lift")
+                Box(
+                    Modifier.width(slot).height(56.dp).pressable(true) { onSelect(tab) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        Modifier.graphicsLayer { translationY = -2.dp.toPx() * lift; scaleX = 1f + 0.08f * lift; scaleY = 1f + 0.08f * lift },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        if (tab == Tab.Profile && avatar.isNotEmpty()) UserAvatar(name, avatar, if (on) 26.dp else 32.dp, ring = on)
+                        else Icon(tab.icon, tab.label, tint = if (on) Milo.amber else Milo.text, modifier = Modifier.size(if (on) 24.dp else 28.dp))
+                        if (on) androidx.compose.material3.Text(tab.label, color = Milo.amber, style = com.ubayanda.milonative.ui.theme.Ty.micro, maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }

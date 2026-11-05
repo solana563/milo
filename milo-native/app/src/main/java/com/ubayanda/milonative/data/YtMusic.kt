@@ -65,9 +65,12 @@ object YtMusic {
     }
 
     // ---- transport ----
+    /** When set (two letters), searches lean towards that country instead of the phone's. Discover's Local / Worldwide choice uses it. */
+    @Volatile var glOverride: String? = null
+
     private fun locale(): Pair<String, String> {
         val l = Locale.getDefault()
-        return (l.language.ifEmpty { "en" }.lowercase()) to (l.country.ifEmpty { "US" }.uppercase())
+        return (l.language.ifEmpty { "en" }.lowercase()) to (glOverride?.takeIf { it.length == 2 } ?: l.country.ifEmpty { "US" }).uppercase()
     }
 
     private fun ctx(c: Client): JSONObject {
