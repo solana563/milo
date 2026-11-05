@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -238,6 +239,6 @@ fun PlayingBars(color: Color) {
     val b by t.animateFloat(1f, 0.35f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(430), androidx.compose.animation.core.RepeatMode.Reverse), label = "b")
     val c by t.animateFloat(0.5f, 0.95f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(610), androidx.compose.animation.core.RepeatMode.Reverse), label = "c")
     Row(Modifier.padding(end = 8.dp).height(14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-        listOf(a, b, c).forEach { h -> Box(Modifier.width(3.dp).height((14f * h).dp).clip(RoundedCornerShape(2.dp)).background(color)) }
+        listOf(a, b, c).forEach { h: Float -> Box(Modifier.width(3.dp).height((14f * h).dp).clip(RoundedCornerShape(2.dp)).background(color)) }
     }
 }

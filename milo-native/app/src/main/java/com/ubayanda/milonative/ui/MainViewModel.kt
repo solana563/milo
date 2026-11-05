@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ubayanda.milonative.data.ArtLoader
@@ -90,7 +92,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Set by whichever list screen is on top: scrolls to the playing song and returns true, or false if it isn't in that list. */
     var jumper: (() -> Boolean)? = null
     /** Set with [jumper]: true while the playing song is in the list on screen (drives the "Now playing" button). */
-    var canJump: (() -> Boolean)? by androidx.compose.runtime.mutableStateOf(null)
+    var canJump: (() -> Boolean)? by androidx.compose.runtime.mutableStateOf<(() -> Boolean)?>(null)
     private var profileOk = false
     private suspend fun resolveProfile() {
         val pr = cloud.loadProfile()
