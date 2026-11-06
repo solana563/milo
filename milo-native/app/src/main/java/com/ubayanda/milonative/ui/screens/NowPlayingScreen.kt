@@ -45,6 +45,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DownloadDone
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.IosShare
@@ -206,6 +208,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     RoundBtn(Icons.Rounded.QueueMusic, "Queue") { panel = Panel.Queue }
                     RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White) { vm.toggleFav(t.id) }
+                    if (t.uri.startsWith("yt:")) {
+                        val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
+                        RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White) { vm.downloadTracks(listOf(t)) }
+                    }
                     RoundBtn(Icons.Rounded.Tune, "Sound") { panel = Panel.Sound }
                     RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
                     RoundBtn(Icons.Rounded.Cast, "Cast") { castOpen = true }

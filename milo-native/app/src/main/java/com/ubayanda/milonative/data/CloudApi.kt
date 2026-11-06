@@ -32,6 +32,8 @@ class CloudApi(context: Context) {
 
     companion object {
         const val TERMS_V = 1
+        /** Where the "confirm your email" link lands: the address of verified.html once it is hosted (leave empty to use the Site URL set in Supabase). */
+        const val VERIFY_URL = ""
         const val URL = "https://lwcypxiwkgphuekygrps.supabase.co"
         const val KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3lweGl3a2dwaHVla3lncnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMjU3NzEsImV4cCI6MjA5OTcwMTc3MX0.qCLKCluVfjkByX9GqRvxcihVl0Qo8eJOhfkVXN-nqAQ"
     }
@@ -115,7 +117,7 @@ class CloudApi(context: Context) {
     suspend fun signUp(email: String, password: String, username: String): Boolean {
         val r = JSONObject(
             request(
-                "/auth/v1/signup", "POST",
+                "/auth/v1/signup" + (if (VERIFY_URL.isNotEmpty()) "?redirect_to=" + java.net.URLEncoder.encode(VERIFY_URL, "UTF-8") else ""), "POST",
                 JSONObject().put("email", email).put("password", password)
                     .put("data", JSONObject().put("username", username).put("name", username)),
                 anon = true,

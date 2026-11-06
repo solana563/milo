@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.foundation.layout.width
@@ -283,6 +284,10 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                         tint = if (liked) Milo.amber else Milo.dim,
                         modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
                             .clickable { vm.playRemoteKeep(t); vm.toggleFav(t.id) }.padding(9.dp),
+                    )
+                    if (mode == 3 && t.uri.startsWith("yt:")) androidx.compose.material3.Icon(
+                        Icons.Rounded.Download, "Download for offline", tint = Milo.dim,
+                        modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { vm.downloadTracks(listOf(t)) }.padding(9.dp),
                     )
                 }
             }

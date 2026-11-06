@@ -157,6 +157,10 @@ fun TrackRow(
             }
             if (saved) Icon(Icons.Rounded.DownloadDone, "Saved on this phone", tint = Milo.amber, modifier = Modifier.padding(end = 6.dp).size(16.dp))
             else if (dlNow != null && dlNow >= 0f) Text("${(dlNow * 100).toInt()}%", color = Milo.amber, style = Ty.caption, modifier = Modifier.padding(end = 6.dp))
+            else if (isYt && !selecting) Icon(
+                Icons.Rounded.Download, "Download for offline", tint = Milo.dim,
+                modifier = Modifier.padding(end = 2.dp).size(34.dp).clip(RoundedCornerShape(17.dp)).clickable { vm.downloadTracks(listOf(t)) }.padding(7.dp),
+            )
             if (current) PlayingBars(accent)
             Text(fmtTime(t.durationMs), color = if (current) accent else Milo.dim, style = Ty.caption)
             if (handle != null) {

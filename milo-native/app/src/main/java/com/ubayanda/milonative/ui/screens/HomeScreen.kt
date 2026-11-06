@@ -97,7 +97,7 @@ fun HomeScreen(
     val hideLocalPref by com.ubayanda.milonative.data.Region.hideLocal.collectAsState()
     val hideLocal = hideLocalPref && !offlineNow   // online + the person asked to hide their phone library
     val favNow by vm.favs.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(tracks.size, favNow.size) { vm.buildMixes(tracks) }
+    androidx.compose.runtime.LaunchedEffect(tracks.size, favNow.size, ui.currentId) { vm.buildMixes(tracks) }
     val recent = tracks.sortedByDescending { it.addedSec }.take(50)
     val tiles = ArrayList<TileData>()
     val favSet = vm.favs.collectAsState().value
@@ -173,13 +173,14 @@ fun HomeScreen(
             }
         }
         if (savedSongs.isNotEmpty() && !offlineNow && !hideLocal) item(key = "dl") { DownloadedCard(vm, ui, card) }
-        if (mixes.isNotEmpty() && !hideLocal) {
+        val shownMixes = if (hideLocal) mixes.filter { it.remote } else mixes
+        if (shownMixes.isNotEmpty()) {
             item(key = "mixes") {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
                     SectionTitle("Made for you")
                     LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(mixes.size, key = { "mx" + mixes[it].title }) { i ->
-                            val m = mixes[i]
+                        items(shownMixes.size, key = { "mx" + shownMixes[it].title }) { i ->
+                            val m = shownMixes[i]
                             Column(Modifier.width(148.dp).clip(RoundedCornerShape(14.dp)).clickable { vm.player.playQueue(m.tracks, 0) }) {
                                 Box {
                                     Cover(vm, m.tracks.first(), 148.dp, 14.dp, px = 400)

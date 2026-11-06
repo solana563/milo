@@ -717,8 +717,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var mixKey = ""
     fun buildMixes(all: List<Track>) {
         val day = System.currentTimeMillis() / 86_400_000L
-        val key = "$day:${all.size}:${_favs.value.size}"
-        if (key == mixKey || all.isEmpty()) return
+        // the key includes your listening taste, so the mixes refresh as you play more (every 5 plays) and as your top artists change
+        val taste = statsStore.topArtists(3).joinToString(",") { it.first }
+        val key = "$day:${all.size}:${_favs.value.size}:${statsStore.plays() / 5}:$taste"
+        if (key == mixKey) return
         mixKey = key
         viewModelScope.launch {
             val local = withContext(Dispatchers.Default) {
@@ -739,17 +741,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 out
             }
             _mixes.value = local
-            // online: a radio built from your most played artist
-            val top = statsStore.topArtists(1).firstOrNull()?.first
-            if (top != null && online()) {
-                try {
-                    val card = youtube.artists(top).firstOrNull()
-                    val radioId = card?.let { youtube.page(it.id).radioId }.orEmpty()
-                    if (radioId.isNotEmpty()) {
-                        val r = youtube.radio(radioId).take(40)
-                        if (r.size >= 8) { rememberRemote(r); _mixes.value = _mixes.value + Mix("$top radio", "Streaming, endless", r, true) }
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) {}
+            // online: radios built from your three most played artists, and one blended mix of them
+            val tops = statsStore.topArtists(3).map { it.first }
+            if (tops.isNotEmpty() && online()) {
+                val got = ArrayList<Pair<String, List<Track>>>()
+                for (a in tops) {
+                    try {
+                        val card = youtube.artists(a).firstOrNull()
+                        val radioId = card?.let { youtube.page(it.id).radioId }.orEmpty()
+                        if (radioId.isNotEmpty()) {
+                            val r = youtube.radio(radioId).take(40)
+                            if (r.size >= 8) got.add(a to r)
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) {}
+                }
+                if (got.isNotEmpty()) {
+                    got.forEach { rememberRemote(it.second) }
+                    val blend = ArrayList<Track>(); val seen = HashSet<Long>()
+                    val longest = got.maxOf { it.second.size }
+                    for (i in 0 until longest) for (g in got) g.second.getOrNull(i)?.let { if (seen.add(it.id)) blend.add(it) }
+                    val extra = ArrayList<Mix>()
+                    if (blend.size >= 12) extra.add(Mix("Picked for you", "Mixed from " + got.joinToString(", ") { it.first }, blend.take(60), true))
+                    got.forEach { g -> extra.add(Mix(g.first + " radio", "Streaming, endless", g.second, true)) }
+                    _mixes.value = _mixes.value + extra
+                }
             }
         }
     }
@@ -1008,6 +1023,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 else android.widget.Toast.makeText(getApplication(), "That station isn't responding. Try another.", android.widget.Toast.LENGTH_LONG).show()
             }
         } else player.playQueue(list, index)
+    }
+
+    /** Saves online songs on the phone (two at a time). Songs from the phone's own storage are skipped. */
+    fun downloadTracks(list: List<Track>) {
+        val app = getApplication<Application>()
+        val yt = list.filter { it.uri.startsWith("yt:") }
+        if (yt.isEmpty()) { android.widget.Toast.makeText(app, "These songs are already on your phone.", android.widget.Toast.LENGTH_SHORT).show(); return }
+        rememberRemote(yt)
+        android.widget.Toast.makeText(app, if (yt.size == 1) "Downloading…" else "Downloading ${yt.size} songs…", android.widget.Toast.LENGTH_SHORT).show()
+        com.ubayanda.milonative.data.OfflineStore.enqueue(yt) { n, e ->
+            android.widget.Toast.makeText(app, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Already saved on this phone", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun trackById(id: Long?): Track? =

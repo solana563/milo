@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Account verified · milo.</title>
+<style>
+  :root{--amber:#f99c00;--text:#f3ede0;--dim:#a8a194;--card:#0b0a09;--line:#2b2723}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(900px 500px at 50% -10%,#2a1c05 0,#000 60%);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px}
+  main{width:100%;max-width:420px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:34px;padding:38px 26px 30px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .logo{font-size:30px;font-weight:800;letter-spacing:-.5px}.logo b{color:var(--amber)}
+  .tick{width:92px;height:92px;margin:26px auto 18px}
+  .tick circle{fill:none;stroke:var(--amber);stroke-width:5;stroke-dasharray:283;stroke-dashoffset:283;animation:ring .7s ease forwards}
+  .tick path{fill:none;stroke:var(--amber);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:ring .45s .6s ease forwards}
+  @keyframes ring{to{stroke-dashoffset:0}}
+  h1{font-size:26px;margin:0 0 8px}
+  p{color:var(--dim);margin:0 0 20px}
+  .btn{display:block;width:100%;padding:16px;border-radius:28px;background:var(--amber);color:#000;font-weight:700;font-size:17px;text-decoration:none;border:0}
+  .hint{margin-top:18px;font-size:14px;color:var(--dim);display:none}
+  .err h1{color:#ff8a80}.err .tick{display:none}
+  .foot{margin-top:26px;font-size:12px;color:#6f695f}
+</style>
+</head>
+<body>
+<main id="m">
+  <div class="logo">milo<b>.</b></div>
+  <svg class="tick" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45"/><path d="M30 52l14 14 27-30"/></svg>
+  <h1 id="t">Your account is verified</h1>
+  <p id="s">Your email is confirmed. Opening milo. for you…</p>
+  <a class="btn" id="open" href="milo://verified">Open milo.</a>
+  <p class="hint" id="hint">If milo. didn't open by itself, you can close this page, open milo. and log in with your email and password.</p>
+  <div class="foot">milo. is part of theLEAF foundation &copy;2021</div>
+</main>
+<script>
+(function(){
+  // The confirm link puts either a session or an error in the address after the #. Read the error, then wipe the address so nothing sensitive stays in the history.
+  var h = location.hash.replace(/^#/, ""), q = new URLSearchParams(h || location.search.replace(/^\?/, ""));
+  var err = q.get("error_description") || q.get("error");
+  try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  var m = document.getElementById("m");
+  if (err) {
+    m.className = "err";
+    document.getElementById("t").textContent = "This link didn't work";
+    document.getElementById("s").textContent = /expired|invalid/i.test(err)
+      ? "The confirmation link has expired or was already used. Open milo., log in, and ask for a new email if it says your email isn't confirmed."
+      : "Something went wrong while confirming your email. Open milo. and try logging in; if it still says your email isn't confirmed, sign up again.";
+    return;
+  }
+  var android = /android/i.test(navigator.userAgent);
+  var open = document.getElementById("open");
+  if (!android) {
+    open.style.display = "none";
+    document.getElementById("s").textContent = "Your email is confirmed. You can close this tab, open milo. and log in.";
+    return;
+  }
+  // try to open the app by itself; phones sometimes block that without a tap, so the button and the note are the fallback
+  setTimeout(function(){ location.href = "milo://verified"; }, 900);
+  setTimeout(function(){
+    document.getElementById("hint").style.display = "block";
+    document.getElementById("s").textContent = "Your email is confirmed.";
+  }, 2600);
+})();
+</script>
+</body>
+</html>

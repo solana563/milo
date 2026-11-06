@@ -299,13 +299,14 @@ fun MiloApp(vm: MainViewModel) {
 
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) {
                 if (selection.isNotEmpty()) {
-                    val chosen = selection.mapNotNull { byId[it] }
+                    val chosen = selection.mapNotNull { byId[it] ?: vm.trackById(it) }
                     com.ubayanda.milonative.ui.components.SelectionBar(
                         selection.size, onClose = { vm.clearSelection() },
                         onPlayNext = { vm.player.playNextMany(chosen); vm.clearSelection() },
                         onQueue = { vm.player.addManyToQueue(chosen); vm.clearSelection() },
                         onLike = { vm.likeMany(selection.toList()); vm.clearSelection() },
                         onPlaylist = { pickMany = true },
+                        onDownload = { vm.downloadTracks(chosen); vm.clearSelection() },
                     )
                 } else if (current != null && tab != Tab.Home && vm.canJump?.invoke() == true) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))

@@ -30,7 +30,7 @@ import com.ubayanda.milonative.ui.theme.Milo
 @Composable
 fun SelectionBar(
     count: Int, onClose: () -> Unit, onPlayNext: () -> Unit, onQueue: () -> Unit, onLike: () -> Unit, onPlaylist: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier, onDownload: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(26.dp)
     Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).clip(shape).glass(shape, 1.3f, Milo.card2).padding(14.dp)) {
@@ -45,6 +45,7 @@ fun SelectionBar(
             Action("Like", Modifier.weight(1f), onLike)
             Action("Playlist", Modifier.weight(1f), onPlaylist, primary = true)
         }
+        if (onDownload != null) Action("Download selected", Modifier.fillMaxWidth().padding(top = 8.dp), onDownload)
     }
 }
 

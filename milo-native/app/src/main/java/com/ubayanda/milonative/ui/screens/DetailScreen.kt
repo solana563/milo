@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.launch
@@ -28,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +86,9 @@ fun DetailScreen(
             { f, t -> moveNow?.invoke(f, t) },
         )
     } else null
+    val ytTracks = remember(tracks) { tracks.filter { it.uri.startsWith("yt:") } }
+    val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value
+    val allSaved = ytTracks.isNotEmpty() && ytTracks.all { t -> savedNow.any { it.id == t.uri.removePrefix("yt:") } }
     val curId by androidx.compose.runtime.rememberUpdatedState(ui.currentId)
     val jumpScope = androidx.compose.runtime.rememberCoroutineScope()
     androidx.compose.runtime.DisposableEffect(Unit) {
@@ -129,7 +135,9 @@ fun DetailScreen(
                                 Modifier.size(76.dp).pressable(on) { vm.player.playQueue(tracks, 0) }.clip(androidx.compose.foundation.shape.CircleShape).background(Color.White.copy(alpha = if (on) 1f else 0.4f)),
                                 contentAlignment = Alignment.Center,
                             ) { Icon(Icons.Rounded.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(42.dp)) }
-                            Spacer(Modifier.size(52.dp))
+                            if (ytTracks.isNotEmpty()) HeroBtn(
+                                if (allSaved) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", { vm.downloadTracks(ytTracks) }, 52.dp,
+                            ) else Spacer(Modifier.size(52.dp))
                         }
                     }
                 }

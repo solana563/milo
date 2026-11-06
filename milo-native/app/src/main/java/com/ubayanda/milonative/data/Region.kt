@@ -28,11 +28,11 @@ object Region {
         if (prefs != null) return
         prefs = ctx.applicationContext.getSharedPreferences("milo_ui", Context.MODE_PRIVATE)
         _mode.value = prefs!!.getInt("region", LOCAL).coerceIn(0, 2)
-        _hideLocal.value = prefs!!.getBoolean("hideLocalOnline", false)
+        _hideLocal.value = prefs!!.getBoolean("hideLocalOnline", true)
     }
 
     /** Home hides the songs on this phone while there is a connection. */
-    private val _hideLocal = MutableStateFlow(false)
+    private val _hideLocal = MutableStateFlow(true)
     val hideLocal: StateFlow<Boolean> = _hideLocal
     fun setHideLocal(v: Boolean) { _hideLocal.value = v; prefs?.edit()?.putBoolean("hideLocalOnline", v)?.apply() }
 
