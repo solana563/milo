@@ -94,6 +94,8 @@ fun HomeScreen(
     val mixes by vm.mixes.collectAsState()
     val savedSongs by vm.offline.collectAsState()
     val offlineNow = !vm.online()
+    val hideLocalPref by com.ubayanda.milonative.data.Region.hideLocal.collectAsState()
+    val hideLocal = hideLocalPref && !offlineNow   // online + the person asked to hide their phone library
     val favNow by vm.favs.collectAsState()
     androidx.compose.runtime.LaunchedEffect(tracks.size, favNow.size) { vm.buildMixes(tracks) }
     val recent = tracks.sortedByDescending { it.addedSec }.take(50)
@@ -141,7 +143,7 @@ fun HomeScreen(
                     "No music found",
                     "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
                 )
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (!hideLocal) Column(Modifier.padding(horizontal = 14.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     tiles.chunked(2).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             row.forEach { t -> Tile(vm, t, Modifier.weight(1f)) }
@@ -170,8 +172,8 @@ fun HomeScreen(
                 }
             }
         }
-        if (savedSongs.isNotEmpty() && !offlineNow) item(key = "dl") { DownloadedCard(vm, ui, card) }
-        if (mixes.isNotEmpty()) {
+        if (savedSongs.isNotEmpty() && !offlineNow && !hideLocal) item(key = "dl") { DownloadedCard(vm, ui, card) }
+        if (mixes.isNotEmpty() && !hideLocal) {
             item(key = "mixes") {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
                     SectionTitle("Made for you")
@@ -192,7 +194,7 @@ fun HomeScreen(
                 }
             }
         }
-        if (artists.isNotEmpty()) {
+        if (artists.isNotEmpty() && !hideLocal) {
             item {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(top = 6.dp, bottom = 6.dp)) {
                 if (artists.isNotEmpty()) {
@@ -211,7 +213,7 @@ fun HomeScreen(
                 }
             }
         }
-        if (tracks.isNotEmpty()) {
+        if (tracks.isNotEmpty() && !hideLocal) {
             item {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
                     SectionTitle("Recently added")

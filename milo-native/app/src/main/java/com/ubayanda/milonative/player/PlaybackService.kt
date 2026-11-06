@@ -29,6 +29,8 @@ class PlaybackService : MediaSessionService() {
                     if (p.currentPosition > p.duration - 30_000) Resume.drop(this@PlaybackService, id)
                     else if (p.isPlaying) Resume.put(this@PlaybackService, id, p.currentPosition, p.playbackParameters.speed)
                 }
+                // keep the widgets' progress bar moving while a song plays
+                if (p != null && p.isPlaying) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, p)
             } catch (_: Throwable) {}
             handler.postDelayed(this, 10_000)
         }
@@ -223,7 +225,12 @@ class PlaybackService : MediaSessionService() {
         exo = player
         handler.post(fader)
         handler.postDelayed(resumeSaver, 10_000)
-        session = MediaSession.Builder(this, player).build()
+        // tapping the playback notification (or the lock-screen player) opens milo.
+        val open = android.app.PendingIntent.getActivity(
+            this, 0, Intent(this, com.ubayanda.milonative.MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        session = MediaSession.Builder(this, player).setSessionActivity(open).build()
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player).also { it.init() }
         BtOutput.start(this, { player.isPlaying }, { player.play() })

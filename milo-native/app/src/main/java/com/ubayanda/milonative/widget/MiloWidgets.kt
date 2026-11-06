@@ -96,8 +96,10 @@ private fun Cover(s: WidgetState, size: androidx.compose.ui.unit.Dp, radius: and
 }
 
 @Composable
-private fun Btn(icon: Int, desc: String, command: String, size: androidx.compose.ui.unit.Dp, tint: Color = TEXT, bg: Color? = null) {
-    var m = GlanceModifier.size(size).clickable(cmd(command))
+private fun Btn(icon: Int, desc: String, command: String, size: androidx.compose.ui.unit.Dp, tint: Color = TEXT, bg: Color? = null, empty: Boolean = false, ctx: Context? = null) {
+    // nothing queued yet: the buttons just open milo. so a tap is never dead
+    val act = if (empty && ctx != null) actionStartActivity(android.content.Intent(ctx, MainActivity::class.java)) else cmd(command)
+    var m = GlanceModifier.size(size).clickable(act)
     if (bg != null) m = m.background(bg).cornerRadius(size / 2)
     Box(m, contentAlignment = Alignment.Center) {
         Image(ImageProvider(icon), desc, GlanceModifier.size(size * 0.5f), colorFilter = ColorFilter.tint(ColorProvider(tint)))
@@ -114,7 +116,7 @@ class PlayerWidget : GlanceAppWidget() {
         val open = actionStartActivity(android.content.Intent(context, MainActivity::class.java))
         provideContent {
             Column(
-                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(28.dp).padding(14.dp).clickable(open),
+                GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_bg)).padding(14.dp).clickable(open),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -126,14 +128,14 @@ class PlayerWidget : GlanceAppWidget() {
                     }
                 }
                 Spacer(GlanceModifier.height(10.dp))
-                LinearProgressIndicator(s.progress, GlanceModifier.fillMaxWidth().height(4.dp), color = ColorProvider(CREAM), backgroundColor = ColorProvider(Color(0xFF3A3632)))
+                LinearProgressIndicator(s.progress, GlanceModifier.fillMaxWidth().height(4.dp), color = ColorProvider(s.accent), backgroundColor = ColorProvider(Color(0xFF3A3632)))
                 Spacer(GlanceModifier.height(8.dp))
                 Row(GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
-                    Btn(R.drawable.ic_w_prev, "Previous", "prev", 44.dp)
+                    Btn(R.drawable.ic_w_prev, "Previous", "prev", 44.dp, empty = s.empty, ctx = context)
                     Spacer(GlanceModifier.width(18.dp))
-                    Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 52.dp, Color.Black, CREAM)
+                    Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 52.dp, Color.Black, s.accent, s.empty, context)
                     Spacer(GlanceModifier.width(18.dp))
-                    Btn(R.drawable.ic_w_next, "Next", "next", 44.dp)
+                    Btn(R.drawable.ic_w_next, "Next", "next", 44.dp, empty = s.empty, ctx = context)
                 }
             }
         }
@@ -148,7 +150,7 @@ class PillWidget : GlanceAppWidget() {
         val open = actionStartActivity(android.content.Intent(context, MainActivity::class.java))
         provideContent {
             Row(
-                GlanceModifier.fillMaxSize().background(CARD).cornerRadius(40.dp).padding(horizontal = 10.dp, vertical = 6.dp).clickable(open),
+                GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_bg_pill)).padding(horizontal = 10.dp, vertical = 6.dp).clickable(open),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Cover(s, 44.dp, 22.dp)
@@ -157,9 +159,9 @@ class PillWidget : GlanceAppWidget() {
                     Text(ttl(s), maxLines = 1, style = TextStyle(color = ColorProvider(TEXT), fontSize = 14.sp, fontWeight = FontWeight.Bold))
                     Text(sub(s), maxLines = 1, style = TextStyle(color = ColorProvider(DIM), fontSize = 12.sp))
                 }
-                Btn(R.drawable.ic_w_prev, "Previous", "prev", 36.dp)
-                Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 42.dp, Color.Black, CREAM)
-                Btn(R.drawable.ic_w_next, "Next", "next", 36.dp)
+                Btn(R.drawable.ic_w_prev, "Previous", "prev", 36.dp, empty = s.empty, ctx = context)
+                Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 42.dp, Color.Black, s.accent, s.empty, context)
+                Btn(R.drawable.ic_w_next, "Next", "next", 36.dp, empty = s.empty, ctx = context)
             }
         }
     }
@@ -177,15 +179,15 @@ class ArtWidget : GlanceAppWidget() {
                 if (art != null) Image(ImageProvider(art), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom) {
                     Row(
-                        GlanceModifier.fillMaxWidth().background(Color(0xCC000000)).padding(horizontal = 10.dp, vertical = 8.dp),
+                        GlanceModifier.fillMaxWidth().background(ImageProvider(R.drawable.widget_scrim)).padding(start = 12.dp, end = 8.dp, top = 22.dp, bottom = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(GlanceModifier.defaultWeight()) {
                             Text(ttl(s), maxLines = 1, style = TextStyle(color = ColorProvider(Color.White), fontSize = 13.sp, fontWeight = FontWeight.Bold))
                             Text(sub(s), maxLines = 1, style = TextStyle(color = ColorProvider(Color(0xFFD6D0C4)), fontSize = 11.sp))
                         }
-                        Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 40.dp, Color.Black, AMBER)
-                        Btn(R.drawable.ic_w_next, "Next", "next", 36.dp, Color.White)
+                        Btn(if (s.playing) R.drawable.ic_w_pause else R.drawable.ic_w_play, "Play or pause", "toggle", 40.dp, Color.Black, s.accent, s.empty, context)
+                        Btn(R.drawable.ic_w_next, "Next", "next", 36.dp, Color.White, empty = s.empty, ctx = context)
                     }
                 }
             }

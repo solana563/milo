@@ -11,7 +11,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** What the home-screen widgets show: written by the playback service, read by the widgets. */
-data class WidgetState(val title: String, val artist: String, val playing: Boolean, val pos: Long, val dur: Long, val art: Bitmap?) {
+data class WidgetState(val title: String, val artist: String, val playing: Boolean, val pos: Long, val dur: Long, val art: Bitmap?, val accent: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFFF99C00)) {
     val progress: Float get() = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
     val empty: Boolean get() = title.isEmpty()
 
@@ -23,7 +23,10 @@ data class WidgetState(val title: String, val artist: String, val playing: Boole
             val p = prefs(ctx)
             val f = artFile(ctx)
             val art = try { if (p.getBoolean("art", false) && f.exists()) BitmapFactory.decodeFile(f.path) else null } catch (_: Throwable) { null }
-            return WidgetState(p.getString("title", "").orEmpty(), p.getString("artist", "").orEmpty(), p.getBoolean("playing", false), p.getLong("pos", 0L), p.getLong("dur", 0L), art)
+            // the colour the person picked in Profile
+            val a = ctx.getSharedPreferences("milo_ui", Context.MODE_PRIVATE).getLong("accent", 0L)
+            val accent = if (a != 0L) androidx.compose.ui.graphics.Color(a.toULong()) else androidx.compose.ui.graphics.Color(0xFFF99C00)
+            return WidgetState(p.getString("title", "").orEmpty(), p.getString("artist", "").orEmpty(), p.getBoolean("playing", false), p.getLong("pos", 0L), p.getLong("dur", 0L), art, accent)
         }
 
         fun write(ctx: Context, title: String, artist: String, playing: Boolean, pos: Long, dur: Long) {

@@ -2,9 +2,10 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp" android:minHeight="110dp"
     android:targetCellWidth="2" android:targetCellHeight="2"
+    android:minResizeWidth="110dp" android:minResizeHeight="56dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
     android:description="@string/widget_art_desc"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:previewLayout="@layout/glance_default_loading_layout" />
+    android:previewImage="@drawable/widget_preview_art" />

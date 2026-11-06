@@ -127,6 +127,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         AccentCard()
         Spacer(Modifier.height(16.dp))
+        HomeLocalCard()
+        Spacer(Modifier.height(16.dp))
         Box(Modifier.padding(horizontal = Sp.gutter)) { Pill("Show the welcome tour", null, false) { Tour.open.value = true } }
         if (a.signedIn) {
             Spacer(Modifier.height(16.dp))
@@ -286,6 +288,17 @@ private fun SharingCard(vm: MainViewModel, a: AccountUi) {
         Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
         ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
+    }
+}
+
+@Composable
+private fun HomeLocalCard() {
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    val hide by com.ubayanda.milonative.data.Region.hideLocal.collectAsState()
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Home", color = Milo.text, style = Ty.title)
+        Text("Online, Home can show only streaming picks. Your phone's songs stay in Library, and Home shows them again when you're offline.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Hide my phone's music on Home while online", hide) { com.ubayanda.milonative.data.Region.setHideLocal(it) }
     }
 }
 

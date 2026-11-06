@@ -71,3 +71,5 @@ Discover is now a YouTube-first feed (trending songs, trending artists, new rele
 Social: Feed tab (stories, listening-now cards with reactions, shared playlists), chat search.
 
 Round 13: typing indicator (Supabase Realtime broadcast), lyrics rescan / word highlight / video-vs-studio match + timing nudge, thread-style friend posts with lyric quotes, real Apple Music charts in Discover.
+
+Round 14: playback notification now opens the app (media session activity); widgets redrawn (glass backgrounds, accent colour, live progress, preview images, taps open milo. when nothing is queued); Profile > Home setting to hide the phone's music on Home while online.
