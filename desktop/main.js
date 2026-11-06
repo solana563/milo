@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, shell, protocol, net, ipcMain, nativeImage, dialog } = require("electron");
+const { app, BrowserWindow, Menu, Tray, shell, protocol, net, ipcMain, nativeImage, dialog, screen, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { pathToFileURL } = require("url");
@@ -13,6 +13,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: "milostream", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
   { scheme: "milofile", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
 ]);
+
+// Windows groups the taskbar icon and shows notifications under this id
+if (process.platform === "win32") app.setAppUserModelId("com.ubayanda.milodesktop");
 
 const APP_DIR = path.join(__dirname, "app");
 const ICON = path.join(__dirname, "build", "icon.png");
@@ -98,7 +101,10 @@ function writeData(text) {
 function loadState() {
   try { return JSON.parse(fs.readFileSync(stateFile(), "utf8")); } catch { return {}; }
 }
+let saveT = null;
+function saveStateSoon() { clearTimeout(saveT); saveT = setTimeout(saveState, 600); } // resizing fires hundreds of events
 function saveState() {
+  clearTimeout(saveT);
   if (!win || win.isDestroyed()) return;
   try {
     const b = win.isMaximized() ? (win._normal || win.getNormalBounds()) : win.getBounds();
@@ -106,8 +112,18 @@ function saveState() {
   } catch {}
 }
 
+/** Forget a saved position that is now off-screen (a monitor was unplugged). */
+function visibleOnSomeScreen(st) {
+  if (typeof st.x !== "number" || typeof st.y !== "number") return false;
+  return screen.getAllDisplays().some((d) => {
+    const a = d.workArea;
+    return st.x + 80 < a.x + a.width && st.x + (st.width || 1200) - 80 > a.x && st.y >= a.y - 20 && st.y + 80 < a.y + a.height;
+  });
+}
+
 function createWindow() {
   const st = loadState();
+  if (!visibleOnSomeScreen(st)) { delete st.x; delete st.y; }
   win = new BrowserWindow({
     width: st.width || 1200, height: st.height || 800, x: st.x, y: st.y,
     minWidth: 380, minHeight: 560,
@@ -126,7 +142,12 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   if (st.max) win.maximize();
   win.once("ready-to-show", () => win.show());
+  setTimeout(() => { if (win && !win.isDestroyed() && !win.isVisible()) win.show(); }, 6000); // never stay invisible if the page is slow
   win.loadURL("app://milo/index.html");
+  win.webContents.on("did-fail-load", (_e, code, desc, _url, isMain) => {
+    if (isMain && code !== -3) setTimeout(() => { if (win && !win.isDestroyed()) win.loadURL("app://milo/index.html"); }, 1500);
+  });
+  win.webContents.on("render-process-gone", () => { if (win && !win.isDestroyed()) win.reload(); }); // a crashed page restarts instead of a blank window
 
   // Links to other sites open in the default browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -142,8 +163,8 @@ function createWindow() {
     saveState();
     if (!quitting) { e.preventDefault(); win.hide(); }
   });
-  win.on("resize", saveState);
-  win.on("move", saveState);
+  win.on("resize", saveStateSoon);
+  win.on("move", saveStateSoon);
 }
 
 function showWin() {
@@ -169,14 +190,18 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on("second-instance", showWin);
   app.whenReady().then(() => {
-    protocol.handle("app", (req) => {
+    protocol.handle("app", async (req) => {
       const u = new URL(req.url);
       let p = decodeURIComponent(u.pathname);
       if (p === "/" || p === "") p = "/index.html";
       const file = path.normalize(path.join(APP_DIR, p));
-      if (!file.startsWith(APP_DIR)) return new Response("Forbidden", { status: 403 });
-      return net.fetch(pathToFileURL(file).toString());
+      if (!file.startsWith(APP_DIR + path.sep)) return new Response("Forbidden", { status: 403 });
+      try { return await net.fetch(pathToFileURL(file).toString()); } catch { return new Response("Not found", { status: 404 }); }
     });
+    // only what a music player needs; everything else (camera, location, USB...) is refused
+    const OK_PERM = new Set(["media", "notifications", "fullscreen", "clipboard-sanitized-write", "audioCapture", "mediaKeySystem"]);
+    session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(OK_PERM.has(perm)));
+    session.defaultSession.setPermissionCheckHandler((_wc, perm) => OK_PERM.has(perm));
     protocol.handle("milofile", async (req) => {
       try {
         const seg = new URL(req.url).pathname.split("/").filter(Boolean)[0] || "";
@@ -334,6 +359,7 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.on("win:close", () => win && win.close());
     app.on("activate", showWin);
   });
+  app.on("session-end", () => { quitting = true; saveState(); });
   app.on("before-quit", () => { quitting = true; saveState(); try { discord.close(); } catch {} });
   app.on("window-all-closed", () => { /* stay in tray */ });
 }

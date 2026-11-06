@@ -73,3 +73,7 @@ Social: Feed tab (stories, listening-now cards with reactions, shared playlists)
 Round 13: typing indicator (Supabase Realtime broadcast), lyrics rescan / word highlight / video-vs-studio match + timing nudge, thread-style friend posts with lyric quotes, real Apple Music charts in Discover.
 
 Round 14: playback notification now opens the app (media session activity); widgets redrawn (glass backgrounds, accent colour, live progress, preview images, taps open milo. when nothing is queued); Profile > Home setting to hide the phone's music on Home while online.
+
+Round 15: iOS app started (milo-ios, SwiftUI): background audio and lock-screen controls, Music-library songs, Apple charts and search (30 s previews), synced lyrics (LRCLIB), liked songs, accent / region / hide-local settings, Brought-by card. Built by .github/workflows/ios.yml on a macOS runner.
+
+Round 16 (desktop polish): taskbar identity (AppUserModelId), window position restored only when still on a screen, debounced window-state saving, page auto-recovers from a crash or failed load, safer app:// file serving, permission whitelist, clean exit on Windows log-off.
