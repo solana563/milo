@@ -49,33 +49,81 @@ class LyricsRepo(private val context: Context) {
 
     private fun q(s: String) = URLEncoder.encode(s, "UTF-8")
 
-    private fun fetch(t: Track): String? {
-        val artist = if (t.artist == "Unknown artist") "" else t.artist
-        val url = "https://lrclib.net/api/get?track_name=${q(t.title)}&artist_name=${q(artist)}&album_name=${q(t.album)}&duration=${t.durationMs / 1000}"
-        return try {
-            val c = URL(url).openConnection() as HttpURLConnection
-            c.connectTimeout = 8000
-            c.readTimeout = 8000
-            c.setRequestProperty("User-Agent", "milo-native/1.0")
-            if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else search(t)
-        } catch (e: Exception) {
-            null
-        }
+    /** Throws away the saved copy and looks the song up again (the Rescan button). */
+    suspend fun rescan(t: Track): Lyrics? = withContext(Dispatchers.IO) {
+        try { File(dir, "${t.id}.json").delete() } catch (_: Exception) {}
+        val body = fetch(t)?.also { try { File(dir, "${t.id}.json").writeText(it) } catch (_: Exception) {} }
+        body?.let { parse(it) }
     }
 
-    /** Exact lookup missed: try the looser search and take the first hit. */
-    private fun search(t: Track): String? = try {
-        val url = "https://lrclib.net/api/search?q=${q(t.title + " " + t.artist)}"
+    private val tags = Regex("""\s*[\(\[][^)\]]*\b(official|music video|lyric|lyrics|video|audio|visuali[sz]er|live|hd|hq|4k|remaster(ed)?|explicit|clip|performance)\b[^)\]]*[\)\]]""", RegexOption.IGNORE_CASE)
+
+    /** True when the title says it is a video, live or lyric-video upload rather than the studio recording. */
+    fun looksLikeVideo(title: String) = tags.containsMatchIn(title) || Regex("""\b(official (music )?video|lyric video|live at|live from)\b""", RegexOption.IGNORE_CASE).containsMatchIn(title)
+
+    /** "Artist - Song (Official Video)" becomes "Song", so the lookup finds the real song. */
+    fun cleanTitle(title: String, artist: String): String {
+        var t = title.replace(tags, "")
+        t = t.replace(Regex("""\s*[-|]\s*(official.*|lyrics?.*|video.*|audio.*)$""", RegexOption.IGNORE_CASE), "")
+        if (artist.isNotBlank() && artist != "Unknown artist" && t.startsWith("$artist - ", true)) t = t.substring(artist.length + 3)
+        else if (t.contains(" - ") && artist.isBlank()) t = t.substringAfter(" - ")
+        return t.trim().ifEmpty { title }
+    }
+
+    private fun open(url: String): String? = try {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 8000
         c.readTimeout = 8000
         c.setRequestProperty("User-Agent", "milo-native/1.0")
-        if (c.responseCode != 200) null else {
-            val arr = org.json.JSONArray(c.inputStream.bufferedReader().use { it.readText() })
-            if (arr.length() == 0) null else arr.getJSONObject(0).toString()
+        if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else null
+    } catch (e: Exception) { null }
+
+    private fun fetch(t: Track): String? {
+        val artist = if (t.artist == "Unknown artist") "" else t.artist
+        val title = cleanTitle(t.title, artist)
+        val secs = (t.durationMs / 1000).toInt()
+        // 1) exact studio match (needs the length to agree within 2 seconds, so a longer video version misses on purpose)
+        open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&album_name=${q(t.album)}&duration=$secs")?.let { return it }
+        open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&duration=$secs")?.let { return it }
+        // 2) search, then take the version whose length is closest to this one
+        return bestOf(open("https://lrclib.net/api/search?q=${q("$title $artist".trim())}"), secs, looksLikeVideo(t.title))
+    }
+
+    private fun bestOf(body: String?, secs: Int, video: Boolean): String? = try {
+        val arr = org.json.JSONArray(body ?: return null)
+        var best: JSONObject? = null; var bestD = Int.MAX_VALUE
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            if (o.optString("syncedLyrics").isBlank() && o.optString("plainLyrics").isBlank()) continue
+            // a synced version wins over a plain one unless it is much further off in length
+            val d = Math.abs(o.optInt("duration", secs) - secs) + (if (o.optString("syncedLyrics").isBlank()) 6 else 0)
+            if (d < bestD) { best = o; bestD = d }
         }
-    } catch (e: Exception) {
-        null
+        best?.let { o ->
+            val delta = o.optInt("duration", secs) - secs
+            if (Math.abs(delta) > 3) o.put("miloNote",
+                (if (video) "You are playing a video or live version. " else "") + "These lyrics are from a version that is ${Math.abs(delta)}s ${if (delta > 0) "longer" else "shorter"}. If the lines drift, nudge the timing with the \u22C5\u22C5\u22C5 menu.")
+            o.toString()
+        }
+    } catch (e: Exception) { null }
+
+    private val previews = HashMap<String, List<String>>()
+
+    /** A few lines of a song, for the quote on a friend's post. Remembered while the app is open. */
+    suspend fun preview(title: String, artist: String, durSec: Int): List<String> = withContext(Dispatchers.IO) {
+        val key = "$title|$artist"
+        previews[key]?.let { return@withContext it }
+        val clean = cleanTitle(title, artist)
+        val body = open("https://lrclib.net/api/get?track_name=${q(clean)}&artist_name=${q(artist)}&duration=$durSec")
+            ?: bestOf(open("https://lrclib.net/api/search?q=${q("$clean $artist".trim())}"), if (durSec > 0) durSec else 200, false)
+        val lines = try {
+            val o = JSONObject(body ?: "{}")
+            val synced = o.optString("syncedLyrics")
+            val src = if (synced.isNotBlank()) synced.lines().map { it.replace(Regex("""\[[^\]]*]"""), "").replace(Regex("<[^>]*>"), "").trim() } else o.optString("plainLyrics").lines().map { it.trim() }
+            src.filter { it.isNotBlank() }.drop(2).take(4)
+        } catch (_: Exception) { emptyList() }
+        previews[key] = lines
+        lines
     }
 
     private fun parse(body: String): Lyrics? {
@@ -104,7 +152,7 @@ class LyricsRepo(private val context: Context) {
                 val clean = body.replace(Regex("<[^>]*>"), "").replace(Regex("\\s+"), " ").trim()
                 lines.add(LyricLine(mm * 60_000 + ss * 1000 + ms, clean, if (words.size >= 2) words else emptyList()))
             }
-            if (lines.isEmpty() && plain.isBlank()) null else Lyrics(lines, plain)
+            if (lines.isEmpty() && plain.isBlank()) null else Lyrics(lines, plain, o.optString("miloNote", ""))
         } catch (e: Exception) {
             null
         }

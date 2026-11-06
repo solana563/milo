@@ -98,6 +98,13 @@ object Region {
         try { block() } finally { YtMusic.glOverride = null }
     }
 
+    /** Which country charts to read: yours, the big international ones (US and UK), or both. International never includes your own. */
+    fun chartCountries(m: Int = _mode.value): List<String> = when (m) {
+        LOCAL -> listOf(home.lowercase())
+        WORLD -> listOf("us", "gb")
+        else -> listOf(home.lowercase(), "us")
+    }
+
     /** The country to ask radio stations for: only when the choice is "Local". */
     fun radioCountry(m: Int = _mode.value): String = if (m == LOCAL) home else ""
 

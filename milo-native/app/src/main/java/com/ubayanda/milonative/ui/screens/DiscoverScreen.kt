@@ -65,6 +65,9 @@ import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Rad
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -72,6 +75,34 @@ private val RADIO_TAGS = listOf("Top" to "", "Pop" to "pop", "Hip-hop" to "hip h
 private val YT_TERMS = listOf("Trending" to "official music video", "Pop" to "pop music", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "Amapiano" to "amapiano", "Rock" to "rock music", "Lo-fi" to "lofi hip hop", "Jazz" to "jazz")
 private val SERVER_VIEWS = listOf("Random mix", "Starred")
 private val PREVIEW_TERMS = listOf("Trending" to "top hits", "Pop" to "pop", "Hip-hop" to "hip hop", "Afrobeats" to "afrobeats", "R&B" to "r&b", "Amapiano" to "amapiano")
+
+private fun chartTitle(region: Int) = when (region) {
+    com.ubayanda.milonative.data.Region.LOCAL -> "Top songs in " + com.ubayanda.milonative.data.Region.homeName
+    com.ubayanda.milonative.data.Region.WORLD -> "Top songs internationally"
+    else -> "Top songs, local and international"
+}
+
+/** Reads the real charts, then finds each song, artist and album on YouTube Music. Returns null when no chart could be read, so the caller can fall back to searching. */
+private suspend fun chartFeed(
+    scope: kotlinx.coroutines.CoroutineScope, vm: MainViewModel, region: Int,
+    setArtists: (List<com.ubayanda.milonative.data.YtMusic.Card>) -> Unit, setAlbums: (List<com.ubayanda.milonative.data.YtMusic.Card>) -> Unit,
+): List<Track>? {
+    val countries = com.ubayanda.milonative.data.Region.chartCountries(region)
+    val (songCharts, albumCharts) = coroutineScope {
+        countries.map { c -> async { vm.discover.chart(c, "songs", 12) } }.awaitAll() to countries.map { c -> async { vm.discover.chart(c, "albums", 8) } }.awaitAll()
+    }
+    val songs = com.ubayanda.milonative.data.Region.mix(songCharts) { it.name.lowercase() + "|" + it.artist.lowercase() }
+    if (songs.isEmpty()) return null
+    scope.launch {
+        val names = songs.map { it.artist.split(Regex(",| & | feat\\.? | ft\\.? ", RegexOption.IGNORE_CASE)).first().trim() }.filter { it.isNotBlank() }.distinct().take(10)
+        setArtists(coroutineScope { names.map { n -> async { vm.youtube.artists(n).firstOrNull() } }.awaitAll() }.filterNotNull().distinctBy { it.id })
+    }
+    scope.launch {
+        val albums = com.ubayanda.milonative.data.Region.mix(albumCharts) { it.name.lowercase() + "|" + it.artist.lowercase() }.take(10)
+        setAlbums(coroutineScope { albums.map { a -> async { vm.youtube.albums(a.name + " " + a.artist).firstOrNull() } }.awaitAll() }.filterNotNull().distinctBy { it.id })
+    }
+    return coroutineScope { songs.take(20).map { s -> async { vm.youtube.search(s.name + " " + s.artist).firstOrNull() } }.awaitAll() }.filterNotNull().distinctBy { it.id }
+}
 
 private fun feedTitle(label: String) = when (label) { "Trending" -> "Trending songs"; "New releases" -> "Latest songs"; else -> "$label songs" }
 
@@ -92,6 +123,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
     var err by remember { mutableStateOf("") }
     var yArtists by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
     var yAlbums by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
+    var chartMode by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(mode, tag, query, region) {
@@ -107,6 +139,10 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                 }
                 3 -> {
                     yArtists = emptyList(); yAlbums = emptyList()
+                    // the front page is a real chart (Apple Music's most played for the chosen countries), not a search
+                    val ch = if (query.isBlank() && tag == 0) chartFeed(this, vm, region, { yArtists = it }, { yAlbums = it }) else null
+                    chartMode = ch != null
+                    if (ch != null) ch else run {
                     // artists and albums appear above the songs when they arrive
                     val qs = if (query.isNotBlank()) com.ubayanda.milonative.data.Region.forSearch(query.trim(), region) else rChips[tag.coerceIn(0, rChips.lastIndex)].qs
                     if (query.isNotBlank()) {
@@ -132,6 +168,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                         }
                     }
                     songs
+                    }
                 }
                 else -> if (!vm.server.configured) emptyList()
                 else if (query.isNotBlank()) vm.server.search(query)
@@ -214,9 +251,9 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
             if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf(if (query.isBlank()) "Trending artists" else "Artists", yArtists, vm) { onYtPage(it.id) } }
-            if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf(if (query.isBlank()) "New releases" else "Albums", yAlbums, vm) { onYtPage(it.id) } }
+            if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf(if (chartMode) "Top albums" else if (query.isBlank()) "New releases" else "Albums", yAlbums, vm) { onYtPage(it.id) } }
             if (mode == 3 && items.isNotEmpty() && (yArtists.isNotEmpty() || yAlbums.isNotEmpty() || query.isBlank())) item(key = "ysg") {
-                Text(if (query.isBlank()) feedTitle(rChips[tag.coerceIn(0, rChips.lastIndex)].label) else "Songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x4, bottom = Sp.x1))
+                Text(if (chartMode) chartTitle(region) else if (query.isBlank()) feedTitle(rChips[tag.coerceIn(0, rChips.lastIndex)].label) else "Songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x4, bottom = Sp.x1))
             }
             itemsIndexed(items, key = { _, t -> t.id }, contentType = { _, _ -> "track" }) { i, t ->
                 val on = t.id == ui.currentId

@@ -69,3 +69,5 @@ Round 10: blurred pop-up cards (MiloPopup, BlurBehind on dialogs), raised cards,
 Discover is now a YouTube-first feed (trending songs, trending artists, new releases) with a prominent Live radio button; visualiser removed from the lyrics screen.
 
 Social: Feed tab (stories, listening-now cards with reactions, shared playlists), chat search.
+
+Round 13: typing indicator (Supabase Realtime broadcast), lyrics rescan / word highlight / video-vs-studio match + timing nudge, thread-style friend posts with lyric quotes, real Apple Music charts in Discover.

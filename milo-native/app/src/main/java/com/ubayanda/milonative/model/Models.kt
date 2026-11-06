@@ -45,4 +45,5 @@ data class LyricWord(val timeMs: Long, val text: String)
 
 data class LyricLine(val timeMs: Long, val text: String, val words: List<LyricWord> = emptyList())
 
-data class Lyrics(val synced: List<LyricLine>, val plain: String)
+/** [note] is set when the lyrics come from a version of the song with a different length (a music video vs the studio song). */
+data class Lyrics(val synced: List<LyricLine>, val plain: String, val note: String = "")

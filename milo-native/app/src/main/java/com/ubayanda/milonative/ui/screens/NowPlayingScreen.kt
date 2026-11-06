@@ -66,6 +66,7 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -474,9 +475,16 @@ private fun Label(text: String) {
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics: Lyrics?, loading: Boolean, onBack: () -> Unit) {
+private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics0: Lyrics?, loading: Boolean, onBack: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val fx = remember { ctx.getSharedPreferences("milo_fx", 0) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var fresh by remember(t.id) { mutableStateOf<Lyrics?>(null) }
+    var rescanning by remember(t.id) { mutableStateOf(false) }
+    val lyrics = fresh ?: lyrics0
+    var wordMode by remember { mutableStateOf(fx.getBoolean("lyword", false)) }
+    var lyOff by remember(t.id) { mutableStateOf(fx.getLong("lyoff_" + t.id, 0L)) }
+    var moreMenu by remember { mutableStateOf(false) }
     var lang by remember { mutableStateOf(fx.getString("lylang", "") ?: "") }
     var langMenu by remember { mutableStateOf(false) }
     val translator = remember { com.ubayanda.milonative.data.LyricsTranslator(ctx) }
@@ -523,6 +531,29 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                     ) { Icon(Icons.Rounded.IosShare, "Share lyrics", tint = Milo.text, modifier = Modifier.size(26.dp)) }
                     Spacer(Modifier.width(10.dp))
                 }
+                Box {
+                    Box(Modifier.size(48.dp).clip(CircleShape).clickable { moreMenu = true }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.MoreHoriz, "Lyrics options", tint = Milo.text, modifier = Modifier.size(26.dp))
+                    }
+                    DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
+                        DropdownMenuItem(text = { Text(if (rescanning) "Rescanning\u2026" else "Rescan lyrics") }, onClick = {
+                            moreMenu = false
+                            if (!rescanning) scope.launch {
+                                rescanning = true
+                                val r = vm.rescanLyrics(t)
+                                rescanning = false
+                                if (r != null) fresh = r else android.widget.Toast.makeText(ctx, "No lyrics found for this song.", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        })
+                        DropdownMenuItem(text = { Text(if (wordMode) "Word highlight: on" else "Word highlight: off") }, onClick = {
+                            wordMode = !wordMode; fx.edit().putBoolean("lyword", wordMode).apply(); moreMenu = false
+                        })
+                        DropdownMenuItem(text = { Text("Lyrics earlier (\u22120.5 s)") }, onClick = { lyOff -= 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
+                        DropdownMenuItem(text = { Text("Lyrics later (+0.5 s)") }, onClick = { lyOff += 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
+                        if (lyOff != 0L) DropdownMenuItem(text = { Text("Reset timing (" + (if (lyOff > 0) "+" else "") + (lyOff / 1000.0) + " s)") }, onClick = { lyOff = 0; fx.edit().remove("lyoff_" + t.id).apply(); moreMenu = false })
+                    }
+                }
+                Spacer(Modifier.width(6.dp))
                 Box(
                     Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                     contentAlignment = Alignment.Center,
@@ -540,16 +571,18 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                     )
                 }
             }
+            if (lyrics != null && lyrics.note.isNotEmpty()) Text(lyrics.note, color = Milo.amber, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(8.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
-                    loading -> com.ubayanda.milonative.ui.components.SkeletonLines()
+                    loading || rescanning -> com.ubayanda.milonative.ui.components.SkeletonLines()
                     lyrics == null -> Text("No lyrics found for this song, or you're offline.", color = Milo.dim, fontSize = 18.sp, modifier = Modifier.padding(vertical = 24.dp))
                     lyrics.synced.isNotEmpty() -> {
                         val state = rememberLazyListState()
                         val btNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
                         val btDelay = if (btNow.bt) com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx) else 0
-                        val idx = lyrics.synced.indexOfLast { it.timeMs <= ui.positionMs + 250 - btDelay }
+                        val pos = ui.positionMs - btDelay - lyOff
+                        val idx = lyrics.synced.indexOfLast { it.timeMs <= pos + 250 }
                         LaunchedEffect(idx) { if (idx >= 0) state.animateScrollToItem((idx - 2).coerceAtLeast(0)) }
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
                             itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
@@ -560,14 +593,17 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                         onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
                                     ).padding(vertical = 12.dp),
                                 ) {
-                                    if (on && line.words.isNotEmpty()) {
-                                        // word-by-word: words already sung are bright, the rest stay dim
-                                        val sung = line.words.count { it.timeMs <= ui.positionMs + 120 }
+                                    val words = if (on) line.words.ifEmpty { if (wordMode) estimateWords(line, lyrics.synced.getOrNull(i + 1)?.timeMs) else emptyList() } else emptyList()
+                                    if (on && words.isNotEmpty()) {
+                                        // word-by-word: each word fills in as it is sung (timed words when the lyrics have them, estimated from the line otherwise)
+                                        val lineEnd = lyrics.synced.getOrNull(i + 1)?.timeMs ?: (line.timeMs + 4000)
                                         Text(
                                             androidx.compose.ui.text.buildAnnotatedString {
-                                                line.words.forEachIndexed { wi, w ->
-                                                    withStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = if (wi < sung) 1f else 0.42f))) { append(w.text) }
-                                                    if (wi < line.words.lastIndex) append(" ")
+                                                words.forEachIndexed { wi, w ->
+                                                    val end = words.getOrNull(wi + 1)?.timeMs ?: minOf(lineEnd, w.timeMs + 900)
+                                                    val p = ((pos - w.timeMs).toFloat() / (end - w.timeMs).coerceAtLeast(1)).coerceIn(0f, 1f)
+                                                    withStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = 0.42f + 0.58f * p))) { append(w.text) }
+                                                    if (wi < words.lastIndex) append(" ")
                                                 }
                                             },
                                             fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
@@ -749,5 +785,21 @@ private fun ParametricSection() {
             }
         }
         MiloChip("Reset curve", false, Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) { com.ubayanda.milonative.player.ParamEq.reset() }
+    }
+}
+
+
+/** Lyrics that only have line times: spread the line across its words by length so a word-by-word highlight is still possible. */
+private fun estimateWords(line: com.ubayanda.milonative.model.LyricLine, nextMs: Long?): List<com.ubayanda.milonative.model.LyricWord> {
+    val tokens = line.text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+    if (tokens.size < 2) return emptyList()
+    val span = (minOf((nextMs ?: (line.timeMs + 4000)) - line.timeMs, 7000L) * 0.9).toLong().coerceAtLeast(600L)
+    val weights = tokens.map { it.length + 2 }
+    val total = weights.sum().toFloat()
+    var acc = 0f
+    return tokens.mapIndexed { i, w ->
+        val start = line.timeMs + (span * acc / total).toLong()
+        acc += weights[i]
+        com.ubayanda.milonative.model.LyricWord(start, w)
     }
 }

@@ -431,8 +431,9 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
     val lastMineId = remember(msgs) { msgs.lastOrNull { it.mine }?.id }
     val sh = s.shared[f.id]
     val now = sh?.now
-    LaunchedEffect(f.id) { vm.social.openChat(f) }
-    androidx.compose.runtime.DisposableEffect(f.id) { onDispose { vm.social.closeChat(); VoicePlayer.stop(); recorder.cancel() } }
+    val theirTyping by vm.typing.theirs.collectAsState()
+    LaunchedEffect(f.id) { vm.social.openChat(f); vm.typing.join(listOf(vm.social.me, f.id).sorted().joinToString(":"), vm.social.me) }
+    androidx.compose.runtime.DisposableEffect(f.id) { onDispose { vm.social.closeChat(); vm.typing.leave(); VoicePlayer.stop(); recorder.cancel() } }
     LaunchedEffect(rows.size) { if (rows.isNotEmpty()) list.scrollToItem(rows.size - 1) }
     val current = vm.trackById(ui.currentId)
     val me = vm.social.me
@@ -615,6 +616,10 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
             }
         }
 
+        if (theirTyping) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            TypingDots()
+            Text(f.name.substringBefore(' ') + " is typing\u2026", color = Milo.amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp))
+        }
         // ---- composer ----
         if (recording) {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -647,7 +652,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                 Box(Modifier.weight(1f).heightIn(min = 46.dp).clip(pill).background(Milo.card2, pill).padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.CenterStart) {
                     if (text.isEmpty()) Text("Message", color = Milo.dim, fontSize = 16.sp)
                     BasicTextField(
-                        value = text, onValueChange = { text = it; vm.social.clearErr() }, maxLines = 5,
+                        value = text, onValueChange = { text = it; vm.social.clearErr(); if (it.isNotBlank()) vm.typing.ping() }, maxLines = 5,
                         textStyle = TextStyle(color = Milo.text, fontSize = 16.sp), cursorBrush = SolidColor(Milo.amber),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default, capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
                         modifier = Modifier.fillMaxWidth(),
@@ -830,32 +835,50 @@ private fun FeedContent(
         if (live.isNotEmpty()) item(key = "lh") { Text("Listening now", color = Milo.dim, style = Ty.micro, letterSpacing = 1.sp, modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 2.dp)) }
         items(live, key = { "nc" + it.id }) { f ->
             val now = s.shared[f.id]?.now ?: return@items
-            Column(
-                Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().lift(shape, 14f).glass(shape, 1.2f, Milo.card).border(1.dp, glassStroke(0.8f), shape).padding(16.dp),
+            val quote by androidx.compose.runtime.produceState(emptyList<String>(), now.title, now.artist) { value = vm.lyricPreview(now.title, now.artist, now.durSec) }
+            // a post, like a thread: avatar and a line down the left, the song and its lyrics on the right
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().lift(shape, 14f).glass(shape, 1.2f, Milo.card).border(1.dp, glassStroke(0.8f), shape).padding(16.dp).height(androidx.compose.foundation.layout.IntrinsicSize.Min),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    UserAvatar(f.name, f.avatar, 42.dp, ring = true)
-                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                        Text(f.name, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Row(verticalAlignment = Alignment.CenterVertically) { LiveDot(); Text("  listening now", color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                    }
-                    Text("Chat", color = Milo.dim, fontSize = 14.sp, modifier = Modifier.clip(RoundedCornerShape(14.dp)).pressable(true) { onChat(f) }.padding(horizontal = 12.dp, vertical = 8.dp))
+                Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    UserAvatar(f.name, f.avatar, 44.dp, ring = true)
+                    Box(Modifier.padding(top = 6.dp).width(2.dp).weight(1f).clip(RoundedCornerShape(1.dp)).background(Brush.verticalGradient(listOf(Milo.amber.copy(alpha = 0.7f), Color.Transparent))))
                 }
-                Spacer(Modifier.height(14.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Cover(vm, sharedTrack(now), 92.dp, Rad.md, px = 260)
-                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                        Text(now.title, color = Milo.text, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(now.artist, color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
-                        if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) Box(Modifier.padding(top = 10.dp)) { SmallBtn("Listen too", true) { playShared(vm, ctx, now) } }
-                        else Text("On their phone only", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+                Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(f.name, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Spacer(Modifier.width(8.dp)); LiveDot(); Text("  now", color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f))
+                        Text("Chat", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).pressable(true) { onChat(f) }.padding(horizontal = 10.dp, vertical = 6.dp))
                     }
-                }
-                Spacer(Modifier.height(14.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    FEED_REACTIONS.forEach { e -> EmojiTile(e) { react(vm, ctx, f, now, e) } }
-                    Spacer(Modifier.weight(1f))
-                    SmallBtn("Reply", false) { onChat(f) }
+                    Text("is listening to", color = Milo.dim, fontSize = 13.sp)
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(Rad.md)).background(Milo.card2).padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Cover(vm, sharedTrack(now), 64.dp, Rad.sm, px = 200)
+                        Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                            Text(now.title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(now.artist, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    if (quote.isNotEmpty()) Row(Modifier.padding(top = 12.dp)) {
+                        Box(Modifier.width(3.dp).height((quote.size * 22).dp).clip(RoundedCornerShape(2.dp)).background(Milo.amber))
+                        Column(Modifier.padding(start = 10.dp)) {
+                            quote.forEach { Text(it, color = Milo.text.copy(alpha = 0.9f), fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            Text(if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) "Tap Listen too and the lyrics play in sync" else "Lyrics", color = Milo.dim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        FEED_REACTIONS.forEach { e -> EmojiTile(e) { react(vm, ctx, f, now, e) } }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) SmallBtn("Listen too", true) { playShared(vm, ctx, now) }
+                        SmallBtn("Reply", false) { onChat(f) }
+                    }
                 }
             }
         }
@@ -900,4 +923,16 @@ private fun FeedContent(
         }
     }
     plFor?.let { f -> FriendPlaylistsDialog(vm, f.name, s.shared[f.id]?.playlists ?: emptyList()) { plFor = null } }
+}
+
+
+@Composable
+private fun TypingDots() {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "typing")
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        for (i in 0..2) {
+            val a by t.animateFloat(0.25f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(500, delayMillis = i * 140), androidx.compose.animation.core.RepeatMode.Reverse), label = "d$i")
+            Box(Modifier.size(7.dp).graphicsLayer { alpha = a; scaleX = 0.7f + 0.5f * a; scaleY = 0.7f + 0.5f * a }.clip(CircleShape).background(Milo.amber))
+        }
+    }
 }

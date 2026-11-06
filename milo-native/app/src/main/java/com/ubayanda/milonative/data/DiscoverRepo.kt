@@ -22,6 +22,15 @@ class DiscoverRepo {
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
+    data class ChartItem(val name: String, val artist: String)
+
+    /** A real country chart (Apple Music's "most played" list): [kind] is "songs" or "albums". Empty when the country has none or there is no connection. */
+    suspend fun chart(country: String, kind: String, limit: Int = 12): List<ChartItem> = try {
+        val o = org.json.JSONObject(get("https://rss.applemarketingtools.com/api/v2/${country.lowercase()}/music/most-played/$limit/$kind.json"))
+        val arr = o.getJSONObject("feed").getJSONArray("results")
+        (0 until arr.length()).map { arr.getJSONObject(it) }.map { ChartItem(it.optString("name"), it.optString("artistName")) }.filter { it.name.isNotBlank() }
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() }
+
     private suspend fun get(url: String): String = withContext(Dispatchers.IO) {
         val req = Request.Builder().url(url).header("User-Agent", "milo-native/1.0").build()
         http.newCall(req).execute().use { r ->

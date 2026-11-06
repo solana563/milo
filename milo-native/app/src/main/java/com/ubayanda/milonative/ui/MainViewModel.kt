@@ -65,6 +65,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val store = PlaylistStore(app)
     private val cloud = CloudApi(app)
     val social = com.ubayanda.milonative.data.SocialModel(cloud, viewModelScope)
+    val typing = com.ubayanda.milonative.data.Typing(cloud, viewModelScope)
 
     private val _account = MutableStateFlow(
         AccountUi(
@@ -439,6 +440,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     })
 
     suspend fun lyricsFor(t: Track): Lyrics? = lyricsRepo.get(t)
+    suspend fun rescanLyrics(t: Track): Lyrics? = lyricsRepo.rescan(t)
+    suspend fun lyricPreview(title: String, artist: String, durSec: Int): List<String> = lyricsRepo.preview(title, artist, durSec)
 
     /** RGB (0xAARRGGBB) of the colour the UI leans toward, taken from the playing song's art. */
     private val _accent = MutableStateFlow(0xFF8A8A8A.toInt())
