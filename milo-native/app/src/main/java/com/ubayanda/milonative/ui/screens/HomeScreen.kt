@@ -87,6 +87,7 @@ fun HomeScreen(
     likedCount: Int, liked: Boolean, name: String, initial: String,
     onProfile: () -> Unit, onSearch: () -> Unit, onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit,
     onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onFriends: () -> Unit = {}, onYtPage: (String) -> Unit = {},
+    onDownloads: () -> Unit = {},
 ) {
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadYtHome() }
     val ytShelves by vm.ytHome.collectAsState()
@@ -154,7 +155,7 @@ fun HomeScreen(
             }
         }
         // saved songs: first when you're offline, after the streaming shelves when you're online
-        if (savedSongs.isNotEmpty() && offlineNow) item(key = "dl-top") { DownloadedCard(vm, ui, card) }
+        if (savedSongs.isNotEmpty() && offlineNow) item(key = "dl-top") { DownloadedCard(vm, ui, card, onDownloads) }
         // online: YouTube Music leads right under the player (recommended playlists, trending artists, charts). Offline: only your own music below.
         if (ytShelves.isEmpty() && ytLoading) {
             item(key = "ysk") {
@@ -172,7 +173,7 @@ fun HomeScreen(
                 }
             }
         }
-        if (savedSongs.isNotEmpty() && !offlineNow && !hideLocal) item(key = "dl") { DownloadedCard(vm, ui, card) }
+        if (savedSongs.isNotEmpty() && !offlineNow) item(key = "dl") { DownloadedCard(vm, ui, card, onDownloads) }
         val shownMixes = if (hideLocal) mixes.filter { it.remote } else mixes
         if (shownMixes.isNotEmpty()) {
             item(key = "mixes") {
@@ -349,7 +350,7 @@ fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = 
 
 
 @Composable
-private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compose.ui.graphics.Shape) {
+private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compose.ui.graphics.Shape, onAll: () -> Unit) {
     val list = remember(vm.offline.collectAsState().value) { com.ubayanda.milonative.data.OfflineStore.tracks() }
     Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
         SectionTitle("Downloaded")
@@ -357,6 +358,7 @@ private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compo
         Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Pill("Play all", Icons.Rounded.PlayArrow, true, compact = true) { vm.rememberRemote(list); vm.player.playQueue(list, 0) }
             Pill("Shuffle", Icons.Rounded.Shuffle, false, compact = true) { vm.rememberRemote(list); vm.player.playShuffled(list) }
+            Pill("See all", null, false, compact = true) { onAll() }
         }
         list.take(8).forEach { t -> TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.rememberRemote(list); vm.player.playQueue(list, list.indexOf(t)) } }
     }

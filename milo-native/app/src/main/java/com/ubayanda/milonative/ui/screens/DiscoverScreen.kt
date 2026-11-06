@@ -261,10 +261,14 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = if (on) 8.dp else 0.dp)
                         .then(if (on) Modifier.clip(RoundedCornerShape(Rad.lg)).background(Milo.amber.copy(alpha = 0.16f)) else Modifier).clickable {
+                        // a song you searched for plays alone in the queue and Autoplay adds similar songs; the trending feed keeps its list
+                        val one = query.isNotBlank() && mode != 0
+                        val q = if (one) listOf(t) else items
+                        val qi = if (one) 0 else i
                         if (mode == 3) scope.launch {
                             // plays in milo.'s own player; if no direct stream can be found, the old embedded player is the way out
-                            if (vm.youtube.canStream(t)) vm.playRemote(items, i) else onYouTube(items, i)
-                        } else vm.playRemote(items, i)
+                            if (vm.youtube.canStream(t)) vm.playRemote(q, qi) else onYouTube(q, qi)
+                        } else vm.playRemote(q, qi)
                     }.padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

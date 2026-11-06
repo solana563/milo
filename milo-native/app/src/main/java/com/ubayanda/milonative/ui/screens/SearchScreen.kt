@@ -133,7 +133,7 @@ fun SearchScreen(
             if (ytHits.isNotEmpty() || ytBusy) item { SectionTitle(if (lyricQuery) "On YouTube Music \u00b7 matches for those lyrics" else "On YouTube Music") }
             if (ytBusy && ytHits.isEmpty()) item { Text("Searching\u2026", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
             items(ytHits, key = { "yt" + it.id }, contentType = { "track" }) { t ->
-                TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.playRemote(ytHits, ytHits.indexOf(t)) }
+                TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.playRemote(listOf(t), 0) }  // alone in the queue: Autoplay then adds similar songs
             }
             if (artistHits.isNotEmpty()) item { SectionTitle("Artists") }
             items(artistHits.take(20), key = { "ar" + it.name }) { a ->

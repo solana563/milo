@@ -239,10 +239,17 @@ fun MiloApp(vm: MainViewModel) {
                         is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, rowExtra = { t ->
                             listOf(RowAction("Remove from Liked songs") { vm.toggleFav(t.id) })
                         })
-                        is Detail.Smart -> DetailScreen(
-                            vm, when (d.kind) { "most" -> "Most played"; "recent" -> "Recently added"; else -> "Never played" },
-                            "Made for you", remember(d.kind, tracks, ui.currentId) { vm.smartTracks(d.kind) }, ui, bottomPad, { detail = null },
-                        )
+                        is Detail.Smart -> {
+                            val saved = vm.offline.collectAsState().value
+                            DetailScreen(
+                                vm, when (d.kind) { "most" -> "Most played"; "recent" -> "Recently added"; "downloads" -> "Downloads"; else -> "Never played" },
+                                if (d.kind == "downloads") "Saved on this phone, plays with no connection" else "Made for you",
+                                remember(d.kind, tracks, ui.currentId, saved) {
+                                    if (d.kind == "downloads") com.ubayanda.milonative.data.OfflineStore.tracks().also { vm.rememberRemote(it) } else vm.smartTracks(d.kind)
+                                },
+                                ui, bottomPad, { detail = null },
+                            )
+                        }
                         is Detail.PlaylistD -> {
                             val p = playlists.firstOrNull { it.id == d.id }
                             LaunchedEffect(p == null) { if (p == null) detail = null }
@@ -279,6 +286,7 @@ fun MiloApp(vm: MainViewModel) {
                                 onOpenAlbum = { detail = Detail.AlbumD(it) },
                                 onOpenArtist = { detail = Detail.ArtistD(it) },
                                 onOpenPlaylist = { detail = Detail.PlaylistD(it.id) },
+                                onDownloads = { detail = Detail.Smart("downloads") },
                                 onLiked = { detail = Detail.Liked },
                                 onFriends = { friendsOpen = true },
                                 onYtPage = { ytPages = ytPages + it },
