@@ -8,10 +8,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material3.Icon
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -56,8 +68,16 @@ fun SearchScreen(
 ) {
     var q by rememberSaveable { mutableStateOf("") }
     val s = q.trim()
-    val hits = remember(s, tracks) {
-        if (s.isEmpty()) tracks
+    val ctx = LocalContext.current
+    val focus = LocalFocusManager.current
+    remember { com.ubayanda.milonative.util.RecentSearches.init(ctx) }
+    var recents by remember { mutableStateOf(com.ubayanda.milonative.util.RecentSearches.all()) }
+    // online with "hide my phone's music" on: an empty search page is not a dump of the phone library, and YouTube results come first
+    val hideLocal by com.ubayanda.milonative.data.Region.hideLocal.collectAsState()
+    val ytFirst = hideLocal && vm.online()
+    fun done() { com.ubayanda.milonative.util.RecentSearches.add(q); recents = com.ubayanda.milonative.util.RecentSearches.all() }
+    val hits = remember(s, tracks, ytFirst) {
+        if (s.isEmpty()) (if (ytFirst) emptyList() else tracks)
         else tracks.filter { it.title.contains(s, true) || it.artist.contains(s, true) || it.album.contains(s, true) }
     }
     val albumHits = remember(s, albums) { if (s.isEmpty()) emptyList() else albums.filter { it.title.contains(s, true) || it.artist.contains(s, true) } }
@@ -78,6 +98,13 @@ fun SearchScreen(
         if (vm.online()) { ytBusy = true; ytHits = vm.ytSearch(s); ytBusy = false } else ytHits = emptyList()
     }
     val lyricQuery = s.trim().split(" ").size >= 3
+    val ytSection: LazyListScope.() -> Unit = {
+        if (ytHits.isNotEmpty() || ytBusy) item(key = "yt-head") { SectionTitle(if (lyricQuery) "On YouTube Music \u00b7 matches for those lyrics" else "On YouTube Music") }
+        if (ytBusy && ytHits.isEmpty()) item(key = "yt-busy") { Text("Searching\u2026", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
+        items(ytHits, key = { "yt" + it.id }, contentType = { "track" }) { t ->
+            TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { done(); vm.playRemote(listOf(t), 0) }  // alone in the queue: Autoplay then adds similar songs
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Find something to sit with")
         OutlinedTextField(
@@ -85,6 +112,9 @@ fun SearchScreen(
             placeholder = { Text("Songs, artists, friends or a lyric you remember", color = Milo.dim, fontSize = 17.sp) },
             shape = RoundedCornerShape(50),
             leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = Milo.dim) },
+            trailingIcon = { if (q.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear search", tint = Milo.dim, modifier = Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { q = "" }.padding(10.dp)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { done(); focus.clearFocus() }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color(0x59000000), unfocusedContainerColor = Color(0x59000000),
                 focusedBorderColor = Milo.amber, unfocusedBorderColor = Milo.line,
@@ -93,6 +123,22 @@ fun SearchScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         )
         LazyColumn(contentPadding = PaddingValues(top = 6.dp, bottom = bottomPad)) {
+            if (s.isEmpty() && recents.isNotEmpty()) {
+                item(key = "recent-head") {
+                    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Recent searches", color = Milo.text, style = Ty.title, modifier = Modifier.weight(1f))
+                        Text("Clear", color = Milo.amber, style = Ty.caption, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { com.ubayanda.milonative.util.RecentSearches.clear(); recents = emptyList() }.padding(horizontal = 10.dp, vertical = 8.dp))
+                    }
+                }
+                items(recents, key = { "rc" + it }) { w ->
+                    Row(Modifier.fillMaxWidth().clickable { q = w }.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.History, null, tint = Milo.dim, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Text(w, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            if (ytFirst) ytSection()
             if (s.isNotEmpty() && hits.isEmpty() && albumHits.isEmpty() && artistHits.isEmpty() && plHits.isEmpty() && frHits.isEmpty() && lyHits.isEmpty() && ytHits.isEmpty() && !ytBusy) item { EmptyNote("Nothing found", "Try a different spelling.") }
             if (hits.isNotEmpty()) item { SectionTitle("Songs") }
             items(hits.take(if (s.isEmpty()) 200 else 50), key = { "s" + it.id }, contentType = { "track" }) { t ->
@@ -130,11 +176,7 @@ fun SearchScreen(
                     Text("@" + f.username, color = Milo.dim, style = Ty.caption)
                 }
             }
-            if (ytHits.isNotEmpty() || ytBusy) item { SectionTitle(if (lyricQuery) "On YouTube Music \u00b7 matches for those lyrics" else "On YouTube Music") }
-            if (ytBusy && ytHits.isEmpty()) item { Text("Searching\u2026", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
-            items(ytHits, key = { "yt" + it.id }, contentType = { "track" }) { t ->
-                TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.playRemote(listOf(t), 0) }  // alone in the queue: Autoplay then adds similar songs
-            }
+            if (!ytFirst) ytSection()
             if (artistHits.isNotEmpty()) item { SectionTitle("Artists") }
             items(artistHits.take(20), key = { "ar" + it.name }) { a ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenArtist(a) }.padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
