@@ -33,6 +33,10 @@ object OfflineStore {
     private val _progress = MutableStateFlow<Map<String, Float>>(emptyMap())
     val progress: StateFlow<Map<String, Float>> = _progress.asStateFlow()
 
+    /** Songs still waiting or downloading, for the "Downloading…" bar. */
+    private val _pending = MutableStateFlow(0)
+    val pending: StateFlow<Int> = _pending.asStateFlow()
+
     private val http = OkHttpClient.Builder().connectTimeout(12, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build()
     private const val PIECE = 4L * 1024 * 1024
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
@@ -42,9 +46,10 @@ object OfflineStore {
     fun enqueue(list: List<Track>, done: (Int, String?) -> Unit = { _, _ -> }) {
         val todo = list.filter { it.uri.startsWith("yt:") && !has(it.uri.removePrefix("yt:")) }
         if (todo.isEmpty()) { done(0, null); return }
+        _pending.value += todo.size
         scope.launch {
             var ok = 0; var err: String? = null
-            todo.map { t -> async { gate.acquire(); try { val e = download(t); if (e == null) ok++ else if (err == null) err = e } finally { gate.release() } } }.forEach { it.await() }
+            todo.map { t -> async { gate.acquire(); try { val e = download(t); if (e == null) ok++ else if (err == null) err = e } finally { gate.release(); _pending.value = (_pending.value - 1).coerceAtLeast(0) } } }.forEach { it.await() }
             withContext(Dispatchers.Main) { done(ok, err) }
         }
     }

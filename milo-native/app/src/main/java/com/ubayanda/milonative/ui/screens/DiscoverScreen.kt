@@ -108,6 +108,7 @@ private suspend fun chartFeed(
 private fun feedTitle(label: String) = when (label) { "Trending" -> "Trending songs"; "New releases" -> "Latest songs"; else -> "$label songs" }
 
 /** Online listening: live radio and 30-second previews. Nothing is downloaded or saved. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (List<Track>, Int) -> Unit, onYtPage: (String) -> Unit = {}) {
     val favs by vm.favs.collectAsState()
@@ -126,8 +127,12 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
     var yAlbums by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
     var chartMode by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var tick by remember { mutableIntStateOf(0) }
+    var refreshing by remember { mutableStateOf(false) }
+    val discState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(Unit) { vm.scrollTop.collect { discState.animateScrollToItem(0) } }
 
-    LaunchedEffect(mode, tag, query, region) {
+    LaunchedEffect(mode, tag, query, region, tick) {
         delay(if (query.isEmpty()) 0 else 450) // wait while the person is still typing
         loading = true
         err = ""
@@ -182,6 +187,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else if (mode == 3) (e.message ?: "Couldn't reach YouTube.") else "Couldn't load that. Check your internet connection and try again."
         }
         loading = false
+        refreshing = false
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -250,7 +256,8 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             err.isNotEmpty() -> Text(err, color = Color(0xFFFF8A80), fontSize = 15.sp, modifier = Modifier.padding(20.dp))
             items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
         }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = refreshing, onRefresh = { refreshing = true; tick++ }, modifier = Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), state = discState, contentPadding = PaddingValues(bottom = bottomPad)) {
             if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf(if (query.isBlank()) "Trending artists" else "Artists", yArtists, vm) { onYtPage(it.id) } }
             if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf(if (chartMode) "Top albums" else if (query.isBlank()) "New releases" else "Albums", yAlbums, vm) { onYtPage(it.id) } }
             if (mode == 3 && items.isNotEmpty() && (yArtists.isNotEmpty() || yAlbums.isNotEmpty() || query.isBlank())) item(key = "ysg") {
@@ -295,6 +302,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     )
                 }
             }
+        }
         }
     }
 }

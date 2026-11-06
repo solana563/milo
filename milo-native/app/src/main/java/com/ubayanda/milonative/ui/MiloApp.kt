@@ -306,6 +306,8 @@ fun MiloApp(vm: MainViewModel) {
             }
 
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) {
+                com.ubayanda.milonative.ui.components.UndoBar(vm)
+                com.ubayanda.milonative.ui.components.DownloadBar()
                 if (selection.isNotEmpty()) {
                     val chosen = selection.mapNotNull { byId[it] ?: vm.trackById(it) }
                     com.ubayanda.milonative.ui.components.SelectionBar(
@@ -320,7 +322,10 @@ fun MiloApp(vm: MainViewModel) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
                 if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
-                BottomNav(tab, onSelect = { tab = it; detail = null; ytPages = emptyList() }, avatar = acct.avatar, name = acct.username)
+                BottomNav(tab, onSelect = {
+                    if (it == tab && detail == null && ytPages.isEmpty() && yt == null) vm.scrollTop.tryEmit(Unit)
+                    else { tab = it; detail = null; ytPages = emptyList() }
+                }, avatar = acct.avatar, name = acct.username)
             }
 
             if (friendsOpen) {

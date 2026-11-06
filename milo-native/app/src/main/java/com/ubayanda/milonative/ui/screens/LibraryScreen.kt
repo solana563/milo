@@ -192,6 +192,7 @@ private fun PlaylistsList(
 private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bottomPad: Dp) {
     val state: LazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.scrollTop.collect { state.animateScrollToItem(0) } }
     val rows = remember(tracks) {
         val out = ArrayList<Any>()
         var last = ""

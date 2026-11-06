@@ -80,6 +80,7 @@ import java.util.Locale
 
 private class TileData(val title: String, val lead: Track?, val icon: ImageVector?, val hot: Boolean, val collage: List<Track> = emptyList(), val onClick: () -> Unit)
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     vm: MainViewModel, tracks: List<Track>, albums: List<Album>, artists: List<Artist>, playlists: List<Playlist>,
@@ -90,6 +91,8 @@ fun HomeScreen(
     onDownloads: () -> Unit = {},
 ) {
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadYtHome() }
+    val homeState = androidx.compose.foundation.lazy.rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.scrollTop.collect { homeState.animateScrollToItem(0) } }
     val ytShelves by vm.ytHome.collectAsState()
     val ytLoading by vm.ytHomeLoading.collectAsState()
     val mixes by vm.mixes.collectAsState()
@@ -109,7 +112,8 @@ fun HomeScreen(
 
     val card = RoundedCornerShape(38.dp)
     // like the web mockup: separate rounded cards on the black canvas, with a small gap between them
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = ytLoading, onRefresh = { vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), state = homeState, contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Column(Modifier.fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 20.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -226,6 +230,7 @@ fun HomeScreen(
             }
         }
     }
+        }
 }
 
 @Composable

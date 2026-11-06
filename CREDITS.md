@@ -83,3 +83,5 @@ Round 17: Download buttons (song rows, album / playlist / liked pages, Discover,
 Round 18: a searched song plays alone and Autoplay adds similar ones; Downloads page (Library row, Home "See all", always visible); CI prints SHA-1 fingerprints for Google sign-in; GOOGLE-SIGNIN.md rewritten as a step list.
 
 Round 19 (UX): Search has a clear button, a Search key on the keyboard, recent searches, YouTube results first when phone music is hidden (and no phone-library dump on an empty search); bigger touch target on the row download icon.
+
+Round 20 (UX): Undo bar (Liked, playlist and download removals), "Downloading N songs left" bar, pull to refresh on Home and Discover, tapping the active tab scrolls to top.

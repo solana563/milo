@@ -202,7 +202,7 @@ fun TrackRow(
                         if (saved) "Remove download" else "Download for offline",
                     ) {
                         menu = false
-                        if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); Toast.makeText(ctx, "Removed from this phone", Toast.LENGTH_SHORT).show() }
+                        if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); vm.offerUndo("Removed download") { vm.downloadTracks(listOf(t)) } }
                         else { vm.rememberRemote(listOf(t)); com.ubayanda.milonative.data.OfflineStore.enqueue(listOf(t)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved for offline" else e ?: "Couldn't download", Toast.LENGTH_SHORT).show() }; Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show() }
                     }
                     extra.forEach { a -> PopupAction(Icons.Rounded.RemoveCircleOutline, a.label, Color(0xFFFF8A80)) { menu = false; a.run() } }

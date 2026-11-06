@@ -435,9 +435,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun addToPl(id: String, trackId: Long) = savePlaylists(_playlists.value.map {
         if (it.id == id && trackId !in it.trackIds) it.copy(trackIds = it.trackIds + trackId) else it
     })
-    fun removeFromPlaylist(id: String, trackId: Long) = savePlaylists(_playlists.value.map {
-        if (it.id == id) it.copy(trackIds = it.trackIds.filterNot { x -> x == trackId }) else it
-    })
+    fun removeFromPlaylist(id: String, trackId: Long) {
+        val at = _playlists.value.firstOrNull { it.id == id }?.trackIds?.indexOf(trackId) ?: -1
+        savePlaylists(_playlists.value.map {
+            if (it.id == id) it.copy(trackIds = it.trackIds.filterNot { x -> x == trackId }) else it
+        })
+        if (at >= 0) offerUndo("Removed from playlist") {
+            savePlaylists(_playlists.value.map { p ->
+                if (p.id == id && trackId !in p.trackIds) p.copy(trackIds = p.trackIds.toMutableList().also { l -> l.add(at.coerceAtMost(l.size), trackId) }) else p
+            })
+        }
+    }
+
+    // ---- "Undo" bar ----
+    private val _undo = MutableStateFlow<UndoItem?>(null)
+    val undo: StateFlow<UndoItem?> = _undo.asStateFlow()
+    fun offerUndo(message: String, run: () -> Unit) { _undo.value = UndoItem(message, run) }
+    fun dismissUndo() { _undo.value = null }
+    fun doUndo() { val u = _undo.value; _undo.value = null; u?.run?.invoke() }
+
+    /** Tapping the tab you are already on scrolls its list back to the top. */
+    val scrollTop = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Pull to refresh on Home: new streaming shelves and rebuilt "Made for you" mixes. */
+    fun refreshHome() { mixKey = ""; loadYtHome(true); buildMixes(_tracks.value) }
 
     suspend fun lyricsFor(t: Track): Lyrics? = lyricsRepo.get(t)
     suspend fun rescanLyrics(t: Track): Lyrics? = lyricsRepo.rescan(t)
@@ -993,7 +1014,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleFav(id: Long) {
         val n = _favs.value.toMutableSet()
         val added = n.add(id)
-        if (!added) n.remove(id)
+        if (!added) { n.remove(id); offerUndo("Removed from Liked songs") { toggleFav(id) } }
         _favs.value = n
         prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
         if (added) ensureSaved(id) else pruneSaved(id)
@@ -1046,3 +1067,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 }
+
+/** Something the person can take back within a few seconds. */
+class UndoItem(val message: String, val run: () -> Unit, val id: Long = System.nanoTime())
