@@ -25,6 +25,22 @@ jobs:
         run: |
           if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"; echo "MILO_KEYSTORE_FILE=$RUNNER_TEMP/milo.jks" >> "$GITHUB_ENV"; echo "Release key found."; else echo "No release key: builds use the debug key."; fi
       - run: gradle assembleFullDebug --stacktrace
+      - name: Print the signing fingerprints (for Google sign-in)
+        continue-on-error: true
+        shell: bash
+        run: |
+          {
+            echo "## Signing fingerprints for Google Cloud (Android OAuth client)"
+            echo "Package name: com.ubayanda.milonative"
+            echo
+            echo "**Debug key** (builds from the debug APK):"
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android 2>/dev/null | grep -E "SHA1:|SHA-1:" | sed 's/^ *//' | sed 's/^/- /'
+            if [ -n "$MILO_KEYSTORE_FILE" ]; then
+              echo
+              echo "**Release key** (builds from the release APK / AAB):"
+              keytool -list -v -keystore "$MILO_KEYSTORE_FILE" -alias "$MILO_KEY_ALIAS" -storepass "$MILO_KEYSTORE_PASSWORD" 2>/dev/null | grep -E "SHA1:|SHA-1:" | sed 's/^ *//' | sed 's/^/- /'
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build smooth release APK (minified, much faster scrolling)
         id: rel
         continue-on-error: true
