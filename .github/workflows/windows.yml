@@ -1,0 +1,50 @@
+name: Build milo. for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'milo-windows/**'
+      - '.github/workflows/windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: milo-windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish (self-contained, x64)
+        run: >
+          dotnet publish Milo.Windows.csproj -c Release -r win-x64 --self-contained true
+          -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
+          -o publish
+
+      - name: Zip the portable app
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath milo-windows-portable.zip -Force
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc installer.iss
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: milo-windows-portable
+          path: milo-windows/milo-windows-portable.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: milo-windows-installer
+          path: milo-windows/installer/milo-setup.exe
+          if-no-files-found: warn
