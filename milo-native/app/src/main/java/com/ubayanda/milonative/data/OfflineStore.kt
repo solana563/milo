@@ -142,9 +142,14 @@ object OfflineStore {
             var art = t.artUrl
             try {
                 if (art.startsWith("http")) {
-                    http.newCall(Request.Builder().url(art).header("User-Agent", "milo-native/1.0").build()).execute().use { r ->
-                        val b = r.body?.bytes()
-                        if (r.isSuccessful && b != null && b.isNotEmpty()) { val cf = File(d, "$id.jpg"); cf.writeBytes(b); art = cf.absolutePath }
+                    // save the big picture so the offline cover is sharp on the Now Playing screen too
+                    val urls = listOf(com.ubayanda.milonative.data.YtMusic.art(art, 1080), art).distinct()
+                    for (u in urls) {
+                        val ok = http.newCall(Request.Builder().url(u).header("User-Agent", "milo-native/1.0").build()).execute().use { r ->
+                            val b = r.body?.bytes()
+                            if (r.isSuccessful && b != null && b.isNotEmpty()) { val cf = File(d, "$id.jpg"); cf.writeBytes(b); art = cf.absolutePath; true } else false
+                        }
+                        if (ok) break
                     }
                 }
             } catch (_: Exception) {}

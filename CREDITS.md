@@ -91,3 +91,5 @@ Round 21: Now Playing control card is frosted glass (cover shows through, rim li
 Round 22: Google sign-in errors are now shown on the welcome screen (they were invisible) with clear hints for the common Supabase settings.
 
 Round 23: Now Playing glass card no longer overlaps the art (it sits below it again, still frosted).
+
+Round 24: sharper YouTube Music covers (cover requested at the size the screen shows: up to 1080 px instead of 544 stretched); downloaded songs save the big cover too.

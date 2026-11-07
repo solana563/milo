@@ -38,7 +38,12 @@ class ArtLoader(private val context: Context) {
         val missed = none[k]
         if (missed != null && System.currentTimeMillis() - missed < 30_000) return@withContext null
         var bmp: Bitmap? = null
-        if (t.artUrl.isNotEmpty()) bmp = remote(t.artUrl, b)
+        if (t.artUrl.isNotEmpty()) {
+            // online songs carry a 544 px picture; ask for the size this slot really shows (full screen = 1080), else it is stretched and soft
+            val u = bigger(t.artUrl, b)
+            bmp = remote(u, b)
+            if (bmp == null && u != t.artUrl) bmp = remote(t.artUrl, b)
+        }
         if (bmp == null && t.uri.startsWith("content:") && b >= 1000) bmp = embedded(t, b)
         if (bmp == null && t.uri.startsWith("content:")) bmp = thumb(Uri.parse(t.uri), b)
         // the album's own cover (folder art such as cover.jpg is registered on the album, not the song)
@@ -52,6 +57,14 @@ class ArtLoader(private val context: Context) {
             cache.put(k, bmp)
         }
         bmp
+    }
+
+    /** The same picture at a bigger size, for YouTube Music, Google and iTunes addresses (others stay as they are). */
+    private fun bigger(url: String, b: Int): String {
+        if (!url.startsWith("http")) return url
+        val want = when { b <= 160 -> 226; b <= 400 -> 544; else -> 1080 }
+        if (url.contains("mzstatic.com")) return if (b >= 1000) url.replace(Regex("\\d+x\\d+bb"), "1200x1200bb") else url
+        return com.ubayanda.milonative.data.YtMusic.art(url, want)
     }
 
     private val http = okhttp3.OkHttpClient.Builder().connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS).readTimeout(10, java.util.concurrent.TimeUnit.SECONDS).build()
