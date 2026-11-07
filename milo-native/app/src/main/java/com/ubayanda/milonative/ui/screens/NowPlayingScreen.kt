@@ -120,7 +120,6 @@ import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.layout.layout
 import com.ubayanda.milonative.ui.components.frosted
 import com.ubayanda.milonative.ui.components.glassStroke
 import com.ubayanda.milonative.ui.components.lift
@@ -264,8 +263,6 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             // control card
             Column(
                 Modifier.fillMaxWidth()
-                    // the card slides up over the bottom of the art, so the art shows through the glass
-                    .layout { m, c -> val p = m.measure(c); val o = 26.dp.roundToPx(); layout(p.width, p.height - o) { p.place(0, -o) } }
                     .lift(cardShape, 18f).clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
                     .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {

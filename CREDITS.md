@@ -89,3 +89,5 @@ Round 20 (UX): Undo bar (Liked, playlist and download removals), "Downloading N 
 Round 21: Now Playing control card is frosted glass (cover shows through, rim light, slides over the art); mini player and queue / sound sheets use the same frosted look; the player blurs behind open sheets on Android 12+.
 
 Round 22: Google sign-in errors are now shown on the welcome screen (they were invisible) with clear hints for the common Supabase settings.
+
+Round 23: Now Playing glass card no longer overlaps the art (it sits below it again, still frosted).
