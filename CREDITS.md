@@ -93,3 +93,5 @@ Round 22: Google sign-in errors are now shown on the welcome screen (they were i
 Round 23: Now Playing glass card no longer overlaps the art (it sits below it again, still frosted).
 
 Round 24: sharper YouTube Music covers (cover requested at the size the screen shows: up to 1080 px instead of 544 stretched); downloaded songs save the big cover too.
+
+Round 25 (Windows): new native Windows app in milo-windows/ (WinUI 3 / C#, not Electron): Google + email sign-in, Home, Discover, Library from folders, Now Playing with synced lyrics (LRCLIB), downloads, media keys, Smart play, installer. YouTube Music approach credited to Limusic / Metrolist as above; tags via TagLibSharp.
