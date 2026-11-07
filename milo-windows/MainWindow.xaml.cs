@@ -37,7 +37,7 @@ public sealed partial class MainWindow : Window
         {
             Store.Load();
             Library.LoadCache();
-            Player.Init();
+            try { Player.Init(); } catch (Exception e) { Log.Add("player: " + e); }
             Root.Children.Add(Ui.Text("milo.", 32, true));
             var restored = await Cloud.Restore();
             if (restored) await Cloud.LoadProfile();

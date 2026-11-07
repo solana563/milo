@@ -33,9 +33,23 @@ public static class Player
     static readonly Random Rng = new();
     static int loading;
 
+    public static bool Available => mp != null;
+    public const string NoMediaMsg = "Windows can't play audio here: the Media Feature Pack is missing. Settings > System > Optional features > Add a feature > \"Media Feature Pack\", then restart.";
+
     public static void Init()
     {
-        StartProxy();
+        try { StartProxy(); } catch (Exception e) { Log.Add("proxy: " + e.Message); }
+        try { InitPlayer(); }
+        catch (Exception e)
+        {
+            Log.Add("player init: " + e);
+            mp = null;
+            Error = NoMediaMsg;
+        }
+    }
+
+    static void InitPlayer()
+    {
         mp = new MediaPlayer { AudioCategory = MediaPlayerAudioCategory.Media, Volume = Store.P.Volume };
         mp.CommandManager.NextBehavior.EnablingRule = MediaCommandEnablingRule.Always;
         mp.CommandManager.PreviousBehavior.EnablingRule = MediaCommandEnablingRule.Always;
@@ -160,7 +174,8 @@ public static class Player
     static async void Load()
     {
         var t = Current;
-        if (t == null || mp == null) return;
+        if (t == null) return;
+        if (mp == null) { Error = NoMediaMsg; Changed?.Invoke(); return; }
         var my = ++loading;
         Error = "";
         Changed?.Invoke();
