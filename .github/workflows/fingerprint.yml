@@ -1,0 +1,25 @@
+name: Show signing fingerprint
+on: workflow_dispatch
+jobs:
+  fingerprint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Print the release key SHA-1
+        env:
+          KS_B64: ${{ secrets.MILO_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.MILO_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.MILO_KEY_ALIAS }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "The MILO_KEYSTORE_B64 secret is empty or missing." | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"
+          OUT=$(keytool -list -v -keystore "$RUNNER_TEMP/milo.jks" -alias "$KS_ALIAS" -storepass "$KS_PASS" 2>&1)
+          SHA=$(echo "$OUT" | grep -iE "SHA-?1:" | head -1 | sed 's/^ *//')
+          {
+            echo "## Release key fingerprint for Google Cloud"
+            echo "Package name: com.ubayanda.milonative"
+            echo
+            if [ -n "$SHA" ]; then echo "**$SHA**"; else echo "keytool could not read the key. Check the three secrets (password / alias / base64)."; echo; echo '```'; echo "$OUT" | head -5 | sed "s/$KS_PASS/***/g"; echo '```'; fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          [ -n "$SHA" ]
