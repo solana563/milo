@@ -204,7 +204,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             } catch (x: com.ubayanda.milonative.data.CancelledSignIn) { setAcct { it.copy(busy = false) } }
             catch (x: Exception) {
                 val m = x.message.orEmpty()
-                setAcct { it.copy(busy = false, err = if (x is CloudError && Regex("provider|disabled|not enabled", RegexOption.IGNORE_CASE).containsMatchIn(m)) "Google sign-in isn't switched on for this app yet." else if (x is CloudError) cloud.friendly(x) else m.ifEmpty { "Google sign-in failed" }) }
+                setAcct { it.copy(busy = false, err = if (x is CloudError && Regex("provider|disabled|not enabled", RegexOption.IGNORE_CASE).containsMatchIn(m)) "Google sign-in isn't switched on for this app yet." else if (x is CloudError && Regex("nonce", RegexOption.IGNORE_CASE).containsMatchIn(m)) "Google sign-in: in Supabase > Authentication > Providers > Google, turn on \"Skip nonce checks\" and save. ($m)" else if (x is CloudError && Regex("audience|client", RegexOption.IGNORE_CASE).containsMatchIn(m)) "Google sign-in: add the Web client ID under \"Authorized Client IDs\" in Supabase > Providers > Google. ($m)" else if (x is CloudError) cloud.friendly(x) + " (" + x.status + ")" else m.ifEmpty { "Google sign-in failed" }) }
             }
         }
     }

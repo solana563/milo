@@ -63,7 +63,7 @@ fun GateScreen(vm: MainViewModel, a: AccountUi) {
     Box(Modifier.fillMaxSize().background(Color(0xFF050505))) {
         if (a.step == "welcome") LeavesBackground(Modifier.fillMaxSize())
         when (a.step) {
-            "welcome" -> Welcome(vm)
+            "welcome" -> Welcome(vm, a)
             "up", "in" -> Form(vm, a, signUp = a.step == "up")
             "claim" -> Claim(vm, a)
             "terms" -> Terms(vm, a)
@@ -95,7 +95,7 @@ private fun OutlineButton(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Welcome(vm: MainViewModel) {
+private fun Welcome(vm: MainViewModel, a: AccountUi) {
     Column(
         Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 28.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally,
@@ -106,13 +106,15 @@ private fun Welcome(vm: MainViewModel) {
         Spacer(Modifier.height(10.dp))
         Text("Playlists, friends and chat, on every device.", color = Milo.dim, fontSize = 16.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(26.dp))
+        // Google sign-in errors used to be invisible here, which looked like "nothing happens"
+        if (a.err.isNotEmpty()) { ErrorText(a.err); Spacer(Modifier.height(10.dp)) }
         PrimaryButton("Sign up free", false) { vm.gateStep("up") }
         Spacer(Modifier.height(12.dp))
         OutlineButton("Log in") { vm.gateStep("in") }
         if (com.ubayanda.milonative.data.GoogleSignIn.available) {
             Spacer(Modifier.height(12.dp))
             val ctx = androidx.compose.ui.platform.LocalContext.current
-            OutlineButton("Continue with Google") { vm.signInGoogle(ctx) }
+            OutlineButton(if (a.busy) "Signing in…" else "Continue with Google") { if (!a.busy) vm.signInGoogle(ctx) }
         }
         Spacer(Modifier.height(16.dp))
         Text(
