@@ -47,7 +47,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
     val shape = RoundedCornerShape(Rad.xl)
     Column(
         modifier.fillMaxWidth().padding(horizontal = Sp.x3)
-            .lift(shape, 20f).clip(shape).artBackdrop(soft, 0.55f).border(1.dp, glassStroke(1.1f), shape)
+            .lift(shape, 20f).clip(shape).frosted(soft, 0.42f).border(1.dp, glassStroke(1.1f), shape)
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {

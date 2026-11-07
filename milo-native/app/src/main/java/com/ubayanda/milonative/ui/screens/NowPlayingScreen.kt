@@ -119,6 +119,11 @@ import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.layout.layout
+import com.ubayanda.milonative.ui.components.frosted
+import com.ubayanda.milonative.ui.components.glassStroke
+import com.ubayanda.milonative.ui.components.lift
 
 private enum class Panel { None, Queue, Sound, Lyrics, Visual }
 
@@ -135,6 +140,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val cover = if (coverPair.first == t.id) coverPair.second else null
     val coverDone = coverPair.first == t.id
     val soft = rememberSoft(vm, t).value
+    val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
+    // behind a queue / sound sheet the player blurs (Android 12+; older phones just get the dim)
+    val behindBlur by androidx.compose.animation.core.animateDpAsState(if (panel == Panel.Queue || panel == Panel.Sound) 22.dp else 0.dp, label = "npBlur")
 
     var lyrics by remember(t.id) { mutableStateOf<Lyrics?>(null) }
     var lyricsLoading by remember(t.id) { mutableStateOf(true) }
@@ -156,7 +164,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     BackHandler { if (panel != Panel.None) panel = Panel.None else onClose() }
 
     Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.background(Milo.bg)) {
-        Column(Modifier.fillMaxSize()) {
+        // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
+        soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.5f) }
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
+        Column(Modifier.fillMaxSize().blur(behindBlur)) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
                 Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("swipe-skip") {
@@ -252,7 +263,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
             // control card
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)).background(Milo.panel)
+                Modifier.fillMaxWidth()
+                    // the card slides up over the bottom of the art, so the art shows through the glass
+                    .layout { m, c -> val p = m.measure(c); val o = 26.dp.roundToPx(); layout(p.width, p.height - o) { p.place(0, -o) } }
+                    .lift(cardShape, 18f).clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
                     .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter)) { vm.player.seekTo(it) }
@@ -301,8 +315,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         }
 
         when (panel) {
-            Panel.Queue -> Sheet(0.72f, null, { panel = Panel.None }) { QueueContent(vm, ui) }
-            Panel.Sound -> Sheet(0.8f, null, { panel = Panel.None }) { SoundContent(vm, ui) }
+            Panel.Queue -> Sheet(0.72f, soft, { panel = Panel.None }) { QueueContent(vm, ui) }
+            Panel.Sound -> Sheet(0.8f, soft, { panel = Panel.None }) { SoundContent(vm, ui) }
             Panel.Lyrics -> LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { panel = Panel.None }
             Panel.Visual -> VisualPage(vm, t, ui, soft) { panel = Panel.None }
             Panel.None -> {}
@@ -315,7 +329,8 @@ private fun Sheet(frac: Float, backdrop: Bitmap?, onClose: () -> Unit, content: 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(onClick = onClose)) {
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(frac)
-                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)).artBackdrop(backdrop, 0.7f)
+                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)).frosted(backdrop, 0.6f)
+                .border(1.dp, glassStroke(1.2f), RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                 .clickable(enabled = false) {}.navigationBarsPadding(),
         ) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp).width(40.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))

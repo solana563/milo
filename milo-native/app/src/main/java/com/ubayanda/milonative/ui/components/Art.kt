@@ -90,6 +90,20 @@ fun Modifier.artWash(bmp: Bitmap?, strength: Float = 0.62f): Modifier {
     }
 }
 
+/**
+ * Frosted glass tinted by the cover: the softened art, a dark scrim so text stays readable, and a sheen from the top.
+ * Needs no GPU blur, so it looks the same on every Android version. Put clip() and border() around it.
+ */
+@Composable
+fun Modifier.frosted(bmp: Bitmap?, scrim: Float = 0.45f): Modifier {
+    val img = remember(bmp) { bmp?.asImageBitmap() }
+    return this.background(Color(0xFF0B0A09)).drawBehind {
+        if (img != null) drawImage(img, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), alpha = 0.95f, filterQuality = FilterQuality.High)
+        drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = scrim * 0.7f), Color.Black.copy(alpha = scrim))))
+        drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.13f), Color.White.copy(alpha = 0.02f))))
+    }
+}
+
 /** The song's colour taken from the small cover bitmap, or null when it is plain grey/black/white. */
 fun glowOf(bmp: Bitmap): Color? {
     val px = IntArray(bmp.width * bmp.height)

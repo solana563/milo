@@ -85,3 +85,5 @@ Round 18: a searched song plays alone and Autoplay adds similar ones; Downloads 
 Round 19 (UX): Search has a clear button, a Search key on the keyboard, recent searches, YouTube results first when phone music is hidden (and no phone-library dump on an empty search); bigger touch target on the row download icon.
 
 Round 20 (UX): Undo bar (Liked, playlist and download removals), "Downloading N songs left" bar, pull to refresh on Home and Discover, tapping the active tab scrolls to top.
+
+Round 21: Now Playing control card is frosted glass (cover shows through, rim light, slides over the art); mini player and queue / sound sheets use the same frosted look; the player blurs behind open sheets on Android 12+.
