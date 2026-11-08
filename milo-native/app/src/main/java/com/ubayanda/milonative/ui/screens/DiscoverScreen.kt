@@ -116,23 +116,26 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
     remember { com.ubayanda.milonative.data.Region.init(rctx) }
     val region by com.ubayanda.milonative.data.Region.mode.collectAsState()
     val rChips = remember(region) { com.ubayanda.milonative.data.Region.chips(region) }
-    var mode by rememberSaveable { mutableIntStateOf(3) } // 3 = the YouTube feed (opens here), 0 = live radio, 1 = previews, 2 = my server
+    var mode by vm.mem::dMode // 3 = the YouTube feed (opens here), 0 = live radio, 1 = previews, 2 = my server
     var sources by remember { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
-    var tag by rememberSaveable { mutableIntStateOf(0) }
-    var items by remember { mutableStateOf<List<Track>>(emptyList()) }
+    var query by vm.mem::dQuery
+    var tag by vm.mem::dTag
+    var items by vm.mem::dItems
     var loading by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf("") }
-    var yArtists by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
-    var yAlbums by remember { mutableStateOf<List<com.ubayanda.milonative.data.YtMusic.Card>>(emptyList()) }
-    var chartMode by remember { mutableStateOf(false) }
+    var yArtists by vm.mem::dArtists
+    var yAlbums by vm.mem::dAlbums
+    var chartMode by vm.mem::dChart
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    var tick by remember { mutableIntStateOf(0) }
+    var tick by vm.mem::dTick
     var refreshing by remember { mutableStateOf(false) }
-    val discState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val discState = vm.mem.list("discover-$mode")
     LaunchedEffect(Unit) { vm.scrollTop.collect { discState.animateScrollToItem(0) } }
 
     LaunchedEffect(mode, tag, query, region, tick) {
+        // coming back from an artist or album: the results are still here, so keep them (and the scroll position)
+        val fkey = "$mode|$tag|$query|$region|$tick"
+        if (vm.mem.dKey == fkey && (items.isNotEmpty() || yArtists.isNotEmpty() || yAlbums.isNotEmpty())) { loading = false; refreshing = false; return@LaunchedEffect }
         delay(if (query.isEmpty()) 0 else 450) // wait while the person is still typing
         loading = true
         err = ""
@@ -186,6 +189,8 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             items = emptyList()
             err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else if (mode == 3) (e.message ?: "Couldn't reach YouTube.") else "Couldn't load that. Check your internet connection and try again."
         }
+        if (err.isEmpty()) vm.mem.dKey = fkey
+        discState.scrollToItem(0) // a new search starts at the top
         loading = false
         refreshing = false
     }

@@ -116,12 +116,14 @@ fun YtShelf(title: String, cards: List<YtMusic.Card>, vm: MainViewModel, onCard:
 /** An artist, album or playlist from YouTube Music, opened inside milo. [onOpen] goes to another page (an album from an artist, say). */
 @Composable
 fun YtPageScreen(vm: MainViewModel, id: String, ui: PlayerUi, bottomPad: Dp, onOpen: (String) -> Unit, onBack: () -> Unit) {
-    var page by remember(id) { mutableStateOf<YtMusic.Page?>(null) }
+    var page by remember(id) { mutableStateOf<YtMusic.Page?>(vm.youtube.cachedPage(id)) }
     var err by remember(id) { mutableStateOf("") }
     var tick by remember(id) { mutableIntStateOf(0) }
     LaunchedEffect(id, tick) {
-        err = ""; page = null
-        try { page = vm.youtube.page(id) }
+        err = ""
+        if (tick > 0) page = null
+        // a page you already opened is kept, so going back to it is instant and keeps its scroll position
+        if (page == null) try { page = vm.youtube.page(id) }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { err = e.message ?: "Couldn't open this." }
     }
@@ -161,7 +163,7 @@ private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, botto
     val bannerTrack = remember(p) { YtMusic.cardTrack(YtMusic.Card("artist", p.id, p.title, "", p.banner.ifEmpty { p.avatar }), 1000) }
     val banner by rememberCover(vm, bannerTrack, 1000)
     var more by remember(p) { mutableStateOf(false) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPad)) {
+    LazyColumn(Modifier.fillMaxSize(), state = vm.mem.list("ytartist:" + p.id), contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Box(Modifier.fillMaxWidth().height(320.dp).background(Milo.card2)) {
                 val b = banner

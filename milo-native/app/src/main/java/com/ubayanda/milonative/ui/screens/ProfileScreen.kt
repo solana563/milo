@@ -55,7 +55,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
     var editing by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     val syncMsg by vm.syncMsg.collectAsState()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPad)) {
+    Column(Modifier.fillMaxSize().verticalScroll(vm.mem.scroll("profile")).padding(bottom = bottomPad)) {
         ScreenTitle("Profile")
         val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
         // the card takes the playing song's colour, fading to dark, like the web profile

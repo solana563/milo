@@ -39,7 +39,11 @@ class YouTubeRepo(context: Context) {
 
     suspend fun artists(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "artist").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
     suspend fun albums(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "album").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
-    suspend fun page(id: String): YtMusic.Page = withContext(Dispatchers.IO) { YtMusic.page(id) }
+    private val pageCache = object : LinkedHashMap<String, YtMusic.Page>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, YtMusic.Page>?): Boolean = size > 24
+    }
+    fun cachedPage(id: String): YtMusic.Page? = synchronized(pageCache) { pageCache[id] }
+    suspend fun page(id: String): YtMusic.Page = withContext(Dispatchers.IO) { YtMusic.page(id).also { synchronized(pageCache) { pageCache[id] = it } } }
     suspend fun radio(id: String): List<Track> = withContext(Dispatchers.IO) { YtMusic.radio(id).map { YtMusic.toTrack(it) } }
     /** True when a direct stream can be found, so the song can play in milo.'s own player. */
     suspend fun canStream(track: Track): Boolean = withContext(Dispatchers.IO) { try { YtMusic.stream(track.uri.removePrefix("yt:")); true } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { false } }

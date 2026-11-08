@@ -91,7 +91,7 @@ fun HomeScreen(
     onDownloads: () -> Unit = {},
 ) {
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadYtHome() }
-    val homeState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val homeState = vm.mem.list("home")
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.scrollTop.collect { homeState.animateScrollToItem(0) } }
     val ytShelves by vm.ytHome.collectAsState()
     val ytLoading by vm.ytHomeLoading.collectAsState()
@@ -183,7 +183,7 @@ fun HomeScreen(
             item(key = "mixes") {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
                     SectionTitle("Made for you")
-                    LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(state = vm.mem.list("home-mixes"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(shownMixes.size, key = { "mx" + shownMixes[it].title }) { i ->
                             val m = shownMixes[i]
                             Column(Modifier.width(148.dp).clip(RoundedCornerShape(14.dp)).clickable { vm.player.playQueue(m.tracks, 0) }) {
@@ -205,7 +205,7 @@ fun HomeScreen(
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(top = 6.dp, bottom = 6.dp)) {
                 if (artists.isNotEmpty()) {
                     SectionTitle("Your artists")
-                    LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    LazyRow(state = vm.mem.list("home-artists"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         items(artists.take(20), key = { "ar" + it.name }) { a ->
                             Column(Modifier.width(132.dp).clickable { onOpenArtist(a) }, horizontalAlignment = Alignment.CenterHorizontally) {
                                 Cover(vm, a.tracks.first(), 132.dp, 66.dp, px = 400)

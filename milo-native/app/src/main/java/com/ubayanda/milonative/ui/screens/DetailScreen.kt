@@ -76,7 +76,7 @@ fun DetailScreen(
     val lead = coverTrack ?: tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    val listState = rememberLazyListState()
+    val listState = vm.mem.list("detail:$title|$subtitle")
     var local by remember(tracks) { mutableStateOf(tracks) }
     val moveNow by rememberUpdatedState(onMove)
     val reorder = if (onMove != null) remember(listState) {

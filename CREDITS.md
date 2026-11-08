@@ -103,3 +103,5 @@ Round 26: liquid glass on Android, inspired by quickLiquid (MIT, github.com/amar
 Round 26b: fix build (missing drawOutline import in Glass.kt).
 
 Round 27 (Lite): new milo. Lite flavor (separate app, Android 8+): chat kept, Listen together replaced by sharing your EQ preset, Cast / widgets / visualiser / liquid glass left out, ARM-only; thumbnails fall back safely below Android 10.
+
+Round 28: milo. remembers where you were: scroll positions (Home, Library songs/albums/artists/playlists, album and artist pages, Discover, Search, Profile) and the Discover and Search results survive opening an album or artist and coming back; opened YouTube pages are kept so going back is instant.

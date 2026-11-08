@@ -84,7 +84,7 @@ fun LibraryScreen(
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
             section == 0 -> SongsList(vm, tracks, ui, bottomPad)
             section == 1 -> LazyVerticalGrid(
-                columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
+                state = vm.mem.grid("lib-albums"), columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
                 horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 gridItems(albums, key = { "al" + it.id + it.title }, contentType = { "album" }) { a ->
@@ -92,7 +92,7 @@ fun LibraryScreen(
                 }
             }
             else -> LazyVerticalGrid(
-                columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
+                state = vm.mem.grid("lib-artists"), columns = GridCells.Fixed(2), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = bottomPad),
                 horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 gridItems(artists, key = { "ar" + it.name }, contentType = { "artist" }) { a ->
@@ -170,7 +170,7 @@ private fun PlaylistsList(
             android.widget.Toast.makeText(ctx, if (found == 0) "None of those songs are on this phone." else "Imported $found of $total songs.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
-    LazyColumn(contentPadding = PaddingValues(bottom = bottomPad)) {
+    LazyColumn(state = vm.mem.list("lib-playlists"), contentPadding = PaddingValues(bottom = bottomPad)) {
         item { IconRow(Icons.Rounded.Add, false, "New playlist", "Make your own mix", { creating = true }) }
         item { IconRow(Icons.Rounded.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
         item { IconRow(Icons.Rounded.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
@@ -190,7 +190,7 @@ private fun PlaylistsList(
 /** Songs A to Z with letter headers and a tappable letter rail on the right. */
 @Composable
 private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bottomPad: Dp) {
-    val state: LazyListState = rememberLazyListState()
+    val state: LazyListState = vm.mem.list("lib-songs")
     val scope = rememberCoroutineScope()
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.scrollTop.collect { state.animateScrollToItem(0) } }
     val rows = remember(tracks) {

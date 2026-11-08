@@ -454,6 +454,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun dismissUndo() { _undo.value = null }
     fun doUndo() { val u = _undo.value; _undo.value = null; u?.run?.invoke() }
 
+    /** Scroll positions and search results that outlive their screens. */
+    val mem = UiMemory()
+
     /** Tapping the tab you are already on scrolls its list back to the top. */
     val scrollTop = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 

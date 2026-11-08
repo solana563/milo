@@ -66,7 +66,7 @@ fun SearchScreen(
     onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit,
     onOpenPlaylist: (com.ubayanda.milonative.model.Playlist) -> Unit = {}, onOpenFriend: (com.ubayanda.milonative.data.Friend) -> Unit = {},
 ) {
-    var q by rememberSaveable { mutableStateOf("") }
+    var q by vm.mem::sQuery
     val s = q.trim()
     val ctx = LocalContext.current
     val focus = LocalFocusManager.current
@@ -88,14 +88,18 @@ fun SearchScreen(
     val frHits = remember(s, soc.friends) {
         if (s.isEmpty()) emptyList() else soc.friends.filter { it.status == "friend" && (it.name.contains(s, true) || it.username.contains(s, true)) }
     }
-    var ytHits by remember { mutableStateOf<List<Track>>(emptyList()) }
-    var lyHits by remember { mutableStateOf<List<Pair<Track, String>>>(emptyList()) }
+    var ytHits by vm.mem::sYt
+    var lyHits by vm.mem::sLy
     var ytBusy by remember { mutableStateOf(false) }
     LaunchedEffect(s) {
-        if (s.length < 2) { ytHits = emptyList(); lyHits = emptyList(); ytBusy = false; return@LaunchedEffect }
+        if (s.length < 2) { ytHits = emptyList(); lyHits = emptyList(); ytBusy = false; vm.mem.sKey = ""; return@LaunchedEffect }
+        // coming back from an artist or album: the results are still here, so leave them (and the scroll position) alone
+        if (vm.mem.sKey == s && (ytHits.isNotEmpty() || lyHits.isNotEmpty())) return@LaunchedEffect
         kotlinx.coroutines.delay(450)
+        vm.mem.list("search").scrollToItem(0)
         lyHits = vm.lyricSearch(s)
         if (vm.online()) { ytBusy = true; ytHits = vm.ytSearch(s); ytBusy = false } else ytHits = emptyList()
+        vm.mem.sKey = s
     }
     val lyricQuery = s.trim().split(" ").size >= 3
     val ytSection: LazyListScope.() -> Unit = {
@@ -122,7 +126,7 @@ fun SearchScreen(
             ),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
         )
-        LazyColumn(contentPadding = PaddingValues(top = 6.dp, bottom = bottomPad)) {
+        LazyColumn(state = vm.mem.list("search"), contentPadding = PaddingValues(top = 6.dp, bottom = bottomPad)) {
             if (s.isEmpty() && recents.isNotEmpty()) {
                 item(key = "recent-head") {
                     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
