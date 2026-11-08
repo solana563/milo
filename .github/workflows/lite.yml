@@ -1,0 +1,51 @@
+name: Build milo. Lite APK
+on:
+  workflow_dispatch:
+  push:
+    paths: ["milo-native/**", ".github/workflows/lite.yml"]
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      KS_B64: ${{ secrets.MILO_KEYSTORE_B64 }}
+      MILO_KEYSTORE_PASSWORD: ${{ secrets.MILO_KEYSTORE_PASSWORD }}
+      MILO_KEY_ALIAS: ${{ secrets.MILO_KEY_ALIAS }}
+      MILO_KEY_PASSWORD: ${{ secrets.MILO_KEY_PASSWORD }}
+      MILO_VERSION_CODE: ${{ github.run_number }}
+    defaults: { run: { working-directory: milo-native } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - name: Release signing key (only when the MILO_KEYSTORE_B64 secret is set)
+        shell: bash
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"; echo "MILO_KEYSTORE_FILE=$RUNNER_TEMP/milo.jks" >> "$GITHUB_ENV"; echo "Release key found."; else echo "No release key: builds use the debug key."; fi
+      - run: gradle assembleLiteDebug --stacktrace
+      - name: Release APK (minified, the small one)
+        id: rel
+        continue-on-error: true
+        run: gradle assembleLiteRelease --stacktrace 2>&1 | tee release-build.log; exit ${PIPESTATUS[0]}
+        shell: bash
+      - name: APK sizes
+        shell: bash
+        run: |
+          {
+            echo "## milo. Lite APK sizes"
+            find app/build/outputs/apk -name "*.apk" -exec ls -l {} \; | awk '{printf "%s  %.1f MB\n", $9, $5/1048576}'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: milo-lite-apk
+          path: |
+            milo-native/app/build/outputs/apk/lite/debug/*.apk
+            milo-native/app/build/outputs/apk/lite/release/*.apk
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: milo-lite-release-log
+          path: milo-native/release-build.log
+          if-no-files-found: ignore
