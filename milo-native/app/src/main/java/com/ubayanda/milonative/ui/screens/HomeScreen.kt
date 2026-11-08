@@ -184,7 +184,7 @@ fun HomeScreen(
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
                     SectionTitle("Made for you")
                     LazyRow(state = vm.mem.list("home-mixes"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(shownMixes.size, key = { "mx" + shownMixes[it].title }) { i ->
+                        items(shownMixes.size, key = { "mx$it" + shownMixes[it].title }) { i ->
                             val m = shownMixes[i]
                             Column(Modifier.width(148.dp).clip(RoundedCornerShape(14.dp)).clickable { vm.player.playQueue(m.tracks, 0) }) {
                                 Box {

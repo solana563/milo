@@ -787,7 +787,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     val extra = ArrayList<Mix>()
                     if (blend.size >= 12) extra.add(Mix("Picked for you", "Mixed from " + got.joinToString(", ") { it.first }, blend.take(60), true))
                     got.forEach { g -> extra.add(Mix(g.first + " radio", "Streaming, endless", g.second, true)) }
-                    _mixes.value = _mixes.value + extra
+                    _mixes.value = local + extra   // built from this run's own list, so two overlapping runs can never stack the same mixes twice
                 }
             }
         }
