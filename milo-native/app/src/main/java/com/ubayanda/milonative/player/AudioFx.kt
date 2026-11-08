@@ -126,6 +126,26 @@ object AudioFx {
         persist()
     }
 
+    /** Apply a preset a friend sent: any number of bands is stretched to this phone's bands. */
+    fun applyCustom(levels: List<Float>, bass: Int, spatial: Int, name: String) {
+        ensure()
+        val s = _state.value
+        val n = s.levelsDb.size
+        if (n == 0 || levels.isEmpty()) return
+        val lv = List(n) { i ->
+            val x = if (n == 1) 0f else i.toFloat() / (n - 1) * (levels.size - 1)
+            val a = x.toInt().coerceAtMost(levels.size - 1)
+            val b = (a + 1).coerceAtMost(levels.size - 1)
+            (levels[a] + (levels[b] - levels[a]) * (x - a)).coerceIn(s.minDb, s.maxDb)
+        }
+        lv.forEachIndexed { i, db -> try { eq?.setBandLevel(i.toShort(), (db * 100).toInt().toShort()) } catch (_: Throwable) {} }
+        val bs = bass.coerceIn(0, 1000); val sp = spatial.coerceIn(0, 1000)
+        try { bassFx?.let { if (it.strengthSupported) it.setStrength(bs.toShort()) } } catch (_: Throwable) {}
+        try { virt?.let { if (it.strengthSupported) it.setStrength(sp.toShort()) } } catch (_: Throwable) {}
+        _state.value = s.copy(levelsDb = lv, preset = name.take(24), bass = bs, spatial = sp)
+        persist()
+    }
+
     fun setBass(v: Int) {
         try { bassFx?.let { if (it.strengthSupported) it.setStrength(v.toShort()) } } catch (_: Throwable) {}
         _state.value = _state.value.copy(bass = v)

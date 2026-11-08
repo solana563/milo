@@ -27,7 +27,7 @@ data class ChatMsg(
     /** What to show: text as is, a shared song as "♪ title · artist". */
     val shown: String
         get() = when (kind) {
-            "text" -> body
+            "text" -> EqShare.parse(body)?.let { "\uD83C\uDF9A EQ preset \u00b7 " + it.name } ?: body
             "song" -> try {
                 val o = JSONObject(body)
                 "♪ " + o.optString("t", "Song") + o.optString("a").let { if (it.isNotEmpty()) " · $it" else "" }
@@ -43,6 +43,18 @@ object Invite {
     private val re = Regex("Listen together \\u00b7 code ([A-Z0-9]{4,8})")
     fun make(code: String) = "\uD83C\uDFA7 Listen together \u00b7 code $code"
     fun parse(body: String): String? = re.find(body)?.groupValues?.get(1)
+}
+
+/** An EQ preset travels as an ordinary text message too. Milo. Lite uses it where the full app has Listen together. */
+object EqShare {
+    data class Preset(val name: String, val bass: Int, val spatial: Int, val levels: List<Float>)
+    private val re = Regex("EQ preset \\u00b7 (.+?) \\u00b7 bass (\\d+) \\u00b7 spatial (\\d+) \\u00b7 ([-0-9.,]+)")
+    fun make(name: String, bass: Int, spatial: Int, levels: List<Float>) =
+        "\uD83C\uDF9A EQ preset \u00b7 $name \u00b7 bass $bass \u00b7 spatial $spatial \u00b7 " + levels.joinToString(",") { "%.1f".format(java.util.Locale.US, it) }
+    fun parse(body: String): Preset? = re.find(body)?.let { m ->
+        val lv = m.groupValues[4].split(",").mapNotNull { it.toFloatOrNull() }
+        if (lv.isEmpty()) null else Preset(m.groupValues[1], m.groupValues[2].toIntOrNull() ?: 0, m.groupValues[3].toIntOrNull() ?: 0, lv)
+    }
 }
 
 /** A song a friend shares: just its description. [local] ones only exist on their phone, so they can be seen but not played. */

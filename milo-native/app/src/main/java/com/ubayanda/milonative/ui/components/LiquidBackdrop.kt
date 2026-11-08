@@ -47,7 +47,7 @@ fun rememberBackdropState(): BackdropState {
 }
 
 /** Put on the content that scrolls behind glass bars. Never on a parent of the bars themselves. */
-fun Modifier.backdropSource(state: BackdropState): Modifier = this
+fun Modifier.backdropSource(state: BackdropState): Modifier = if (com.ubayanda.milonative.BuildConfig.LITE) this else this
     .onGloballyPositioned { state.origin = it.positionInRoot() }
     .drawWithContent {
         state.layer.record {
@@ -122,7 +122,7 @@ fun Modifier.liquidGlass(
     shape: Shape, radius: Dp, backdrop: BackdropState?, tint: Color, strength: Float = 1f,
     tintAlpha: Float = 0.42f, blur: Dp = 14.dp, refract: Boolean = true,
 ): Modifier {
-    if (backdrop == null || Build.VERSION.SDK_INT < 31) return this.glass(shape, strength, tint.copy(alpha = 0.94f))
+    if (backdrop == null || com.ubayanda.milonative.BuildConfig.LITE || Build.VERSION.SDK_INT < 31) return this.glass(shape, strength, tint.copy(alpha = 0.94f))
     val fx = rememberGraphicsLayer()
     var pos by remember { mutableStateOf(Offset.Zero) }
     val cache = remember { FxCache() }

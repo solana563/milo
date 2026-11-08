@@ -143,7 +143,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val soft = rememberSoft(vm, t).value
     val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
     val npBackdrop = com.ubayanda.milonative.ui.components.rememberBackdropState()
-    val npLive = npBackdrop.takeIf { android.os.Build.VERSION.SDK_INT >= 31 }
+    val npLive = npBackdrop.takeIf { android.os.Build.VERSION.SDK_INT >= 31 && !com.ubayanda.milonative.BuildConfig.LITE }
     val npGlass = if (npLive != null) Modifier.liquidGlass(cardShape, Rad.xl, npLive, Color(0xFF0B0A09), 1.2f, tintAlpha = 0.5f)
         else Modifier.clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
     // behind a queue / sound sheet the player blurs (Android 12+; older phones just get the dim)
@@ -231,7 +231,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White) { vm.downloadTracks(listOf(t)) }
                     }
                     RoundBtn(Icons.Rounded.Tune, "Sound") { panel = Panel.Sound }
-                    RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
+                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
                     RoundBtn(Icons.Rounded.Cast, "Cast") { castOpen = true }
                     MoreMenu(vm, t, ui)
                 }

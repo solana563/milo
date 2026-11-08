@@ -12,6 +12,7 @@ android {
         applicationId = "com.ubayanda.milonative"
         minSdk = 29
         targetSdk = 34
+        buildConfigField("boolean", "LITE", "false")
         versionCode = (System.getenv("MILO_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("MILO_VERSION_NAME") ?: "1.0"
     }
@@ -35,6 +36,16 @@ android {
             signingConfig = signingConfigs.getByName(if (releaseKey != null) "release" else "debug")
         }
         create("fdroid") { dimension = "store" }
+        // "lite": a separate, lighter app for Android 8+ phones. Chat stays; Cast, widgets, visualiser and liquid glass are left out.
+        create("lite") {
+            dimension = "store"
+            minSdk = 26
+            applicationIdSuffix = ".lite"
+            versionNameSuffix = "-lite"
+            buildConfigField("boolean", "LITE", "true")
+            signingConfig = signingConfigs.getByName(if (releaseKey != null) "release" else "debug")
+            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
+        }
     }
     // no signing-info blob in the APK (required for F-Droid reproducible builds)
     dependenciesInfo { includeInApk = false; includeInBundle = false }
@@ -54,7 +65,7 @@ android {
         jvmTarget = "17"
         freeCompilerArgs += listOf("-opt-in=androidx.compose.ui.text.ExperimentalTextApi")
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
@@ -83,6 +94,9 @@ dependencies {
     "fullImplementation"("androidx.credentials:credentials:1.3.0")
     "fullImplementation"("androidx.credentials:credentials-play-services-auth:1.3.0")
     "fullImplementation"("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    "liteImplementation"("androidx.credentials:credentials:1.3.0")
+    "liteImplementation"("androidx.credentials:credentials-play-services-auth:1.3.0")
+    "liteImplementation"("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.media3:media3-common:1.4.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

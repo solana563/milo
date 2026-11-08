@@ -98,7 +98,7 @@ class ArtLoader(private val context: Context) {
         null
     }
 
-    private fun thumb(uri: Uri, b: Int): Bitmap? = try {
+    private fun thumb(uri: Uri, b: Int): Bitmap? = if (android.os.Build.VERSION.SDK_INT < 29) null else try {
         context.contentResolver.loadThumbnail(uri, Size(b, b), null)
     } catch (e: Exception) {
         null

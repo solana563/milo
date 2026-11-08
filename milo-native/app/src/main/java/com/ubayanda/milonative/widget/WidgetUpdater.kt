@@ -14,6 +14,7 @@ object WidgetUpdater {
     private var lastId = ""
 
     fun push(ctx: Context, p: Player) {
+        if (com.ubayanda.milonative.BuildConfig.LITE) return
         val app = ctx.applicationContext
         val item = p.currentMediaItem
         val title = item?.mediaMetadata?.title?.toString().orEmpty()
@@ -34,6 +35,7 @@ object WidgetUpdater {
     }
 
     fun clear(ctx: Context) {
+        if (com.ubayanda.milonative.BuildConfig.LITE) return
         val app = ctx.applicationContext
         scope.launch { try { lastId = ""; WidgetState.clear(app); refresh(app) } catch (_: Throwable) {} }
     }

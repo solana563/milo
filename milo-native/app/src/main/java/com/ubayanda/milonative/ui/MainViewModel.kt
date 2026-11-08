@@ -855,6 +855,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { done(together.join(code, asHost, com.ubayanda.milonative.data.CloudApi.URL, com.ubayanda.milonative.data.CloudApi.KEY)) }
     }
 
+    /** Lite: send my current EQ to a friend in chat (the Lite stand-in for Listen together). */
+    fun shareEq(friendId: String, done: (Boolean) -> Unit) {
+        if (!signedIn) { done(false); return }
+        com.ubayanda.milonative.player.AudioFx.ensure()
+        val st = com.ubayanda.milonative.player.AudioFx.state.value
+        if (!st.available) { done(false); return }
+        social.send(friendId, "text", com.ubayanda.milonative.data.EqShare.make(st.preset, st.bass, st.spatial, st.levelsDb), null)
+        done(true)
+    }
+
     /** One tap: start (or reuse) a hosted session and send its code to a friend in chat. */
     fun inviteToTogether(friendId: String, done: (String?) -> Unit) {
         if (!signedIn) { done(null); return }

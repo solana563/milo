@@ -311,7 +311,13 @@ private fun FriendProfileDialog(vm: MainViewModel, f: Friend, sh: FriendShare?, 
                     Spacer(Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         SmallBtn("Message", true, onChat)
-                        SmallBtn("Listen together", false) {
+                        if (com.ubayanda.milonative.BuildConfig.LITE) SmallBtn("Share my EQ", false) {
+                            vm.shareEq(f.id) { ok ->
+                                android.widget.Toast.makeText(ctx, if (ok) "EQ sent" else "Couldn't share. Sign in and play a song first.", android.widget.Toast.LENGTH_SHORT).show()
+                                if (ok) onClose()
+                            }
+                        }
+                        if (!com.ubayanda.milonative.BuildConfig.LITE) SmallBtn("Listen together", false) {
                             vm.inviteToTogether(f.id) { c ->
                                 android.widget.Toast.makeText(ctx, if (c != null) "Invite sent. Hosting $c. Play a YouTube song." else "Couldn't start. Sign in first.", android.widget.Toast.LENGTH_LONG).show()
                                 if (c != null) onClose()
@@ -570,7 +576,9 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                                     "song" -> SongBubble(vm, m, fg)
                                     else -> {
                                         val inv = if (m.kind == "text") Invite.parse(m.body) else null
+                                        val eqp = if (m.kind == "text") com.ubayanda.milonative.data.EqShare.parse(m.body) else null
                                         if (inv != null) InviteBubble(vm, inv, m.mine, fg)
+                                        else if (eqp != null) EqBubble(eqp, m.mine, fg)
                                         else Text(m.shown, color = fg, style = Ty.body.copy(fontWeight = FontWeight.Normal))
                                     }
                                 }
@@ -705,6 +713,13 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
 private fun InviteBubble(vm: MainViewModel, code: String, mine: Boolean, fg: Color) {
     val ctx = LocalContext.current
     val cur by vm.together.code.collectAsState()
+    if (com.ubayanda.milonative.BuildConfig.LITE) {
+        Column(Modifier.widthIn(min = 200.dp)) {
+            Text("\uD83C\uDFA7 Listen together", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text("Not in milo. Lite. Ask them to share a song instead.", color = fg.copy(alpha = 0.75f), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+        }
+        return
+    }
     Column(Modifier.widthIn(min = 200.dp)) {
         Text("\uD83C\uDFA7 Listen together", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Text("Code $code", color = fg.copy(alpha = 0.75f), fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
@@ -713,6 +728,26 @@ private fun InviteBubble(vm: MainViewModel, code: String, mine: Boolean, fg: Col
             vm.joinTogether(code, false) { ok -> android.widget.Toast.makeText(ctx, if (ok) "Joined $code" else "Couldn't join. The session may have ended.", android.widget.Toast.LENGTH_SHORT).show() }
         }
         else Text("Session may have ended", color = fg.copy(alpha = 0.6f), fontSize = 12.sp)
+    }
+}
+
+/** A friend's EQ preset: a little bar chart of the curve and a Try it button. */
+@Composable
+private fun EqBubble(p: com.ubayanda.milonative.data.EqShare.Preset, mine: Boolean, fg: Color) {
+    val ctx = LocalContext.current
+    Column(Modifier.widthIn(min = 200.dp)) {
+        Text("\uD83C\uDF9A EQ preset", color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(p.name, color = fg.copy(alpha = 0.75f), fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+        val mx = (p.levels.maxOfOrNull { kotlin.math.abs(it) } ?: 1f).coerceAtLeast(1f)
+        Row(Modifier.height(36.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
+            p.levels.forEach { l -> Box(Modifier.width(7.dp).height((6f + 26f * ((l + mx) / (2f * mx))).dp).clip(RoundedCornerShape(3.dp)).background(fg.copy(alpha = 0.8f))) }
+        }
+        if (!mine) Box(Modifier.padding(top = 8.dp)) {
+            SmallBtn("Try it", true) {
+                com.ubayanda.milonative.player.AudioFx.applyCustom(p.levels, p.bass, p.spatial, p.name)
+                android.widget.Toast.makeText(ctx, "EQ applied: " + p.name, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 

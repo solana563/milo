@@ -47,7 +47,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
     val shape = RoundedCornerShape(Rad.xl)
     // liquid glass over the page when the phone can do it (Android 12+), the cover-tinted frosted look otherwise
-    val bd = backdrop?.takeIf { android.os.Build.VERSION.SDK_INT >= 31 }
+    val bd = backdrop?.takeIf { android.os.Build.VERSION.SDK_INT >= 31 && !com.ubayanda.milonative.BuildConfig.LITE }
     val glow = remember(soft) { soft?.let { glowOf(it) } }
     val tint = if (glow != null) androidx.compose.ui.graphics.lerp(Color(0xFF141312), glow, 0.4f) else Color(0xFF141312)
     val glassMod = if (bd != null) Modifier.liquidGlass(shape, Rad.xl, bd, tint, 1.1f, tintAlpha = 0.55f)

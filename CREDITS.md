@@ -101,3 +101,5 @@ Round 25b: app starts even when Windows has no media components (N editions): sh
 Round 26: liquid glass on Android, inspired by quickLiquid (MIT, github.com/amarnath3003/quickLiquid; the web library, re-created natively, no code copied): bottom nav, mini player and Now Playing card blur the page behind them and bend the edges like a lens with colour fringing (Android 13+; blur only on 12; the old glass look below that), a bright liquid rim, and a squish-and-wobble press on every pressable.
 
 Round 26b: fix build (missing drawOutline import in Glass.kt).
+
+Round 27 (Lite): new milo. Lite flavor (separate app, Android 8+): chat kept, Listen together replaced by sharing your EQ preset, Cast / widgets / visualiser / liquid glass left out, ARM-only; thumbnails fall back safely below Android 10.

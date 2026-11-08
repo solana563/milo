@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <!-- no home-screen widgets in Lite -->
+        <receiver android:name=".widget.PlayerWidgetReceiver" tools:node="remove" />
+        <receiver android:name=".widget.PillWidgetReceiver" tools:node="remove" />
+        <receiver android:name=".widget.ArtWidgetReceiver" tools:node="remove" />
+    </application>
+</manifest>
