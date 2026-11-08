@@ -99,3 +99,5 @@ Round 25 (Windows): new native Windows app in milo-windows/ (WinUI 3 / C#, not E
 Round 25b: app starts even when Windows has no media components (N editions): shows how to add the Media Feature Pack instead of failing at launch.
 
 Round 26: liquid glass on Android, inspired by quickLiquid (MIT, github.com/amarnath3003/quickLiquid; the web library, re-created natively, no code copied): bottom nav, mini player and Now Playing card blur the page behind them and bend the edges like a lens with colour fringing (Android 13+; blur only on 12; the old glass look below that), a bright liquid rim, and a squish-and-wobble press on every pressable.
+
+Round 26b: fix build (missing drawOutline import in Glass.kt).
