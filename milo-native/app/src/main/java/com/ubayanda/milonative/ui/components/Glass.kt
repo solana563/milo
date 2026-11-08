@@ -29,7 +29,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -68,6 +70,18 @@ fun Modifier.glass(shape: Shape, strength: Float = 1f, tint: Color? = null): Mod
     .background(tint ?: Milo.card, shape)
     .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f * strength), Color.White.copy(alpha = 0.025f * strength))), shape)
     .border(1.dp, glassStroke(strength), shape)
+    .specular(shape, strength)
+
+/** The liquid edge: a thin bright line just inside the rim at the top, fading out, with a faint glow coming back at the bottom. */
+fun Modifier.specular(shape: Shape, strength: Float = 1f): Modifier = this.drawWithContent {
+    drawContent()
+    val o = shape.createOutline(size, layoutDirection, this)
+    drawOutline(
+        o,
+        Brush.verticalGradient(0f to Color.White.copy(alpha = 0.30f * strength), 0.45f to Color.Transparent, 1f to Color.White.copy(alpha = 0.10f * strength)),
+        style = Stroke(2.dp.toPx()),
+    )
+}
 
 /** Lifts a floating element (tab bar, player, menus) off the page. Put it BEFORE any clip. */
 fun Modifier.lift(shape: Shape, elevation: Float = 16f): Modifier =

@@ -61,6 +61,8 @@ import com.ubayanda.milonative.model.Album
 import com.ubayanda.milonative.model.Artist
 import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.components.BottomNav
+import com.ubayanda.milonative.ui.components.backdropSource
+import com.ubayanda.milonative.ui.components.rememberBackdropState
 import com.ubayanda.milonative.ui.components.MiniPlayer
 import com.ubayanda.milonative.ui.components.NameDialog
 import com.ubayanda.milonative.ui.components.PlaylistPicker
@@ -159,6 +161,7 @@ fun MiloApp(vm: MainViewModel) {
 
     val selection by vm.selection.collectAsState()
     var pickMany by remember { mutableStateOf(false) }
+    val backdrop = rememberBackdropState()
     var newMany by remember { mutableStateOf(false) }
     // Back from anywhere goes Home first; on Home the first back warns and the second leaves the app.
     val lastBack = remember { longArrayOf(0L) }
@@ -193,7 +196,7 @@ fun MiloApp(vm: MainViewModel) {
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.15f), Color.Black.copy(alpha = 0.5f)))))
                 }
             }
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().backdropSource(backdrop)) {
                 // header: the milo. logo, centred, like the web app
                 Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
                     Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(42.dp))
@@ -321,11 +324,11 @@ fun MiloApp(vm: MainViewModel) {
                 } else if (current != null && tab != Tab.Home && vm.canJump?.invoke() == true) {
                     NowPlayingPill({ if (vm.jumper?.invoke() != true) playerOpen = true }, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 10.dp))
                 }
-                if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true })
+                if (current != null) MiniPlayer(vm, current, ui, onOpen = { playerOpen = true }, backdrop = backdrop)
                 BottomNav(tab, onSelect = {
                     if (it == tab && detail == null && ytPages.isEmpty() && yt == null) vm.scrollTop.tryEmit(Unit)
                     else { tab = it; detail = null; ytPages = emptyList() }
-                }, avatar = acct.avatar, name = acct.username)
+                }, avatar = acct.avatar, name = acct.username, backdrop = backdrop)
             }
 
             if (friendsOpen) {

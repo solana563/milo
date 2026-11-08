@@ -48,7 +48,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
  * follows a beat later, so it stretches like a drop of liquid and then settles with a little bounce.
  */
 @Composable
-fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier, avatar: String = "", name: String = "") {
+fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier, avatar: String = "", name: String = "", backdrop: BackdropState? = null) {
     val bar = RoundedCornerShape(44.dp)
     val tabs = Tab.values()
     val idx = current.ordinal
@@ -57,7 +57,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifi
     androidx.compose.runtime.SideEffect { prev = idx }
     androidx.compose.foundation.layout.BoxWithConstraints(
         modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
-            .lift(bar, 18f).glass(bar, 1.2f, Milo.card.copy(alpha = 0.94f)).padding(8.dp),
+            .lift(bar, 18f).liquidGlass(bar, 44.dp, backdrop, Milo.card, 1.2f, tintAlpha = 0.5f).padding(8.dp),
     ) {
         val slot = maxWidth / tabs.size
         val fast = androidx.compose.animation.core.spring<androidx.compose.ui.unit.Dp>(0.78f, 520f)

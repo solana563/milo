@@ -18,8 +18,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier = composed {
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
-    val sc by animateFloatAsState(if (pressed && enabled) 0.95f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium), label = "press")
+    // liquid press: it squashes (wider than tall) under the finger and wobbles back like a drop
+    val sx by animateFloatAsState(if (pressed && enabled) 0.96f else 1f, spring(dampingRatio = 0.45f, stiffness = 650f), label = "pressX")
+    val sy by animateFloatAsState(if (pressed && enabled) 0.92f else 1f, spring(dampingRatio = 0.45f, stiffness = 650f), label = "pressY")
     val haptic = LocalHapticFeedback.current
-    this.graphicsLayer { scaleX = sc; scaleY = sc }
+    this.graphicsLayer { scaleX = sx; scaleY = sy }
         .clickable(interactionSource = src, indication = null, enabled = enabled) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }
 }

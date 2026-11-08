@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,13 +42,19 @@ import androidx.compose.material.icons.rounded.SkipNext
 
 /** Art-tinted glass bar: cover, title, a cream play/pause circle, thin progress line. */
 @Composable
-fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, modifier: Modifier = Modifier, backdrop: BackdropState? = null) {
     val soft = rememberSoft(vm, t).value
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
     val shape = RoundedCornerShape(Rad.xl)
+    // liquid glass over the page when the phone can do it (Android 12+), the cover-tinted frosted look otherwise
+    val bd = backdrop?.takeIf { android.os.Build.VERSION.SDK_INT >= 31 }
+    val glow = remember(soft) { soft?.let { glowOf(it) } }
+    val tint = if (glow != null) androidx.compose.ui.graphics.lerp(Color(0xFF141312), glow, 0.4f) else Color(0xFF141312)
+    val glassMod = if (bd != null) Modifier.liquidGlass(shape, Rad.xl, bd, tint, 1.1f, tintAlpha = 0.55f)
+        else Modifier.clip(shape).frosted(soft, 0.42f).border(1.dp, glassStroke(1.1f), shape)
     Column(
         modifier.fillMaxWidth().padding(horizontal = Sp.x3)
-            .lift(shape, 20f).clip(shape).frosted(soft, 0.42f).border(1.dp, glassStroke(1.1f), shape)
+            .lift(shape, 20f).then(glassMod)
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {

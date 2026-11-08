@@ -121,6 +121,8 @@ import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
 import androidx.compose.ui.draw.blur
 import com.ubayanda.milonative.ui.components.frosted
+import com.ubayanda.milonative.ui.components.backdropSource
+import com.ubayanda.milonative.ui.components.liquidGlass
 import com.ubayanda.milonative.ui.components.glassStroke
 import com.ubayanda.milonative.ui.components.lift
 
@@ -140,6 +142,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val coverDone = coverPair.first == t.id
     val soft = rememberSoft(vm, t).value
     val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
+    val npBackdrop = com.ubayanda.milonative.ui.components.rememberBackdropState()
+    val npLive = npBackdrop.takeIf { android.os.Build.VERSION.SDK_INT >= 31 }
+    val npGlass = if (npLive != null) Modifier.liquidGlass(cardShape, Rad.xl, npLive, Color(0xFF0B0A09), 1.2f, tintAlpha = 0.5f)
+        else Modifier.clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
     // behind a queue / sound sheet the player blurs (Android 12+; older phones just get the dim)
     val behindBlur by androidx.compose.animation.core.animateDpAsState(if (panel == Panel.Queue || panel == Panel.Sound) 22.dp else 0.dp, label = "npBlur")
 
@@ -164,8 +170,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
     Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.background(Milo.bg)) {
         // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
-        soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.5f) }
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
+        Box(Modifier.fillMaxSize().backdropSource(npBackdrop)) {
+            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.5f) }
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
+        }
         Column(Modifier.fillMaxSize().blur(behindBlur)) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
@@ -263,7 +271,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             // control card
             Column(
                 Modifier.fillMaxWidth()
-                    .lift(cardShape, 18f).clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
+                    .lift(cardShape, 18f).then(npGlass)
                     .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter)) { vm.player.seekTo(it) }
