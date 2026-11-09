@@ -284,6 +284,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val cplMsg: StateFlow<String> = _cplMsg.asStateFlow()
     private var cplId: String? = null
     var showCpl by androidx.compose.runtime.mutableStateOf(false)
+    var showAudioInfo by androidx.compose.runtime.mutableStateOf(false)
     var pendingPlaylistCode by androidx.compose.runtime.mutableStateOf("")
 
     fun openPlaylistLink(raw: String) {

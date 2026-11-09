@@ -81,3 +81,9 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Public toggle lists the playlist on a third account; private hides it
 - [ ] Play and Copy to my library work; copy is independent afterwards
 - [ ] Local-storage songs cannot be added (clear message)
+
+## Audio info and crossfade curves (Round 37)
+- [ ] Profile > Audio info lists formats; compare with a real MP3, FLAC, OGG, Opus and WAV file on this phone
+- [ ] Now playing line shows format, kHz and kbps for a local song; streamed song says it is streamed
+- [ ] Plug in wired or Bluetooth output: it appears in the outputs list
+- [ ] Crossfade 6 s with each curve: no dip or jump in volume; equal power sounds steady, linear dips slightly in the middle

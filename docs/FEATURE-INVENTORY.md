@@ -78,5 +78,7 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Sessions: real-time over websockets | C | Uses 2 s polling through RLS-locked functions instead (simpler, auditable); a little delay is normal |
 | Sessions: room outlives the app / push invites | F | Host's app must stay running; a room whose host is silent for 60 s shows "host away" |
 | Shared playlists: owner/editor/viewer roles, invite code/link/QR, public or private, add/remove/reorder, change history (last 50), copy to my library | B | Round 36. Needs `supabase_native_playlists.sql`. Server-enforced: editors remove only their own songs, 500 songs, 50 people, 1 add per second each. Only online (YouTube) songs. Updates by polling every 6 s, no live push. Copying makes a private copy that stops following. Display names are typed by the client |
+| Audio info screen: playable formats, outputs, high-resolution capability, format of the song playing | B | Round 37. Formats come from the phone's own decoder list (ALAC is usually "No"). Bluetooth codec in use can't be read by apps; the screen says so. Hi-res means the output reports 88.2 kHz+ and 24-bit+, not that the chain is lossless |
+| Crossfade curve (equal power, linear, smooth) | B | Round 37. Setting is under Now Playing > Sound. Equal power is the unchanged default |
 | Collaborative playlists | F | Round 36 |
 

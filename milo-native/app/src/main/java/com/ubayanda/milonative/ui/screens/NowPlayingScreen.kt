@@ -419,6 +419,15 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
             value = xf, onValueChange = { xf = it; vm.player.setCrossfade(it.roundToInt()) }, valueRange = 0f..12f, steps = 11,
             colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
         )
+        if (xf >= 1f) {
+            val xfp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
+            var curve by remember { mutableStateOf(xfp.getInt("xfcurve", 0)) }
+            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(com.ubayanda.milonative.player.XFade.names.size) { i ->
+                    MiloChip(com.ubayanda.milonative.player.XFade.names[i], curve == i) { curve = i; xfp.edit().putInt("xfcurve", i).apply() }
+                }
+            }
+        }
 
         Label("Loudness matching")
         val fxp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)

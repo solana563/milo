@@ -113,9 +113,10 @@ class PlaybackService : MediaLibraryService() {
             } else {
                 if (!p.playWhenReady) xfT0 += dt // paused: hold the fade where it is
                 val f = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
-                v = Math.sin(f * Math.PI / 2).toFloat()
+                val gn = XFade.gains(f, fxPrefs.getInt("xfcurve", 0))
+                v = gn.second
                 g?.let {
-                    it.volume = Math.cos(f * Math.PI / 2).toFloat() * rgPrev
+                    it.volume = gn.first * rgPrev
                     it.playWhenReady = p.playWhenReady
                 }
                 if (f >= 1f) endGhost()

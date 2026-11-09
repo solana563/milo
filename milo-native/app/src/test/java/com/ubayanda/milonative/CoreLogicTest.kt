@@ -203,4 +203,26 @@ class CoreLogicTest {
         assertEquals(10L, P.afterIdFor(ids, 2, 1)) // 12 moves up: goes after 10
         assertEquals(13L, P.afterIdFor(ids, 0, 3))
     }
+
+    @Test
+    fun crossfadeCurves() {
+        for (c in 0..2) {
+            val (a0, b0) = com.ubayanda.milonative.player.XFade.gains(0f, c)
+            val (a1, b1) = com.ubayanda.milonative.player.XFade.gains(1f, c)
+            assertEquals(1f, a0, 0.001f); assertEquals(0f, b0, 0.001f)
+            assertEquals(0f, a1, 0.001f); assertEquals(1f, b1, 0.001f)
+        }
+        val (a, b) = com.ubayanda.milonative.player.XFade.gains(0.5f, 0)
+        assertEquals(1f, a * a + b * b, 0.001f)   // equal power
+        val (la, lb) = com.ubayanda.milonative.player.XFade.gains(0.5f, 1)
+        assertEquals(1f, la + lb, 0.001f)         // linear
+    }
+
+    @Test
+    fun hiResRule() {
+        assertTrue(com.ubayanda.milonative.player.AudioCaps.isHiRes(96000, true))
+        assertFalse(com.ubayanda.milonative.player.AudioCaps.isHiRes(48000, true))
+        assertFalse(com.ubayanda.milonative.player.AudioCaps.isHiRes(96000, false))
+        assertEquals("FLAC", com.ubayanda.milonative.player.AudioCaps.mimeLabel("audio/flac"))
+    }
 }

@@ -135,3 +135,5 @@ Round 35 (Phase 5): milo. Sessions, listening rooms with invite code/link/QR, ro
 Round 36 (Phase 5): shared (collaborative) playlists with owner/editor/viewer roles, invite code/link/QR, public or private, add/remove/reorder, change history, copy to library. Permission-checking database functions only (supabase_native_playlists.sql).
 
 Round 36b: "Recently played" row on Home (last 20 songs played, newest first, local and online), from the same history Android Auto uses.
+
+Round 37 (Phase 6): crossfade curves and an Audio info screen (decoder support, output capabilities, track format). Most of Phase 6 (EQ, per-device EQ, ReplayGain, loudness matching, visualiser styles, full-screen visualiser) already existed.
