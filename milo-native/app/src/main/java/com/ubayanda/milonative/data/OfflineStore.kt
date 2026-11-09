@@ -72,7 +72,11 @@ object OfflineStore {
     private const val MAX_PARALLEL = 2
 
     private fun updateJob(id: String, f: (Job) -> Job) { _jobs.update { l -> l.map { if (it.id == id) f(it) else it } } }
-    private fun refreshPending() { _pending.value = _jobs.value.count { it.state == State.QUEUED || it.state == State.ACTIVE } }
+    private fun refreshPending() {
+        _pending.value = _jobs.value.count { it.state == State.QUEUED || it.state == State.ACTIVE }
+        // keep the app alive while there is work, so downloads continue with the app closed (the service stops itself when the queue is empty)
+        if (_pending.value > 0) appCtx?.let { DownloadService.start(it) }
+    }
 
     /** Queue songs to download in the background (two at a time). [done] gets how many were saved and the first failure message. */
     @Synchronized fun enqueue(list: List<Track>, done: (Int, String?) -> Unit = { _, _ -> }) {

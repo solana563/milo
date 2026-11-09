@@ -116,3 +116,12 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Like the song again on B later: it returns on A and stays
 - [ ] Profile > Something not working?: switch history on, cause a failure (airplane mode, then Back up now), close and reopen, Send error report: the earlier line is there; no email or token appears
 - [ ] Switch history off, or Clear the list: the saved history is gone
+
+## Background downloads (Round 43)
+- [ ] Queue 10 songs, swipe milo. away: the "Saving 10 songs" notification stays and the count goes down
+- [ ] Screen off for 5 minutes: downloads keep going
+- [ ] Pause all from the notification: everything pauses, notification disappears; reopen the app and resume works
+- [ ] Wi-Fi only on, mobile data only: notification says Waiting for Wi-Fi; switch to Wi-Fi and it continues
+- [ ] All done: notification goes away by itself
+- [ ] Test on at least two brands with aggressive battery saving (e.g. Samsung, Xiaomi) and note which ones stop it
+- [ ] Notifications denied in Android settings: downloads still run

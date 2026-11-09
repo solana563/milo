@@ -147,3 +147,5 @@ Round 40: security review (docs/SECURITY-AUDIT.md), encrypted storage of sign-in
 Round 41: CI release gate in native.yml. Unit tests now fail the run (reports uploaded), and a final step checks that the debug APK exists, has the right package name and a valid version code and signature, reports AAB/release/F-Droid outcomes and whether a release key is configured. Firebase distribution only runs if the gate passed.
 
 Round 42: diagnostics (scrubbed, optional on-phone history, API/sync/perf entries) and sync deletion tracking (SyncOps) so removals no longer reappear.
+
+Round 43: downloads keep running with the app closed (foreground service with a notification and Pause all, stops when the queue is empty).

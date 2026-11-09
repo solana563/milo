@@ -270,4 +270,14 @@ class CoreLogicTest {
         assertEquals("row <id>", L.scrub("row 123e4567-e89b-12d3-a456-426614174000"))
         assertTrue(L.scrub("cannot open /storage/emulated/0/Music/Private/song.mp3").contains("<folder>/"))
     }
+
+    @Test
+    fun downloadNotificationWording() {
+        val S = com.ubayanda.milonative.data.DownloadService
+        assertEquals("Saving 1 song", S.summary(1, "", 0).first)
+        assertEquals("Saving 4 songs", S.summary(4, "", 40).first)
+        assertEquals("40% of the current songs", S.summary(4, "", 40).second)
+        assertEquals("Waiting for Wi-Fi", S.summary(2, "Waiting for Wi-Fi", 0).second)
+        assertEquals("Starting…", S.summary(2, "", 0).second)
+    }
 }
