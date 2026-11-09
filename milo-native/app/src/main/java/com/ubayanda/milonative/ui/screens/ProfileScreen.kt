@@ -633,6 +633,8 @@ private fun DownloadsCard(vm: MainViewModel) {
             else "${items.size} song" + (if (items.size == 1) "" else "s") + " saved · " + "%.1f".format(mb) + " MB. They play with no connection.",
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
+        Pill("Manage downloads", null, true) { vm.showDownloads = true }
+        if (items.isNotEmpty()) Spacer(Modifier.height(10.dp))
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()
             android.widget.Toast.makeText(ctx, "Downloads removed", android.widget.Toast.LENGTH_SHORT).show()

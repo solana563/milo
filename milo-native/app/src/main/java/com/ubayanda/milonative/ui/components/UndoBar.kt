@@ -56,14 +56,14 @@ fun UndoBar(vm: MainViewModel, modifier: Modifier = Modifier) {
 
 /** "Downloading 3 songs left · 42%" while the download queue is working. */
 @Composable
-fun DownloadBar(modifier: Modifier = Modifier) {
+fun DownloadBar(modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     val left by OfflineStore.pending.collectAsState()
     val prog by OfflineStore.progress.collectAsState()
     val active = prog.values.filter { it >= 0f }
     AnimatedVisibility(visible = left > 0, enter = fadeIn() + slideInVertically { it / 2 }, exit = fadeOut(), modifier = modifier) {
         val shape = RoundedCornerShape(22.dp)
         val avg = if (active.isEmpty()) 0f else active.average().toFloat()
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp).clip(shape).background(Milo.card2, shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp).clip(shape).clickable(onClick = onClick).background(Milo.card2, shape).border(1.dp, Milo.line, shape).padding(horizontal = 18.dp, vertical = 12.dp)) {
             Text(
                 "Downloading · " + left + (if (left == 1) " song" else " songs") + " left" + (if (active.isNotEmpty()) " · " + (avg * 100).toInt() + "%" else ""),
                 color = Milo.text, fontSize = 14.sp, maxLines = 1,

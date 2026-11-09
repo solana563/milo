@@ -369,7 +369,7 @@ object YtMusic {
     private val streams = ConcurrentHashMap<String, Stream>()
     private val rank = mapOf("AUDIO_QUALITY_HIGH" to 3, "AUDIO_QUALITY_MEDIUM" to 2, "AUDIO_QUALITY_LOW" to 1)
 
-    private fun pick(sd: JSONObject): JSONObject? {
+    private fun pick(sd: JSONObject, low: Boolean = false): JSONObject? {
         fun list(key: String): List<JSONObject> {
             val a = sd.optJSONArray(key) ?: return emptyList()
             return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { !it.has("width") && it.has("url") && !it.has("signatureCipher") && !it.has("cipher") }
@@ -384,20 +384,21 @@ object YtMusic {
             val codec = if (m.contains("opus")) 2L else if (m.contains("mp4a")) 1L else 0L
             return (rank[f.optString("audioQuality")] ?: 0) * 1_000_000_000_000L + f.optInt("audioChannels", 2) * 100_000_000_000L + codec * 10_000_000_000L + f.optLong("bitrate", 0L).coerceAtMost(9_999_999_999L)
         }
-        return a.maxByOrNull(::score)
+        // low = data saver for downloads: the smallest audio stream instead of the best one
+        return if (low) a.minByOrNull { it.optLong("bitrate", Long.MAX_VALUE) } else a.maxByOrNull(::score)
     }
 
-    fun stream(videoId: String, force: Boolean = false): Stream {
-        streams[videoId]?.let { if (!force && it.expiresAt > System.currentTimeMillis() + 90_000L) return it }
+    fun stream(videoId: String, force: Boolean = false, low: Boolean = false): Stream {
+        if (!low) streams[videoId]?.let { if (!force && it.expiresAt > System.currentTimeMillis() + 90_000L) return it }
         val j = post("player", JSONObject().put("videoId", videoId).put("contentCheckOk", true).put("racyCheckOk", true), vision)
         val ps = j.optJSONObject("playabilityStatus")
         val status = ps?.optString("status").orEmpty()
         if (status.isNotEmpty() && status != "OK") throw java.io.IOException(ps?.optString("reason").orEmpty().ifEmpty { status })
         val sd = j.optJSONObject("streamingData") ?: throw java.io.IOException("no stream data")
-        val f = pick(sd) ?: throw java.io.IOException("no direct audio stream")
+        val f = pick(sd, low) ?: throw java.io.IOException("no direct audio stream")
         val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
         val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic"))
-        streams[videoId] = s
+        if (!low) streams[videoId] = s
         return s
     }
 

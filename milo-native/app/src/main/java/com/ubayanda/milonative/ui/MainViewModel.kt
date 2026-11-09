@@ -170,6 +170,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** The Download Manager screen is open. */
+    var showDownloads by androidx.compose.runtime.mutableStateOf(false)
+
     fun gateStep(step: String) = setAcct { it.copy(step = step, err = "") }
     fun skipGate() { seen(); setAcct { it.copy(step = "", err = "") } }
 

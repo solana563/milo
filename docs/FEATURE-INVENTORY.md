@@ -29,7 +29,10 @@ Nothing here is marked "verified" unless a person ran it on a phone. The build s
 | Data | Backup export / import | B | |
 | Quality | Automated tests | C | Unit tests added Round 30 (pure logic only); no instrumented or UI tests |
 | Quality | Crash reporting | C | Local `ErrorLog`, user-initiated share; nothing sent automatically |
-| Downloads | Offline downloads of YouTube audio | F | Conflicts with YouTube's terms; to be rethought, not built as-is |
+| Downloads | Offline downloads of YouTube audio | A | Existing feature, kept unchanged by owner's decision. Note: YouTube's terms generally don't permit downloading audio from YouTube; that compliance risk is the owner's call |
+| Downloads | Download Manager (queue, pause/resume, retry, auto-retry x3, Wi-Fi only, data saver quality, storage limit + auto-remove oldest, free space, unfinished-file cleanup) | B | Round 32, untested on device |
+| Downloads | Queue survives app restart | C | Unfinished queue returns paused after restart; downloads only run while the app process is alive (no background service yet) |
+| Downloads | Streaming cache | F | No streaming cache exists, so "cached" content isn't a separate category yet |
 
 ## Round 30 sync changes
 Before: if the cloud copy was newer, it replaced the local library, even when the phone had unsynced offline edits.

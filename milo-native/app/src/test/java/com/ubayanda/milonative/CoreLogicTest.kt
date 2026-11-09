@@ -4,6 +4,8 @@ import com.ubayanda.milonative.data.EqShare
 import com.ubayanda.milonative.data.LibrarySync
 import com.ubayanda.milonative.util.M3u
 import com.ubayanda.milonative.util.NaturalOrder
+import com.ubayanda.milonative.data.OfflineStore
+import com.ubayanda.milonative.model.Track
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -48,5 +50,17 @@ class CoreLogicTest {
         val ms = (System.nanoTime() - t0) / 1_000_000
         assertEquals(20_000, sorted.size)
         assertTrue("sort took $ms ms", ms < 5_000)
+    }
+
+    private fun track(durMs: Long) = Track(1, "yt:abc", "T", "A", "Al", 1, durMs, 0, 0, 0)
+    @Test fun downloadEstimateScalesWithLengthAndSaver() {
+        val j = OfflineStore.Job("abc", track(200_000), OfflineStore.State.QUEUED)
+        assertEquals(4_000_000L, j.estimate(false))
+        assertEquals(1_200_000L, j.estimate(true))
+        assertEquals(5_000_000L, j.copy(totalBytes = 5_000_000L).estimate(false))
+    }
+    @Test fun downloadDefaultsKeepOldBehaviour() {
+        val s = OfflineStore.Settings()
+        assertFalse(s.wifiOnly); assertEquals(0, s.limitMb); assertFalse(s.saver)
     }
 }

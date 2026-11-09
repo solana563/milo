@@ -310,7 +310,7 @@ fun MiloApp(vm: MainViewModel) {
 
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding()) {
                 com.ubayanda.milonative.ui.components.UndoBar(vm)
-                com.ubayanda.milonative.ui.components.DownloadBar()
+                com.ubayanda.milonative.ui.components.DownloadBar(onClick = { vm.showDownloads = true })
                 if (selection.isNotEmpty()) {
                     val chosen = selection.mapNotNull { byId[it] ?: vm.trackById(it) }
                     com.ubayanda.milonative.ui.components.SelectionBar(
@@ -352,6 +352,9 @@ fun MiloApp(vm: MainViewModel) {
 
             AnimatedVisibility(visible = car, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.CarScreen(vm, current, ui, current != null && favs.contains(current.id)) { car = false }
+            }
+            AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.DownloadManagerScreen { vm.showDownloads = false }
             }
             com.ubayanda.milonative.ui.screens.TourOverlay()
         }

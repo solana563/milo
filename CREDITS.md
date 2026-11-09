@@ -117,3 +117,5 @@ Round 30b: "Forgot password?" on the log-in screen sends a password-reset email.
 Round 30c: large-library scan work moved off the main thread plus a 20,000-title sort test; "Sign out of my other devices" in Profile.
 
 Round 31 (Phase 2): Android Auto support. The playback service is now a Media3 MediaLibraryService with a browsable library (recent, liked, playlists, albums, artists), car search and voice play. Untested on a head unit.
+
+Round 32 (Phase 3): Download Manager screen over the existing YouTube offline downloads (queue states, pause/resume, retry with automatic retries, Wi-Fi only, data-saver quality, storage limit with optional remove-oldest, free space, unfinished-file cleanup). The download format and playback path are unchanged.
