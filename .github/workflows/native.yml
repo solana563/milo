@@ -24,23 +24,34 @@ jobs:
         shell: bash
         run: |
           if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"; echo "MILO_KEYSTORE_FILE=$RUNNER_TEMP/milo.jks" >> "$GITHUB_ENV"; echo "Release key found."; else echo "No release key: builds use the debug key."; fi
+      - name: Unit tests
+        continue-on-error: true
+        run: gradle testFullDebugUnitTest --stacktrace
       - run: gradle assembleFullDebug --stacktrace
       - name: Print the signing fingerprints (for Google sign-in)
         continue-on-error: true
         shell: bash
         run: |
+          set +e
+          KT="$JAVA_HOME/bin/keytool"; [ -x "$KT" ] || KT=keytool
+          sha() { "$KT" -list -v "$@" 2>&1 | grep -iE "SHA-?1:" | head -1 | sed 's/^ *//'; }
+          DBG=""
+          for f in "$ANDROID_USER_HOME/debug.keystore" "$HOME/.android/debug.keystore" /root/.android/debug.keystore; do [ -f "$f" ] && DBG="$f" && break; done
+          [ -z "$DBG" ] && DBG=$(find / -name debug.keystore -not -path "*/proc/*" 2>/dev/null | head -1)
           {
             echo "## Signing fingerprints for Google Cloud (Android OAuth client)"
             echo "Package name: com.ubayanda.milonative"
             echo
-            echo "**Debug key** (builds from the debug APK):"
-            keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android 2>/dev/null | grep -E "SHA1:|SHA-1:" | sed 's/^ *//' | sed 's/^/- /'
+            echo "Debug key (debug APK): $(sha -keystore "$DBG" -alias androiddebugkey -storepass android)"
             if [ -n "$MILO_KEYSTORE_FILE" ]; then
               echo
-              echo "**Release key** (builds from the release APK / AAB):"
-              keytool -list -v -keystore "$MILO_KEYSTORE_FILE" -alias "$MILO_KEY_ALIAS" -storepass "$MILO_KEYSTORE_PASSWORD" 2>/dev/null | grep -E "SHA1:|SHA-1:" | sed 's/^ *//' | sed 's/^/- /'
+              echo "Release key (release APK / AAB): $(sha -keystore "$MILO_KEYSTORE_FILE" -alias "$MILO_KEY_ALIAS" -storepass "$MILO_KEYSTORE_PASSWORD")"
+            else
+              echo
+              echo "No release key in this run."
             fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 0
       - name: Build smooth release APK (minified, much faster scrolling)
         id: rel
         continue-on-error: true
