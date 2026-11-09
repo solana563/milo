@@ -70,6 +70,7 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation("androidx.profileinstaller:profileinstaller:1.3.1")
     val composeBom = platform("androidx.compose:compose-bom:2024.09.03")
     implementation(composeBom)

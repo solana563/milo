@@ -150,7 +150,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 if (!cloud.fresh()) throw CloudError(401, "Please log in again first.")
                 libSync.deleteAccount()
-                prefs.edit().putLong("sync_ts", 0L).apply()
+                prefs.edit().putLong("sync_ts", 0L).putLong("sync_base", 0L).apply()
                 setAcct { AccountUi(step = "welcome") }
                 done(null)
             } catch (x: CloudError) {
@@ -232,7 +232,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signOut() {
         cloud.signOutLocal()
-        prefs.edit().putLong("sync_ts", 0L).apply()
+        prefs.edit().putLong("sync_ts", 0L).putLong("sync_base", 0L).apply()
         _syncMsg.value = ""
         setAcct { AccountUi(step = "welcome") }
     }
@@ -397,6 +397,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         pushJob = viewModelScope.launch { delay(3000); syncNow() }
     }
 
+    /** Safety copy of the local library before a remote snapshot is applied, so a bad sync is never unrecoverable. */
+    private fun backupLocal() {
+        try { java.io.File(getApplication<android.app.Application>().filesDir, "sync_backup.json").writeText(snapshot().toString()) } catch (_: Exception) {}
+    }
+
     fun syncNow() {
         if (cloud.session == null || syncing) return
         viewModelScope.launch {
@@ -405,14 +410,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 if (!cloud.fresh()) return@launch
                 val remote = libSync.pull()
                 val ts = prefs.getLong("sync_ts", 0L)
+                val base = prefs.getLong("sync_base", 0L)
+                val dirty = ts > base          // edits on this phone the cloud hasn't seen yet
+                fun mark(t: Long) { prefs.edit().putLong("sync_ts", t).putLong("sync_base", t).apply() }
+                fun pushNow() { val now = System.currentTimeMillis(); libSync.push(now, snapshot()); mark(now) }
+                val remoteEmpty = remote != null && (remote.data.optJSONArray("favs")?.length() ?: 0) == 0 && (remote.data.optJSONArray("playlists")?.length() ?: 0) == 0
                 when {
-                    remote == null -> if (localHasData()) { val now = System.currentTimeMillis(); libSync.push(now, snapshot()); prefs.edit().putLong("sync_ts", now).apply() }
-                    ts == 0L && localHasData() -> {
-                        applyRemote(remote.data, union = true)
-                        val now = System.currentTimeMillis(); libSync.push(now, snapshot()); prefs.edit().putLong("sync_ts", now).apply()
-                    }
-                    remote.ts > ts -> { applyRemote(remote.data, union = false); prefs.edit().putLong("sync_ts", remote.ts).apply() }
-                    ts > remote.ts -> libSync.push(ts, snapshot())
+                    remote == null -> if (localHasData()) pushNow()
+                    ts == 0L && localHasData() -> { applyRemote(remote.data, union = true); pushNow() }
+                    remote.ts > ts && dirty -> { backupLocal(); applyRemote(remote.data, union = true); pushNow() }   // both sides changed: merge, never overwrite
+                    remote.ts > ts && remoteEmpty && localHasData() -> pushNow()                                      // never let an empty cloud copy wipe a library
+                    remote.ts > ts -> { backupLocal(); applyRemote(remote.data, union = false); mark(remote.ts) }
+                    ts > remote.ts -> { libSync.push(ts, snapshot()); mark(ts) }
+                    else -> mark(ts)
                 }
                 _syncMsg.value = "Backed up just now"
             } catch (e: CloudError) {

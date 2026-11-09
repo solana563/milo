@@ -107,3 +107,7 @@ Round 27 (Lite): new milo. Lite flavor (separate app, Android 8+): chat kept, Li
 Round 28: milo. remembers where you were: scroll positions (Home, Library songs/albums/artists/playlists, album and artist pages, Discover, Search, Profile) and the Discover and Search results survive opening an album or artist and coming back; opened YouTube pages are kept so going back is instant.
 
 Round 28b: fix crash "Key mxPicked for you was already used" on Home (overlapping mix builds stacked duplicate mixes; mix list is now built from its own run and keyed by position).
+
+Round 29 (Windows): system tray with close-to-tray, start with Windows, ListenBrainz scrobbling. Feature ideas come from Limusic (GPL-3.0, github.com/SimoHypers/limusic); no Limusic code is used, so milo. for Windows keeps its own licence.
+
+Round 30 (Phase 1 hardening): safer cloud sync (merge instead of overwrite when both sides changed, local backup before replacing, empty cloud copy never wipes a library), first unit tests plus a CI test step, feature inventory and device test checklist in docs/.
