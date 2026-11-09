@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -362,7 +363,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
 fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = true, compact: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     Row(
-        Modifier.pressable(enabled, onClick).clip(shape)
+        Modifier.heightIn(min = 44.dp).pressable(enabled, onClick).clip(shape)
             .background(if (filled) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.amber.copy(alpha = 1f), Milo.amber.copy(alpha = 0.86f))) else androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Milo.card2, Milo.card)), shape)
             .border(1.dp, glassStroke(if (filled) 0.9f else 1f), shape)
             .padding(horizontal = if (compact) 15.dp else 22.dp, vertical = if (compact) 11.dp else 13.dp),

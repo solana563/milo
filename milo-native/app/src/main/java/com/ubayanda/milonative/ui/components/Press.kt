@@ -23,5 +23,5 @@ fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier =
     val sy by animateFloatAsState(if (pressed && enabled) 0.92f else 1f, spring(dampingRatio = 0.45f, stiffness = 650f), label = "pressY")
     val haptic = LocalHapticFeedback.current
     this.graphicsLayer { scaleX = sx; scaleY = sy }
-        .clickable(interactionSource = src, indication = null, enabled = enabled) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }
+        .clickable(interactionSource = src, indication = null, enabled = enabled, role = androidx.compose.ui.semantics.Role.Button) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }
 }

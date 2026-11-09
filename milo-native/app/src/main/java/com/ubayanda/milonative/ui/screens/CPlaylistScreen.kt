@@ -50,6 +50,7 @@ import com.ubayanda.milonative.data.CplDetail
 import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.components.Cover
+import com.ubayanda.milonative.ui.components.IconAction
 import com.ubayanda.milonative.ui.components.QrImage
 import com.ubayanda.milonative.ui.theme.Milo
 import com.ubayanda.milonative.ui.theme.Ty
@@ -91,6 +92,7 @@ private fun CplHome(vm: MainViewModel, onClose: () -> Unit) {
     val list by vm.cplList.collectAsState()
     val pub by vm.cplPublic.collectAsState()
     val msg by vm.cplMsg.collectAsState()
+    val loaded by vm.cplLoaded.collectAsState()
     var code by remember { mutableStateOf(vm.pendingPlaylistCode) }
     var name by remember { mutableStateOf("") }
     var isPublic by remember { mutableStateOf(false) }
@@ -121,7 +123,7 @@ private fun CplHome(vm: MainViewModel, onClose: () -> Unit) {
             }
         }
         item { Text("My shared playlists", color = Milo.dim, style = Ty.label) }
-        if (list.isEmpty()) item { Text("None yet.", color = Milo.dim, style = Ty.caption) }
+        if (list.isEmpty()) item { Text(if (!vm.signedIn) "Sign in to see yours." else if (!loaded) "Loading…" else if (msg.isNotEmpty()) "Couldn't load. See the message above." else "None yet. Create one above or join with a code.", color = Milo.dim, style = Ty.caption) }
         items(list, key = { it.id }) { p ->
             Row(Modifier.fillMaxWidth().clip(card).background(Milo.card).clickable { vm.cplOpenList(p.id) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -131,7 +133,7 @@ private fun CplHome(vm: MainViewModel, onClose: () -> Unit) {
             }
         }
         item { Text("Public playlists", color = Milo.dim, style = Ty.label) }
-        if (pub.isEmpty()) item { Text("None listed.", color = Milo.dim, style = Ty.caption) }
+        if (pub.isEmpty()) item { Text(if (loaded) "None listed." else "Loading…", color = Milo.dim, style = Ty.caption) }
         items(pub, key = { "pub" + it.code }) { p ->
             Row(Modifier.fillMaxWidth().clip(card).background(Milo.card).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -242,10 +244,10 @@ private fun CplDetailView(vm: MainViewModel, d: CplDetail) {
                         Text(it.track.artist + " · added by " + it.by, color = Milo.dim, style = Ty.micro, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (CPlaylists.canReorder(me)) {
-                        if (i > 0) Text("▲", color = Milo.amber, modifier = Modifier.clickable { vm.cplMove(it.id, CPlaylists.afterIdFor(ids, i, i - 1)) }.padding(8.dp))
-                        if (i < d.items.size - 1) Text("▼", color = Milo.amber, modifier = Modifier.clickable { vm.cplMove(it.id, CPlaylists.afterIdFor(ids, i, i + 1)) }.padding(8.dp))
+                        if (i > 0) IconAction("▲", "Move up", Milo.amber) { vm.cplMove(it.id, CPlaylists.afterIdFor(ids, i, i - 1)) }
+                        if (i < d.items.size - 1) IconAction("▼", "Move down", Milo.amber) { vm.cplMove(it.id, CPlaylists.afterIdFor(ids, i, i + 1)) }
                     }
-                    if (CPlaylists.canRemove(me, it.byUid, d.myUid)) Text("✕", color = Milo.dim, modifier = Modifier.clickable { vm.cplRemove(it.id) }.padding(8.dp))
+                    if (CPlaylists.canRemove(me, it.byUid, d.myUid)) IconAction("✕", "Remove from playlist", Milo.dim) { vm.cplRemove(it.id) }
                 }
             }
         }

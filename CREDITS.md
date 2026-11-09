@@ -139,3 +139,5 @@ Round 36b: "Recently played" row on Home (last 20 songs played, newest first, lo
 Round 37 (Phase 6): crossfade curves and an Audio info screen (decoder support, output capabilities, track format). Most of Phase 6 (EQ, per-device EQ, ReplayGain, loudness matching, visualiser styles, full-screen visualiser) already existed.
 
 Round 38 (Phase 7): shuffle and favourite buttons on the 4x2 widget, kept in step with the in-app Liked songs. Other widgets and lock-screen controls already existed.
+
+Round 39 (Phase 8): focused accessibility and state polish: buttons announce as buttons, 44 dp pill minimum, labelled 48 dp symbol buttons, loading state for shared playlists. No visual redesign.

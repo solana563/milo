@@ -84,5 +84,6 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Widget shuffle and favourite buttons (4x2) | B | Round 38. Heart uses the same Liked songs list as the app. With the app closed it works for songs on the phone; for streamed songs it opens milo. instead |
 | Widget queue access | F | Android widgets can't host a scrollable interactive queue reliably; not built |
 | Lock screen / notification controls with artwork, progress, previous/next | B | Provided by Media3's media session; no changes this round. Needs the device checklist on several makers' phones |
+| Design refinement (Phase 8): button semantics for screen readers, 44 dp minimum pill height, labelled 48 dp symbol buttons, loading vs empty state in shared playlists | B | Round 39. Narrow pass on shared code; the app's look (dark, glass, amber) is unchanged. Not done: full contrast audit, large-font-size layout review, reduced-motion setting, matching changes on web and Windows |
 | Collaborative playlists | F | Round 36 |
 

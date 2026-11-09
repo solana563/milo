@@ -95,3 +95,10 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Shuffle button lights in the accent colour when on; matches the Now Playing shuffle
 - [ ] 4x1 and 2x2 widgets still show artwork and respond
 - [ ] Lock screen: artwork, progress, previous/next on at least two phone brands
+
+## Design and accessibility (Round 39)
+- [ ] TalkBack on: pills, chips and mini-player buttons are announced as buttons with sensible names
+- [ ] Shared playlist ▲ ▼ ✕ are announced as Move up / Move down / Remove and are easy to hit with a thumb
+- [ ] Settings > Display > Font size at largest: Profile, Home and Now Playing don't clip or overlap
+- [ ] Shared playlists screen shows "Loading…" first, then the list or "None yet"
+- [ ] Pills look the same as before (only slightly taller where they were short)

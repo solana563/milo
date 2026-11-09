@@ -283,6 +283,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val cplOpen: StateFlow<com.ubayanda.milonative.data.CplDetail?> = _cplOpen.asStateFlow()
     private val _cplMsg = MutableStateFlow("")
     val cplMsg: StateFlow<String> = _cplMsg.asStateFlow()
+    private val _cplLoaded = MutableStateFlow(false)
+    /** True once the first answer (or error) from the server has arrived, so "None yet" isn't shown while still loading. */
+    val cplLoaded: StateFlow<Boolean> = _cplLoaded.asStateFlow()
     private var cplId: String? = null
     var showCpl by androidx.compose.runtime.mutableStateOf(false)
     var showAudioInfo by androidx.compose.runtime.mutableStateOf(false)
@@ -308,7 +311,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun cplRefresh() {
         if (cloud.session == null) return
-        viewModelScope.launch { try { cplReload(); _cplPublic.value = cpl.publicLists(); _cplMsg.value = "" } catch (x: Exception) { cplError(x) } }
+        viewModelScope.launch { try { cplReload(); _cplPublic.value = cpl.publicLists(); _cplMsg.value = "" } catch (x: Exception) { cplError(x) } finally { _cplLoaded.value = true } }
     }
     fun cplOpenList(id: String?) { cplId = id; if (id == null) _cplOpen.value = null else cplRefresh() }
     private fun cplDo(block: suspend () -> Unit) {
