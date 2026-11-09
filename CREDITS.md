@@ -143,3 +143,5 @@ Round 38 (Phase 7): shuffle and favourite buttons on the 4x2 widget, kept in ste
 Round 39 (Phase 8): focused accessibility and state polish: buttons announce as buttons, 44 dp pill minimum, labelled 48 dp symbol buttons, loading state for shared playlists. No visual redesign.
 
 Round 40: security review (docs/SECURITY-AUDIT.md), encrypted storage of sign-in tokens and server password (Android Keystore), Supabase permission hardening SQL.
+
+Round 41: CI release gate in native.yml. Unit tests now fail the run (reports uploaded), and a final step checks that the debug APK exists, has the right package name and a valid version code and signature, reports AAB/release/F-Droid outcomes and whether a release key is configured. Firebase distribution only runs if the gate passed.
