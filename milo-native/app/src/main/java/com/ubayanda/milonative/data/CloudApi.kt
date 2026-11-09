@@ -39,9 +39,9 @@ class CloudApi(context: Context) {
     }
 
     private fun loadSession(): CloudSession? {
-        val at = prefs.getString("at", null) ?: return null
+        val at = SecureStore.get(prefs, "at")?.ifEmpty { null } ?: return null
         return CloudSession(
-            at, prefs.getString("rt", "") ?: "", prefs.getLong("exp", 0L),
+            at, SecureStore.get(prefs, "rt") ?: "", prefs.getLong("exp", 0L),
             prefs.getString("uid", "") ?: "", prefs.getString("email", "") ?: "",
         )
     }
@@ -55,7 +55,7 @@ class CloudApi(context: Context) {
             user?.optString("email").orEmpty().ifEmpty { session?.email ?: fallbackEmail },
         )
         session = s
-        prefs.edit().putString("at", s.accessToken).putString("rt", s.refreshToken).putLong("exp", s.expiresAt)
+        SecureStore.put(SecureStore.put(prefs.edit(), "at", s.accessToken), "rt", s.refreshToken).putLong("exp", s.expiresAt)
             .putString("uid", s.userId).putString("email", s.email).apply()
     }
 

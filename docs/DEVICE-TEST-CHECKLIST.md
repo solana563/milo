@@ -102,3 +102,9 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Settings > Display > Font size at largest: Profile, Home and Now Playing don't clip or overlap
 - [ ] Shared playlists screen shows "Loading…" first, then the list or "None yet"
 - [ ] Pills look the same as before (only slightly taller where they were short)
+
+## Security (Round 40)
+- [ ] Update over an existing install: you stay signed in (old tokens upgrade silently)
+- [ ] Fresh install: sign in, close the app, reopen: still signed in; restart the phone: still signed in
+- [ ] Music server (Subsonic) still connects after the update
+- [ ] After running supabase_security_hardening.sql: sign up, sign in, add a friend by username, send a message, Sessions and Shared playlists all still work

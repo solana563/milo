@@ -85,5 +85,6 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Widget queue access | F | Android widgets can't host a scrollable interactive queue reliably; not built |
 | Lock screen / notification controls with artwork, progress, previous/next | B | Provided by Media3's media session; no changes this round. Needs the device checklist on several makers' phones |
 | Design refinement (Phase 8): button semantics for screen readers, 44 dp minimum pill height, labelled 48 dp symbol buttons, loading vs empty state in shared playlists | B | Round 39. Narrow pass on shared code; the app's look (dark, glass, amber) is unchanged. Not done: full contrast audit, large-font-size layout review, reduced-motion setting, matching changes on web and Windows |
+| Security review and hardening (token encryption, database function permissions) | B | Round 40. Written review in `docs/SECURITY-AUDIT.md`; static read of this repo only, no live penetration test. Needs your actions listed there (restrict the YouTube key, run the hardening SQL) |
 | Collaborative playlists | F | Round 36 |
 

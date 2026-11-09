@@ -23,7 +23,7 @@ class SubsonicRepo(context: Context) {
         private set
     var user: String = prefs.getString("user", "").orEmpty()
         private set
-    private var pass: String = prefs.getString("pass", "").orEmpty()
+    private var pass: String = SecureStore.get(prefs, "pass").orEmpty()
 
     fun password(): String = pass
 
@@ -36,7 +36,7 @@ class SubsonicRepo(context: Context) {
         var b = rawUrl.trim().trimEnd('/')
         if (b.isNotEmpty() && !b.startsWith("http://") && !b.startsWith("https://")) b = "http://$b"
         url = b; user = u.trim(); pass = p
-        prefs.edit().putString("url", url).putString("user", user).putString("pass", pass).apply()
+        SecureStore.put(prefs.edit().putString("url", url).putString("user", user), "pass", pass).apply()
     }
 
     fun clear() {

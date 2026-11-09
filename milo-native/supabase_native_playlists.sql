@@ -5,7 +5,7 @@
 
 create or replace function public.milo_now() returns bigint language sql stable as $$ select (extract(epoch from clock_timestamp()) * 1000)::bigint $$;
 create or replace function public.milo_clean(p text, n int) returns text language sql immutable as $$
-  select left(regexp_replace(coalesce(p, ''), '[\x00-\x1f]', '', 'g'), n)
+  select left(regexp_replace(coalesce(p, ''), '[[:cntrl:]]', '', 'g'), n)
 $$;
 
 create table if not exists public.milo_cpl (

@@ -141,3 +141,5 @@ Round 37 (Phase 6): crossfade curves and an Audio info screen (decoder support, 
 Round 38 (Phase 7): shuffle and favourite buttons on the 4x2 widget, kept in step with the in-app Liked songs. Other widgets and lock-screen controls already existed.
 
 Round 39 (Phase 8): focused accessibility and state polish: buttons announce as buttons, 44 dp pill minimum, labelled 48 dp symbol buttons, loading state for shared playlists. No visual redesign.
+
+Round 40: security review (docs/SECURITY-AUDIT.md), encrypted storage of sign-in tokens and server password (Android Keystore), Supabase permission hardening SQL.
