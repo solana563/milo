@@ -133,3 +133,5 @@ Round 34c: build fix (duplicate `signedIn` property removed from MainViewModel).
 Round 35 (Phase 5): milo. Sessions, listening rooms with invite code/link/QR, roles, shared queue with suggestions, synced playback with the host, reactions, moderation and reporting. All server access goes through permission-checking database functions (supabase_native_sessions.sql). QR drawn with ZXing core (Apache-2.0).
 
 Round 36 (Phase 5): shared (collaborative) playlists with owner/editor/viewer roles, invite code/link/QR, public or private, add/remove/reorder, change history, copy to library. Permission-checking database functions only (supabase_native_playlists.sql).
+
+Round 36b: "Recently played" row on Home (last 20 songs played, newest first, local and online), from the same history Android Auto uses.

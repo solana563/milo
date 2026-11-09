@@ -219,6 +219,29 @@ fun HomeScreen(
                 }
             }
         }
+        item {
+            val rctx = androidx.compose.ui.platform.LocalContext.current
+            val played = androidx.compose.runtime.remember(ui.currentId, tracks.size) {
+                com.ubayanda.milonative.player.RecentStore.ids(rctx).mapNotNull { vm.trackById(it) }.take(20)
+            }
+            if (played.isNotEmpty()) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+                    SectionTitle("Recently played")
+                    LazyRow(state = vm.mem.list("home-played"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(played, key = { "rp" + it.id }) { t ->
+                            Column(Modifier.width(120.dp).clickable {
+                                if (played.any { it.id < 0 }) vm.playRemote(played, played.indexOf(t)) else vm.player.playQueue(played, played.indexOf(t))
+                            }) {
+                                Cover(vm, t, 120.dp, 14.dp, px = 360)
+                                Spacer(Modifier.height(6.dp))
+                                Text(t.title, color = if (t.id == ui.currentId) Milo.amber else Milo.text, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(t.artist, color = Milo.dim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (tracks.isNotEmpty() && !hideLocal) {
             item {
                 Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
