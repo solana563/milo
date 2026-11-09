@@ -80,12 +80,17 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_art_info" />
         </receiver>
 
+        <!-- Tells Android Auto that milo. is a media app (browse + play). -->
+        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
+
         <service
             android:name=".player.PlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
     </application>

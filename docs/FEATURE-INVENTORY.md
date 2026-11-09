@@ -10,7 +10,7 @@ Nothing here is marked "verified" unless a person ran it on a phone. The build s
 | Playback | Crossfade (ghost player), EQ, bass, spatial | B | Custom code; test on low-end devices |
 | Playback | Resume last queue and position | B | `PlayerHolder.restore` |
 | Playback | Audio focus / headphones unplugged | B | Standard Media3 handling |
-| Playback | Android Auto | F | Needs `MediaLibraryService` (Phase 2) |
+| Playback | Android Auto / car browsing | B | Round 31: `MediaLibraryService` + browse tree. Never run on a DHU or car yet; see docs/ANDROID-AUTO.md |
 | Library | Scan, albums, artists, playlists, favourites | A | |
 | Library | M3U import/export | B | Unit-tested parser (this round) |
 | Library | Very large libraries (10k+) | C | Lazy lists, windowed play queue; scan post-processing moved off main thread (Round 30c); sort speed unit-tested at 20k; real-phone benchmark still to do |

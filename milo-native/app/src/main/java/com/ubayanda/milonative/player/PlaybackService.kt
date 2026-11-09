@@ -5,8 +5,9 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
@@ -14,8 +15,8 @@ import kotlinx.coroutines.launch
  * The music player itself. It lives in a foreground service, so playback carries on with the screen off,
  * the lock-screen / notification controls and headset buttons all work, and it never depends on the UI being open.
  */
-class PlaybackService : MediaSessionService() {
-    private var session: MediaSession? = null
+class PlaybackService : MediaLibraryService() {
+    private var session: MediaLibrarySession? = null
     private var exo: ExoPlayer? = null
     private var castBridge: CastBridge? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -230,7 +231,7 @@ class PlaybackService : MediaSessionService() {
             this, 0, Intent(this, com.ubayanda.milonative.MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaSession.Builder(this, player).setSessionActivity(open).build()
+        session = MediaLibrarySession.Builder(this, player, CarLibrary(this)).setSessionActivity(open).build()
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player).also { it.init() }
         BtOutput.start(this, { player.isPlaying }, { player.play() })
@@ -268,6 +269,7 @@ class PlaybackService : MediaSessionService() {
                 // the person skipped, or the queue changed, in the middle of a crossfade: drop the old song's tail at once
                 if (xfOwn) xfOwn = false else if (xfLen > 0L || ghost != null) endGhost()
                 resumedFor = null
+                mediaItem?.mediaId?.let { RecentStore.add(this@PlaybackService, it) }
                 Extras.clearLoop()
                 rgPrev = rgScale
                 updateGain(player)
@@ -288,7 +290,7 @@ class PlaybackService : MediaSessionService() {
         })
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val p = session?.player
