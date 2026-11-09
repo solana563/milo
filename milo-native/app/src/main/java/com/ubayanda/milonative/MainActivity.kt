@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND -> i.getStringExtra(Intent.EXTRA_TEXT)
             else -> null
         } ?: return
+        if (raw.startsWith("milo://room/")) { vm.openRoomLink(raw); return }
         if (raw.startsWith("milo:")) return   // the "your account is verified" page opens the app: nothing to do
         vm.openLink(raw)
     }

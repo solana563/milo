@@ -56,3 +56,16 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Local-only song: both transfer buttons refuse with a clear message
 - [ ] Switch Connect off: device disappears from the other's list; sign out does the same
 - [ ] A second account cannot see or control these devices (check in Supabase table editor / with a test user)
+
+## milo. Sessions (Round 35) - needs two accounts on two phones
+- [ ] Ran supabase_native_sessions.sql; Profile > Sessions opens
+- [ ] A starts a private session, B joins by code; B joins by pasting the link; QR shown on A, scanned by B's camera opens milo.
+- [ ] A plays a YouTube song: B starts the same song within ~5 s and stays within ~3 s of A; pause/seek on A follow
+- [ ] A plays a local file: B sees the message that it can't be heard, nothing breaks
+- [ ] B suggests a song: A sees Approve/Remove; approved song plays after the current one ends
+- [ ] Open queue ON: B's songs go straight in
+- [ ] Reactions and chat appear on both; spamming is refused ("slow down")
+- [ ] A mutes B: B can't react/suggest; A removes B: B is told; banned B can't rejoin with the code
+- [ ] Report and Block work; a third account never sees a private room
+- [ ] A ends the session: B is told; A's app closed for a minute: B sees "host away"
+- [ ] Public session shows in the list for C; stops showing when A ends it

@@ -10,6 +10,7 @@ import com.ubayanda.milonative.data.SmartMix
 import com.ubayanda.milonative.data.SongStat
 import com.ubayanda.milonative.data.Taste
 import com.ubayanda.milonative.data.Connect
+import com.ubayanda.milonative.data.Sessions
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -153,5 +154,30 @@ class CoreLogicTest {
             SmartMix.forgotten(all, t)
             SmartMix.Mood.values().forEach { SmartMix.mood(all, t, it, seed, 2026) }
         }
+    }
+
+    // ---- Sessions ----
+    @Test fun inviteCodesParseFromLinksAndTypedText() {
+        assertEquals("ABC234", Sessions.parseCode("milo://room/ABC234"))
+        assertEquals("ABC234", Sessions.parseCode(" abc 234 "))
+        assertNull(Sessions.parseCode("hello"))
+        assertNull(Sessions.parseCode("ABC12"))              // too short
+        assertEquals("ABC234", Sessions.parseCode("ABCO234")) // O is never in a code, so it is dropped
+    }
+    @Test fun inviteLinkRoundTrips() { assertEquals("XK7P2M", Sessions.parseCode(Sessions.link("XK7P2M"))) }
+    @Test fun onlyOnlineSongsAreShared() {
+        assertTrue(Sessions.playable(Track(1, "yt:abc", "T", "A", "Al", 1, 1000, 0, 0, 0)))
+        assertFalse(Sessions.playable(Track(2, "content://x", "T", "A", "Al", 1, 1000, 0, 0, 0)))
+        assertFalse(Sessions.playable(null))
+    }
+    @Test fun listenersOnlySeekWhenDriftIsLarge() {
+        assertEquals(-1L, Sessions.seekTarget(10_000L, 1_000L, true, 14_200L, 6_000L))   // host ~15 000, me 14 200: close enough
+        assertEquals(15_000L, Sessions.seekTarget(10_000L, 1_000L, true, 30_000L, 6_000L))
+        assertEquals(10_000L, Sessions.seekTarget(10_000L, 1_000L, false, 20_000L, 6_000L)) // paused host: no extrapolation
+    }
+    @Test fun hostAwayAfterAMinute() {
+        assertFalse(Sessions.hostAway(100_000L, 150_000L))
+        assertTrue(Sessions.hostAway(100_000L, 170_000L))
+        assertFalse(Sessions.hostAway(0L, 170_000L))
     }
 }

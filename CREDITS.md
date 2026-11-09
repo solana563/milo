@@ -129,3 +129,5 @@ Round 34 (Phase 5, first slice): milo. Connect for your own devices: device list
 Round 34b: crash fix. Smart mixes sorted with random scores inside the comparison, which Java rejects on libraries of 32+ songs ("Comparison method violates its general contract"). Each song is now scored once before sorting; a 800-song regression test added.
 
 Round 34c: build fix (duplicate `signedIn` property removed from MainViewModel).
+
+Round 35 (Phase 5): milo. Sessions, listening rooms with invite code/link/QR, roles, shared queue with suggestions, synced playback with the host, reactions, moderation and reporting. All server access goes through permission-checking database functions (supabase_native_sessions.sql). QR drawn with ZXing core (Apache-2.0).

@@ -271,6 +271,154 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+
+    // ---- milo. Sessions: listening rooms ----
+    private val sessions = com.ubayanda.milonative.data.Sessions(cloud)
+    private val _room = MutableStateFlow<com.ubayanda.milonative.data.RoomSnap?>(null)
+    val room: StateFlow<com.ubayanda.milonative.data.RoomSnap?> = _room.asStateFlow()
+    private val _roomEvents = MutableStateFlow<List<com.ubayanda.milonative.data.RoomEvent>>(emptyList())
+    val roomEvents: StateFlow<List<com.ubayanda.milonative.data.RoomEvent>> = _roomEvents.asStateFlow()
+    private val _publicRooms = MutableStateFlow<List<com.ubayanda.milonative.data.PublicRoom>>(emptyList())
+    val publicRooms: StateFlow<List<com.ubayanda.milonative.data.PublicRoom>> = _publicRooms.asStateFlow()
+    private val _sessionMsg = MutableStateFlow("")
+    val sessionMsg: StateFlow<String> = _sessionMsg.asStateFlow()
+    private val _follow = MutableStateFlow(true)
+    /** Listeners: keep my player in step with the host. */
+    val follow: StateFlow<Boolean> = _follow.asStateFlow()
+    fun setFollow(on: Boolean) { _follow.value = on }
+    private var roomId: String? = null
+    private var lastEvent = 0L
+    private var roomBeat = 0
+    private var syncUntil = 0L
+    private var advancedFor: Long? = null
+    /** The Sessions screen is open. */
+    var showSessions by androidx.compose.runtime.mutableStateOf(false)
+    /** A code from an invite link, waiting in the join box. */
+    var pendingCode by androidx.compose.runtime.mutableStateOf("")
+    private val blocked: MutableSet<String> = (prefs0(app).getStringSet("room_blocked", emptySet()) ?: emptySet()).toMutableSet()
+    private fun myRoomName(): String = _account.value.let { it.name.ifEmpty { it.username } }.ifEmpty { "Listener" }
+
+    fun openRoomLink(raw: String) {
+        val c = com.ubayanda.milonative.data.Sessions.parseCode(raw) ?: return
+        pendingCode = c; showSessions = true
+    }
+
+    private fun sessionError(x: Exception) {
+        _sessionMsg.value = when {
+            x is CloudError && (x.status == 404) -> "Sessions need a one-time setup: run supabase_native_sessions.sql in Supabase."
+            x is CloudError -> x.message.orEmpty().let { m -> Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(m)?.groupValues?.get(1) ?: m }.take(120)
+            else -> "Can't reach the server right now."
+        }
+    }
+
+    private fun enterRoom(id: String) {
+        roomId = id; lastEvent = 0L; _roomEvents.value = emptyList(); _room.value = null; advancedFor = null; syncUntil = 0L
+    }
+    private fun clearRoom(msg: String = "") { roomId = null; _room.value = null; _roomEvents.value = emptyList(); _sessionMsg.value = msg }
+
+    fun createRoom(name: String, public: Boolean, openQueue: Boolean) {
+        if (cloud.session == null) { _sessionMsg.value = "Sign in first (Profile)."; return }
+        viewModelScope.launch {
+            try { val (id, _) = sessions.create(name, public, openQueue, myRoomName()); enterRoom(id); _sessionMsg.value = "" } catch (x: Exception) { sessionError(x) }
+        }
+    }
+
+    fun joinRoom(code: String) {
+        if (cloud.session == null) { _sessionMsg.value = "Sign in first (Profile)."; return }
+        val c = com.ubayanda.milonative.data.Sessions.parseCode(code) ?: run { _sessionMsg.value = "That code should be 6 letters or digits."; return }
+        viewModelScope.launch {
+            try { val (id, _) = sessions.join(c, myRoomName()); enterRoom(id); pendingCode = ""; _sessionMsg.value = "" } catch (x: Exception) { sessionError(x) }
+        }
+    }
+
+    fun leaveRoom() {
+        val id = roomId ?: return
+        val host = _room.value?.isHost == true
+        clearRoom()
+        viewModelScope.launch { try { if (host) sessions.end(id) else sessions.leave(id) } catch (_: Exception) {} }
+    }
+
+    fun refreshPublicRooms() { viewModelScope.launch { try { _publicRooms.value = sessions.publicRooms(); _sessionMsg.value = "" } catch (x: Exception) { sessionError(x) } } }
+    fun roomReact(kind: String) { val id = roomId ?: return; viewModelScope.launch { try { sessions.react(id, kind) } catch (x: Exception) { sessionError(x) } } }
+    fun roomSay(text: String) { val id = roomId ?: return; if (text.isBlank()) return; viewModelScope.launch { try { sessions.say(id, text.trim()) } catch (x: Exception) { sessionError(x) } } }
+    fun roomSuggest(t: Track) { val id = roomId ?: return; viewModelScope.launch { try { sessions.suggest(id, t); _sessionMsg.value = "" } catch (x: Exception) { sessionError(x) } } }
+    fun roomQueueAction(item: Long, action: String) { viewModelScope.launch { try { sessions.queueAction(item, action) } catch (x: Exception) { sessionError(x) } } }
+    fun roomModerate(uid: String, action: String) { val id = roomId ?: return; viewModelScope.launch { try { sessions.moderate(id, uid, action) } catch (x: Exception) { sessionError(x) } } }
+    fun roomReport(uid: String, reason: String) {
+        val id = roomId ?: return
+        viewModelScope.launch { try { sessions.report(id, uid, reason); _sessionMsg.value = "Thanks, that was reported." } catch (x: Exception) { sessionError(x) } }
+    }
+    /** Hide a person's messages, reactions and suggestions on this phone. */
+    fun blockPerson(uid: String) { blocked.add(uid); prefs0(getApplication()).edit().putStringSet("room_blocked", blocked.toSet()).apply(); _roomEvents.value = _roomEvents.value.filter { it.uid != uid } }
+    fun isBlocked(uid: String) = uid in blocked
+    fun roomSearch(q: String, done: (List<Track>) -> Unit) { viewModelScope.launch { done(try { youtube.search(q).take(12) } catch (_: Exception) { emptyList() }) } }
+
+    /** Host: play the next approved song in the queue. */
+    fun hostPlayNext() {
+        val r = _room.value ?: return
+        val next = r.queue.firstOrNull { it.status == "queued" } ?: return
+        advancedFor = player.state.value.currentId
+        roomQueueAction(next.id, "played"); playRemote(listOf(next.track), 0)
+    }
+
+    private fun hostState(): JSONObject {
+        val st = player.state.value
+        val t = trackById(st.currentId) ?: return JSONObject()
+        val o = JSONObject().put("title", t.title).put("artist", t.artist).put("pos", st.positionMs).put("pl", st.isPlaying).put("at", System.currentTimeMillis())
+        if (com.ubayanda.milonative.data.Sessions.playable(t)) o.put("t", com.ubayanda.milonative.data.SavedStore.toJson(t))
+        return o
+    }
+
+    private suspend fun hostTick(r: com.ubayanda.milonative.data.RoomSnap) {
+        val st = player.state.value
+        if (roomBeat-- <= 0) { roomBeat = 1; sessions.push(r.id, hostState()) }
+        // song finished: move on to the next approved one
+        val next = r.queue.firstOrNull { it.status == "queued" }
+        if (next != null && st.durationMs > 0 && st.positionMs >= st.durationMs - 1500 && advancedFor != st.currentId) hostPlayNext()
+    }
+
+    private suspend fun followTick(r: com.ubayanda.milonative.data.RoomSnap) {
+        val hs = r.state ?: return
+        if (!_follow.value || com.ubayanda.milonative.data.Sessions.hostAway(r.hostSeen, System.currentTimeMillis())) return
+        val now = System.currentTimeMillis()
+        if (now < syncUntil) return
+        val ht = hs.track
+        if (!com.ubayanda.milonative.data.Sessions.playable(ht)) return           // host's own file: can't be heard here, the screen says so
+        val st = player.state.value
+        val cur = trackById(st.currentId)
+        if (cur?.uri != ht!!.uri) {
+            syncUntil = now + 6000
+            playRemote(listOf(ht), 0)
+            val target = com.ubayanda.milonative.data.Sessions.seekTarget(hs.posMs, hs.at, hs.playing, 0L, now, 0L)
+            delay(1500); if (target > 2000) player.seekTo(target + 1500)
+            return
+        }
+        val seek = com.ubayanda.milonative.data.Sessions.seekTarget(hs.posMs, hs.at, hs.playing, st.positionMs, now)
+        if (seek >= 0) { syncUntil = now + 4000; player.seekTo(seek) }
+        if (hs.playing != st.isPlaying) player.toggle()
+    }
+
+    private suspend fun roomLoop() {
+        while (true) {
+            delay(2000)
+            val id = roomId ?: continue
+            if (cloud.session == null) continue
+            try {
+                if (!cloud.fresh()) continue
+                val snap = sessions.snapshot(id, lastEvent)
+                if (roomId != id) continue
+                if (snap.gone != null) {
+                    clearRoom(when (snap.gone) { "ended" -> "The host ended this session."; "removed" -> "You were removed from this session."; else -> "" })
+                    continue
+                }
+                snap.events.maxOfOrNull { it.id }?.let { lastEvent = maxOf(lastEvent, it) }
+                if (snap.events.isNotEmpty()) _roomEvents.value = (_roomEvents.value + snap.events.filter { it.uid !in blocked }).takeLast(60)
+                _room.value = snap
+                if (snap.isHost) hostTick(snap) else followTick(snap)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (x: Exception) { sessionError(x) }
+        }
+    }
+
     /** The Download Manager screen is open. */
     var showDownloads by androidx.compose.runtime.mutableStateOf(false)
 
@@ -357,7 +505,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signOut() {
         // leave the account's device list first, while the login still works
-        if (connect.enabled) viewModelScope.launch { try { connect.remove() } catch (_: Exception) {}; finishSignOut() } else finishSignOut()
+        val rid = roomId; val hosting = _room.value?.isHost == true
+        if (connect.enabled || rid != null) viewModelScope.launch {
+            try { if (connect.enabled) connect.remove() } catch (_: Exception) {}
+            try { if (rid != null) { clearRoom(); if (hosting) sessions.end(rid) else sessions.leave(rid) } } catch (_: Exception) {}
+            finishSignOut()
+        } else finishSignOut()
     }
 
     private fun finishSignOut() {
@@ -629,6 +782,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { shareLoop() }
         viewModelScope.launch { statsLoop() }
         viewModelScope.launch { connectLoop() }
+        viewModelScope.launch { roomLoop() }
         viewModelScope.launch { autoLoop() }
         scan()
         val o = object : ContentObserver(Handler(Looper.getMainLooper())) {

@@ -70,6 +70,12 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Connect on Windows / TV / web | F | Android only so far |
 | Works with app closed | F | Needs the milo. process alive on both devices; no push-wake |
 | Synchronized listening (Listen Together) | B | Existing (Round earlier); not changed this round |
-| milo. Sessions (rooms, invite link/QR, roles, moderation, reactions) | F | Next round (35) |
+| milo. Sessions: create/join by code, invite link and QR, private/public rooms | B | Round 35. Needs `supabase_native_sessions.sql`. QR is drawn on the phone; scanning with the camera app opens `milo://room/CODE`. Custom links aren't clickable in every chat app, so the code is always shown too. No in-app QR scanner |
+| Sessions: host/listener roles, shared queue, suggestions + approval, open-queue mode | B | Server-enforced limits (3 s between adds, 10 waiting suggestions each, 100 in queue, 50 people) |
+| Sessions: synchronized playback with the host | B | Polls every 2 s, corrects drift above 3 s. Only online (YouTube) songs are shared; a host song from local storage is shown but never promised to listeners |
+| Sessions: reactions, activity feed, chat line | B | 6 fixed reactions + 140-char messages, rate-limited server-side |
+| Sessions: moderation and safety (mute, remove, ban, report, block, end) | B | Reports land in `milo_reports` for you to review in Supabase; the app cannot read them. Block hides a person on that phone only. Display names are typed by the client, so impersonation inside a room is possible; host can remove anyone |
+| Sessions: real-time over websockets | C | Uses 2 s polling through RLS-locked functions instead (simpler, auditable); a little delay is normal |
+| Sessions: room outlives the app / push invites | F | Host's app must stay running; a room whose host is silent for 60 s shows "host away" |
 | Collaborative playlists | F | Round 36 |
 
