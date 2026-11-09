@@ -46,3 +46,13 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Mood cards appear only when genre tags exist; none shown on a library without tags
 - [ ] Switch personalisation off: counters stop; Reset empties history but keeps blocked list
 - [ ] Taste profile on a 5k-song library opens quickly
+
+## milo. Connect (Round 34) - needs two devices on the same account
+- [ ] Ran supabase_native_connect.sql; Connect switch on both devices: each sees the other as online
+- [ ] Play on A: B shows title/artist, Play/Pause on B controls A within ~5 s
+- [ ] Prev / Next / +15s / -15s work
+- [ ] "Play here" on B moves a YouTube song from A with the right position, A pauses
+- [ ] "Send my music there" from B: A starts the song, B pauses
+- [ ] Local-only song: both transfer buttons refuse with a clear message
+- [ ] Switch Connect off: device disappears from the other's list; sign out does the same
+- [ ] A second account cannot see or control these devices (check in Supabase table editor / with a test user)

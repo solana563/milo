@@ -64,6 +64,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val lyricsRepo = LyricsRepo(app)
     private val store = PlaylistStore(app)
     private val cloud = CloudApi(app)
+    private val connect = com.ubayanda.milonative.data.Connect(cloud, app)
     val social = com.ubayanda.milonative.data.SocialModel(cloud, viewModelScope)
     val typing = com.ubayanda.milonative.data.Typing(cloud, viewModelScope)
 
@@ -170,6 +171,107 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+
+    // ---- milo. Connect: see and control your own devices ----
+    private val _peers = MutableStateFlow<List<com.ubayanda.milonative.data.Connect.Device>>(emptyList())
+    val peers: StateFlow<List<com.ubayanda.milonative.data.Connect.Device>> = _peers.asStateFlow()
+    private val _connectOn = MutableStateFlow(connect.enabled)
+    val connectOn: StateFlow<Boolean> = _connectOn.asStateFlow()
+    private val _connectMsg = MutableStateFlow("")
+    val connectMsg: StateFlow<String> = _connectMsg.asStateFlow()
+    val thisDeviceId: String get() = connect.deviceId
+    val thisDeviceName: String get() = connect.deviceName
+    val signedIn: Boolean get() = cloud.session != null
+    /** The Connect screen is open. */
+    var showConnect by androidx.compose.runtime.mutableStateOf(false)
+
+    fun setConnect(on: Boolean) {
+        connect.enabled = on; _connectOn.value = on; _connectMsg.value = ""
+        viewModelScope.launch {
+            try { if (on) connect.heartbeat(nowJson()) else connect.remove() } catch (x: Exception) { connectError(x) }
+            refreshPeers()
+        }
+    }
+
+    private fun connectError(x: Exception) {
+        _connectMsg.value = if (x is CloudError && (x.status == 404 || x.status == 400)) "Connect needs a one-time setup: run supabase_native_connect.sql in Supabase." else if (x is CloudError) x.message.orEmpty() else "Can't reach the server right now."
+    }
+
+    /** What this phone is playing, for other devices. Only online songs carry a queue, because songs from this phone's storage can't play anywhere else. */
+    private fun nowJson(): JSONObject {
+        val st = player.state.value
+        val t = trackById(st.currentId) ?: return JSONObject()
+        val q = JSONArray()
+        st.queueIds.drop(st.queueIndex.coerceAtLeast(0)).take(12).mapNotNull { trackById(it) }.filter { it.uri.startsWith("yt:") }.forEach { q.put(com.ubayanda.milonative.data.SavedStore.toJson(it)) }
+        return JSONObject().put("t", t.title).put("a", t.artist).put("img", t.artUrl).put("pos", st.positionMs).put("dur", st.durationMs)
+            .put("pl", st.isPlaying).put("at", System.currentTimeMillis()).put("q", q)
+    }
+
+    fun refreshPeers() {
+        if (cloud.session == null) { _peers.value = emptyList(); return }
+        viewModelScope.launch {
+            try { _peers.value = connect.devices().filter { it.id != connect.deviceId }; _connectMsg.value = "" } catch (x: Exception) { connectError(x) }
+        }
+    }
+
+    fun remoteSend(device: String, cmd: JSONObject) {
+        viewModelScope.launch { try { connect.send(device, cmd) } catch (x: Exception) { connectError(x) } }
+    }
+
+    /** Bring what [d] is playing to this phone, then pause it there. */
+    fun playHere(d: com.ubayanda.milonative.data.Connect.Device) {
+        val n = d.now
+        if (n == null || n.queue.isEmpty()) { android.widget.Toast.makeText(getApplication(), "That song is only on " + d.name + ", so it can't play here.", android.widget.Toast.LENGTH_LONG).show(); return }
+        val pos = com.ubayanda.milonative.data.Connect.livePos(n.posMs, n.at, n.playing, System.currentTimeMillis(), n.durMs)
+        playRemote(n.queue, 0)
+        viewModelScope.launch { delay(1500); if (pos > 2000) player.seekTo(pos) }
+        remoteSend(d.id, JSONObject().put("t", "pause"))
+    }
+
+    /** Send what is playing here to [d], then pause here. */
+    fun sendTo(d: com.ubayanda.milonative.data.Connect.Device) {
+        val st = player.state.value
+        val q = JSONArray()
+        st.queueIds.drop(st.queueIndex.coerceAtLeast(0)).take(12).mapNotNull { trackById(it) }.filter { it.uri.startsWith("yt:") }.forEach { q.put(com.ubayanda.milonative.data.SavedStore.toJson(it)) }
+        if (q.length() == 0) { android.widget.Toast.makeText(getApplication(), "This song is only on this phone, so " + d.name + " can't play it.", android.widget.Toast.LENGTH_LONG).show(); return }
+        remoteSend(d.id, JSONObject().put("t", "load").put("q", q).put("pos", st.positionMs).put("play", true))
+        if (st.isPlaying) player.toggle()
+    }
+
+    private fun applyCmd(c: JSONObject) {
+        val playing = player.state.value.isPlaying
+        when (c.optString("t")) {
+            "toggle" -> player.toggle()
+            "play" -> if (!playing) player.toggle()
+            "pause" -> if (playing) player.toggle()
+            "next" -> player.next()
+            "prev" -> player.previous()
+            "seek" -> player.seekTo(c.optLong("ms"))
+            "seekby" -> player.seekTo((player.state.value.positionMs + c.optLong("ms")).coerceAtLeast(0L))
+            "load" -> {
+                val a = c.optJSONArray("q") ?: return
+                val list = (0 until a.length()).mapNotNull { try { com.ubayanda.milonative.data.SavedStore.fromJson(a.getJSONObject(it)) } catch (_: Exception) { null } }
+                if (list.isEmpty()) return
+                val pos = c.optLong("pos"); val go = c.optBoolean("play", true)
+                playRemote(list, 0)
+                viewModelScope.launch { delay(1500); if (pos > 2000) player.seekTo(pos); if (!go && player.state.value.isPlaying) player.toggle() }
+            }
+        }
+    }
+
+    private suspend fun connectLoop() {
+        var beat = 0
+        while (true) {
+            delay(3000)
+            if (!connect.enabled || cloud.session == null) continue
+            try {
+                if (!cloud.fresh()) continue
+                connect.take().forEach { applyCmd(it) }
+                if (beat-- <= 0) { beat = if (player.state.value.isPlaying) 2 else 4; connect.heartbeat(nowJson()) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (x: Exception) { connectError(x) }
+        }
+    }
+
     /** The Download Manager screen is open. */
     var showDownloads by androidx.compose.runtime.mutableStateOf(false)
 
@@ -255,6 +357,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun signOut() {
+        // leave the account's device list first, while the login still works
+        if (connect.enabled) viewModelScope.launch { try { connect.remove() } catch (_: Exception) {}; finishSignOut() } else finishSignOut()
+    }
+
+    private fun finishSignOut() {
         cloud.signOutLocal()
         prefs.edit().putLong("sync_ts", 0L).putLong("sync_base", 0L).apply()
         _syncMsg.value = ""
@@ -522,6 +629,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { saveLoop() }
         viewModelScope.launch { shareLoop() }
         viewModelScope.launch { statsLoop() }
+        viewModelScope.launch { connectLoop() }
         viewModelScope.launch { autoLoop() }
         scan()
         val o = object : ContentObserver(Handler(Looper.getMainLooper())) {

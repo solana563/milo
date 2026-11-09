@@ -9,6 +9,7 @@ import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.data.SmartMix
 import com.ubayanda.milonative.data.SongStat
 import com.ubayanda.milonative.data.Taste
+import com.ubayanda.milonative.data.Connect
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -122,5 +123,35 @@ class CoreLogicTest {
         val t = taste(*all.take(30).map { it to SongStat(plays = 2) }.toTypedArray())
         assertEquals(SmartMix.smart(all, t, 7).map { it.id }, SmartMix.smart(all, t, 7).map { it.id })
         assertNotEquals(SmartMix.smart(all, t, 7).map { it.id }, SmartMix.smart(all, t, 8).map { it.id })
+    }
+
+    // ---- Connect ----
+    @Test fun deviceOnlineWindow() {
+        assertTrue(Connect.online(100_000L, 120_000L))
+        assertFalse(Connect.online(100_000L, 150_000L))
+        assertFalse(Connect.online(0L, 10L))
+    }
+    @Test fun staleCommandsAreIgnored() {
+        assertTrue(Connect.fresh(100_000L, 110_000L))
+        assertFalse(Connect.fresh(100_000L, 200_000L))
+        assertFalse(Connect.fresh(500_000L, 100_000L))     // from the far future: clock nonsense
+    }
+    @Test fun livePositionAdvancesOnlyWhilePlaying() {
+        assertEquals(15_000L, Connect.livePos(10_000L, 1_000L, true, 6_000L, 200_000L))
+        assertEquals(10_000L, Connect.livePos(10_000L, 1_000L, false, 6_000L, 200_000L))
+        assertEquals(200_000L, Connect.livePos(199_000L, 0L, true, 50_000L, 200_000L))
+    }
+
+    /** The Round 33 crash: sorting with random scores inside the comparison breaks only on lists of 32+ songs. */
+    @Test fun bigLibrariesNeverBreakTheSort() {
+        val all = (1L..800L).map { song(it, "T$it", "Artist${it % 40}", genre = listOf("Ambient", "Rock", "Pop", "")[(it % 4).toInt()], year = 1990 + (it % 30).toInt()) }
+        val t = taste(*all.filter { it.id % 3 == 0L }.map { it to SongStat(plays = (it.id % 7).toInt(), skips = (it.id % 3).toInt(), last = NOW - (it.id % 90) * SmartMix.DAY) }.toTypedArray(), favs = all.filter { it.id % 5 == 0L }.map { it.id }.toSet(), since = NOW - 200 * SmartMix.DAY)
+        for (seed in 1L..25L) {
+            assertTrue(SmartMix.smart(all, t, seed).isNotEmpty())
+            assertTrue(SmartMix.daily(all, t, seed).isNotEmpty())
+            assertTrue(SmartMix.discovery(all, t, seed).isNotEmpty())
+            SmartMix.forgotten(all, t)
+            SmartMix.Mood.values().forEach { SmartMix.mood(all, t, it, seed, 2026) }
+        }
     }
 }

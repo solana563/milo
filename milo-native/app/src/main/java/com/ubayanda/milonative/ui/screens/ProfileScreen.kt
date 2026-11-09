@@ -635,6 +635,8 @@ private fun DownloadsCard(vm: MainViewModel) {
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         Pill("Manage downloads", null, true) { vm.showDownloads = true }
+        Spacer(Modifier.height(10.dp))
+        Pill("milo. Connect: my devices", null, false) { vm.showConnect = true }
         if (items.isNotEmpty()) Spacer(Modifier.height(10.dp))
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()

@@ -60,3 +60,16 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Personalisation switch + reset | B | Off = nothing new learned and mixes see no history; explicit blocks still apply |
 | Similar artists / related genres from an outside source | F | Not added; would need a permitted metadata source |
 
+## Phase 5 (Round 34): milo. Connect (own devices)
+| Feature | Status | Notes |
+|---|---|---|
+| Device list with online status and what each is playing | B | Needs `supabase_native_connect.sql`; same account only; off until switched on |
+| Remote control (play/pause, prev, next, seek +/-15s) | B | Commands pass through an account-private table; polled every 3 s, so expect a short delay; commands older than 30 s are dropped |
+| Transfer: "Play here" / "Send my music there" | B | Online (YouTube) songs only. Songs stored on one phone are refused with a clear message, never faked |
+| Secure pairing | C | Same-account devices need no pairing: Row Level Security is the gate and nothing secret is in a QR. QR / code pairing for other accounts or signed-out devices (TV, desktop) is NOT built: it needs a server-side function to issue short-lived links, which should be designed and tested on its own |
+| Connect on Windows / TV / web | F | Android only so far |
+| Works with app closed | F | Needs the milo. process alive on both devices; no push-wake |
+| Synchronized listening (Listen Together) | B | Existing (Round earlier); not changed this round |
+| milo. Sessions (rooms, invite link/QR, roles, moderation, reactions) | F | Next round (35) |
+| Collaborative playlists | F | Round 36 |
+

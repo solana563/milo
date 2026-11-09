@@ -123,3 +123,7 @@ Round 32 (Phase 3): Download Manager screen over the existing YouTube offline do
 Round 33 (Phase 4): on-device smart mixes (Smart mix, Daily rotation, Forgotten favourites, Discovery, mood mixes from genre/year/title), skip tracking, More like this / Don't recommend controls, Taste profile dashboard with switch and reset. No outside AI service.
 
 Round 33b: build fix for Round 33 (missing icon imports; sync helper made suspend).
+
+Round 34 (Phase 5, first slice): milo. Connect for your own devices: device list, remote control, transfer of online songs, Row Level Security tables (supabase_native_connect.sql). Rooms and collaborative playlists follow.
+
+Round 34b: crash fix. Smart mixes sorted with random scores inside the comparison, which Java rejects on libraries of 32+ songs ("Comparison method violates its general contract"). Each song is now scored once before sorting; a 800-song regression test added.

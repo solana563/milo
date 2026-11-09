@@ -36,6 +36,9 @@ object SmartMix {
     const val DAY = 86_400_000L
     const val MIN_MOOD = 8
 
+    /** Highest score first, each song scored exactly ONCE. Never put randomness inside a sort comparison: the sort needs a song to keep the same score. */
+    private fun <T> byScore(list: List<T>, score: (T) -> Double): List<T> = list.map { it to score(it) }.sortedByDescending { it.second }.map { it.first }
+
     fun key(t: Track) = t.title.trim().lowercase() + "|" + t.artist.trim().lowercase()
 
     fun eligible(all: List<Track>, taste: Taste) = all.filter { it.durationMs > 30_000L && !taste.banned(it) }
@@ -60,7 +63,7 @@ object SmartMix {
     fun smart(all: List<Track>, taste: Taste, seed: Long, n: Int = 40): List<Track> {
         val rnd = java.util.Random(seed)
         val pool = eligible(all, taste).filter { taste.stat(it).plays > 0 || it.id in taste.favs }
-        return spread(pool.sortedByDescending { affinity(it, taste) + rnd.nextDouble() * 1.5 }).take(n)
+        return spread(byScore(pool) { affinity(it, taste) + rnd.nextDouble() * 1.5 }).take(n)
     }
 
     /** Four parts: familiar favourites, new finds, more from preferred artists, and favourites that haven't had a turn lately. Nothing played in the last 12 hours. */
@@ -69,7 +72,7 @@ object SmartMix {
         val pool = eligible(all, taste).filter { taste.now - taste.stat(it).last > 12 * 3_600_000L }
         val per = n / 4
         val liked = { t: Track -> t.id in taste.favs || taste.stat(t).plays >= 2 }
-        val familiar = pool.filter(liked).sortedByDescending { affinity(it, taste) + rnd.nextDouble() * 2 }.take(per + n % 4)
+        val familiar = byScore(pool.filter(liked)) { affinity(it, taste) + rnd.nextDouble() * 2 }.take(per + n % 4)
         val used = familiar.map { it.id }.toHashSet()
         val fresh = pool.filter { it.id !in used && (taste.stat(it).first > taste.now - 14 * DAY && taste.stat(it).first > 0 || it.addedSec * 1000 > taste.now - 30 * DAY) }
             .shuffled(rnd).take(per)
@@ -96,7 +99,7 @@ object SmartMix {
     fun discovery(all: List<Track>, taste: Taste, seed: Long, n: Int = 40): List<Track> {
         val rnd = java.util.Random(seed)
         val pool = eligible(all, taste).filter { taste.stat(it).plays == 0 && taste.stat(it).skips == 0 }
-        return spread(pool.sortedByDescending { t ->
+        return spread(byScore(pool) { t ->
             taste.artistPlays(t) * 0.5 + (taste.artistBoost[t.artist.trim().lowercase()] ?: 0) * 2.0 +
                 (if (t.genre.isNotBlank()) (taste.genreBoost[t.genre.trim().lowercase()] ?: 0) * 1.0 else 0.0) + rnd.nextDouble() * 2
         }, 2).take(n)
@@ -135,7 +138,7 @@ object SmartMix {
         val m = eligible(all, taste).filter { fits(it, mood, thisYear) }
         if (m.size < MIN_MOOD) return null
         val rnd = java.util.Random(seed)
-        return spread(m.sortedByDescending { affinity(it, taste) + rnd.nextDouble() * 2 }, 3).take(n).takeIf { it.size >= MIN_MOOD }
+        return spread(byScore(m) { affinity(it, taste) + rnd.nextDouble() * 2 }, 3).take(n).takeIf { it.size >= MIN_MOOD }
     }
 
     /** Plays per genre, biggest first. Empty when the songs have no genre tags. */
