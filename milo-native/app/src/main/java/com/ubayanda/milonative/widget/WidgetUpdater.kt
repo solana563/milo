@@ -23,15 +23,23 @@ object WidgetUpdater {
         val pos = p.currentPosition.coerceAtLeast(0L)
         val dur = if (p.duration > 0) p.duration else 0L
         val id = item?.mediaId.orEmpty()
+        val shuffle = p.shuffleModeEnabled
         val media = item?.localConfiguration?.uri
         val artwork = item?.mediaMetadata?.artworkUri
         scope.launch {
             try {
                 if (id != lastId) { lastId = id; if (id.isEmpty()) WidgetState.clear(app) else WidgetState.saveArt(app, media, artwork) }
-                WidgetState.write(app, title, artist, playing, pos, dur)
+                WidgetState.write(app, title, artist, playing, pos, dur, id, shuffle)
                 refresh(app)
             } catch (_: Throwable) {}
         }
+    }
+
+    /** The Liked songs list changed (in the app or from a widget): redraw the heart. */
+    fun pokeLiked(ctx: Context) {
+        if (com.ubayanda.milonative.BuildConfig.LITE) return
+        val app = ctx.applicationContext
+        scope.launch { try { app.getSharedPreferences("milo_widget", Context.MODE_PRIVATE).edit().putBoolean("liked", WidgetState.isLiked(app, WidgetState.currentId(app))).apply(); refresh(app) } catch (_: Throwable) {} }
     }
 
     fun clear(ctx: Context) {

@@ -87,3 +87,11 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Now playing line shows format, kHz and kbps for a local song; streamed song says it is streamed
 - [ ] Plug in wired or Bluetooth output: it appears in the outputs list
 - [ ] Crossfade 6 s with each curve: no dip or jump in volume; equal power sounds steady, linear dips slightly in the middle
+
+## Widgets (Round 38)
+- [ ] Add the 4x2 widget: shuffle, previous, play, next, heart all fit and respond
+- [ ] Heart on the widget fills and the song appears in Liked songs; liking in the app updates the widget heart
+- [ ] With the app swiped away: widget heart works for a phone song; for a YouTube song it opens milo.
+- [ ] Shuffle button lights in the accent colour when on; matches the Now Playing shuffle
+- [ ] 4x1 and 2x2 widgets still show artwork and respond
+- [ ] Lock screen: artwork, progress, previous/next on at least two phone brands

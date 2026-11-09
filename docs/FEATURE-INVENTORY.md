@@ -80,5 +80,9 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Shared playlists: owner/editor/viewer roles, invite code/link/QR, public or private, add/remove/reorder, change history (last 50), copy to my library | B | Round 36. Needs `supabase_native_playlists.sql`. Server-enforced: editors remove only their own songs, 500 songs, 50 people, 1 add per second each. Only online (YouTube) songs. Updates by polling every 6 s, no live push. Copying makes a private copy that stops following. Display names are typed by the client |
 | Audio info screen: playable formats, outputs, high-resolution capability, format of the song playing | B | Round 37. Formats come from the phone's own decoder list (ALAC is usually "No"). Bluetooth codec in use can't be read by apps; the screen says so. Hi-res means the output reports 88.2 kHz+ and 24-bit+, not that the chain is lossless |
 | Crossfade curve (equal power, linear, smooth) | B | Round 37. Setting is under Now Playing > Sound. Equal power is the unchanged default |
+| Widgets: 4x2 player, 4x1 slim bar, 2x2 artwork (controls, artwork, accent colour) | B | Existed before Round 38; verified by reading the code only |
+| Widget shuffle and favourite buttons (4x2) | B | Round 38. Heart uses the same Liked songs list as the app. With the app closed it works for songs on the phone; for streamed songs it opens milo. instead |
+| Widget queue access | F | Android widgets can't host a scrollable interactive queue reliably; not built |
+| Lock screen / notification controls with artwork, progress, previous/next | B | Provided by Media3's media session; no changes this round. Needs the device checklist on several makers' phones |
 | Collaborative playlists | F | Round 36 |
 

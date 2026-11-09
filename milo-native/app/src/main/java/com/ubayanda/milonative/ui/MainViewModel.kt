@@ -82,6 +82,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun seen() { prefs0(getApplication()).edit().putBoolean("gate_seen", true).apply() }
 
     init {
+        com.ubayanda.milonative.widget.FavBridge.toggle = { toggleFav(it) }
         if (cloud.session != null) viewModelScope.launch {
             resolveProfile()
             // started offline: quietly try again until the server answers
@@ -1435,6 +1436,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _favs.value = n
         prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
         if (added) ensureSaved(id) else pruneSaved(id)
+        com.ubayanda.milonative.widget.WidgetUpdater.pokeLiked(getApplication())
         touch()
     }
 
@@ -1479,6 +1481,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (id == null) null else _tracks.value.firstOrNull { it.id == id } ?: _remote.value[id] ?: _saved.value[id]
 
     override fun onCleared() {
+        com.ubayanda.milonative.widget.FavBridge.toggle = null
         observer?.let { getApplication<Application>().contentResolver.unregisterContentObserver(it) }
         player.release()
         super.onCleared()
