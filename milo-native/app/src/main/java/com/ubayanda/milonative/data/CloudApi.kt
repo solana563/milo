@@ -136,6 +136,11 @@ class CloudApi(context: Context) {
     }
 
     /** Asks Supabase to email a password-reset link. The answer is the same whether or not the address has an account. */
+    /** Ends every other login of this account (other phones, the web app). This device stays signed in. */
+    suspend fun signOutOthers() {
+        request("/auth/v1/logout?scope=others", "POST")
+    }
+
     suspend fun recover(email: String) {
         request("/auth/v1/recover", "POST", JSONObject().put("email", email), anon = true)
     }

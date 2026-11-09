@@ -113,3 +113,5 @@ Round 29 (Windows): system tray with close-to-tray, start with Windows, ListenBr
 Round 30 (Phase 1 hardening): safer cloud sync (merge instead of overwrite when both sides changed, local backup before replacing, empty cloud copy never wipes a library), first unit tests plus a CI test step, feature inventory and device test checklist in docs/.
 
 Round 30b: "Forgot password?" on the log-in screen sends a password-reset email.
+
+Round 30c: large-library scan work moved off the main thread plus a 20,000-title sort test; "Sign out of my other devices" in Profile.

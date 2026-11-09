@@ -138,6 +138,14 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         BroughtByCard()
         if (a.signedIn) {
             Spacer(Modifier.height(18.dp))
+            var othersMsg by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+            Text(
+                "Sign out of my other devices", color = Milo.amber, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp))
+                    .clickable { othersMsg = "Working…"; vm.signOutOtherDevices { e -> othersMsg = e ?: "Done. Other devices are signed out." } }
+                    .padding(vertical = 10.dp),
+            )
+            if (othersMsg.isNotEmpty()) Text(othersMsg, color = Color(0xFFB8B8C0), fontSize = 13.sp, modifier = Modifier.padding(horizontal = 24.dp))
             Text(
                 "Delete account", color = Color(0xFFFF8A80), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp)).clickable { deleting = true }.padding(vertical = 10.dp),

@@ -159,6 +159,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Signs the account out everywhere except this phone. [done] gets null on success or a message. */
+    fun signOutOtherDevices(done: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (!cloud.fresh()) throw CloudError(401, "Please log in again first.")
+                cloud.signOutOthers(); done(null)
+            } catch (x: CloudError) { done(cloud.friendly(x)) }
+            catch (x: Exception) { done("Couldn't reach the server. Try again.") }
+        }
+    }
+
     fun gateStep(step: String) = setAcct { it.copy(step = step, err = "") }
     fun skipGate() { seen(); setAcct { it.copy(step = "", err = "") } }
 
@@ -657,7 +668,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _scanning.value = true
             com.ubayanda.milonative.data.MetaEdits.init(getApplication())
-            val list = com.ubayanda.milonative.data.MetaEdits.apply(repo.scan())
+            val scanned = repo.scan()
+            // edits + grouping run off the main thread: with tens of thousands of songs they would otherwise freeze the UI
+            val list = withContext(Dispatchers.Default) { com.ubayanda.milonative.data.MetaEdits.apply(scanned) }
             val (albums, artists) = withContext(Dispatchers.Default) {
                 val al = list.groupBy { it.albumId to it.album }.map { (k, v) ->
                     val sorted = v.sortedWith(compareBy({ it.trackNo }, { NaturalOrder.key(it.title) }))

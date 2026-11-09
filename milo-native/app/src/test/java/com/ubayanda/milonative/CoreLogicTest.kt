@@ -39,4 +39,14 @@ class CoreLogicTest {
     @Test fun naturalOrderSkipsLeadingSymbolsAndCase() {
         assertEquals(listOf("(a) one", "Beta"), listOf("Beta", "(a) one").sortedWith(NaturalOrder))
     }
+
+    @Test fun sortingTwentyThousandTitlesIsFast() {
+        val rnd = java.util.Random(7)
+        val titles = List(20_000) { "Song ${rnd.nextInt(100000)} " + ('a' + rnd.nextInt(26)) }
+        val t0 = System.nanoTime()
+        val sorted = titles.sortedWith(NaturalOrder)
+        val ms = (System.nanoTime() - t0) / 1_000_000
+        assertEquals(20_000, sorted.size)
+        assertTrue("sort took $ms ms", ms < 5_000)
+    }
 }
