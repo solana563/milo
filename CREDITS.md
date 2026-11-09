@@ -149,3 +149,5 @@ Round 41: CI release gate in native.yml. Unit tests now fail the run (reports up
 Round 42: diagnostics (scrubbed, optional on-phone history, API/sync/perf entries) and sync deletion tracking (SyncOps) so removals no longer reappear.
 
 Round 43: downloads keep running with the app closed (foreground service with a notification and Pause all, stops when the queue is empty).
+
+Round 43b: fix for the Release gate. Its file paths were written from the repository root, but the step runs inside milo-native (the job's working directory), so it looked in milo-native/milo-native/... and reported the APK and AAB as missing even though every build step succeeded.
