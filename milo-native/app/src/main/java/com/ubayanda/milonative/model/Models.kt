@@ -14,6 +14,8 @@ data class Track(
     val addedSec: Long,
     /** For online tracks (radio, previews): where the cover picture comes from. Empty for songs on the phone. */
     val artUrl: String = "",
+    /** Genre tag from the file, when the phone has it (Android 11+). Empty otherwise. */
+    val genre: String = "",
 )
 
 data class Album(val id: Long, val title: String, val artist: String, val year: Int, val tracks: List<Track>)

@@ -495,7 +495,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val scrollTop = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     /** Pull to refresh on Home: new streaming shelves and rebuilt "Made for you" mixes. */
-    fun refreshHome() { mixKey = ""; loadYtHome(true); buildMixes(_tracks.value) }
+    fun refreshHome() { mixKey = ""; mixSeed++; loadYtHome(true); buildMixes(_tracks.value) }
 
     suspend fun lyricsFor(t: Track): Lyrics? = lyricsRepo.get(t)
     suspend fun rescanLyrics(t: Track): Lyrics? = lyricsRepo.rescan(t)
@@ -759,6 +759,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- listening insights ----
     private val statsStore = com.ubayanda.milonative.data.StatsStore(app)
+    val tasteStore = com.ubayanda.milonative.data.TasteStore(app)
+    private var mixSeed = 0L
     class StatsUi(val totalMs: Long = 0L, val plays: Int = 0, val songs: List<com.ubayanda.milonative.data.StatsStore.Row> = emptyList(), val artists: List<Pair<String, Int>> = emptyList())
     private val _stats = MutableStateFlow(StatsUi())
     val stats: StateFlow<StatsUi> = _stats.asStateFlow()
@@ -770,6 +772,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val offline = com.ubayanda.milonative.data.OfflineStore.also { it.init(app) }.items
 
+    // ---- taste feedback: explicit choices that shape the mixes ----
+    fun isBanned(t: Track): Boolean = tasteStore.isBanned(t)
+    fun moreLikeThis(t: Track) { tasteStore.moreLike(t); mixKey = ""; buildMixes(_tracks.value) }
+    fun notThisSong(t: Track) {
+        tasteStore.banSong(t); mixKey = ""; buildMixes(_tracks.value)
+        offerUndo("Won't recommend this song") { tasteStore.unbanSong(com.ubayanda.milonative.data.SmartMix.key(t)); mixKey = ""; buildMixes(_tracks.value) }
+    }
+    fun notThisArtist(t: Track) {
+        tasteStore.banArtist(t.artist); mixKey = ""; buildMixes(_tracks.value)
+        offerUndo("Won't recommend " + t.artist) { tasteStore.unbanArtist(t.artist.trim().lowercase()); mixKey = ""; buildMixes(_tracks.value) }
+    }
+    fun refreshMixes() { mixKey = ""; buildMixes(_tracks.value) }
+    /** The Taste Profile screen is open. */
+    var showTaste by androidx.compose.runtime.mutableStateOf(false)
+
     // ---- daily mixes: made from what you play and like, new every day ----
     class Mix(val title: String, val subtitle: String, val tracks: List<Track>, val remote: Boolean)
     private val _mixes = MutableStateFlow<List<Mix>>(emptyList())
@@ -779,7 +796,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val day = System.currentTimeMillis() / 86_400_000L
         // the key includes your listening taste, so the mixes refresh as you play more (every 5 plays) and as your top artists change
         val taste = statsStore.topArtists(3).joinToString(",") { it.first }
-        val key = "$day:${all.size}:${_favs.value.size}:${statsStore.plays() / 5}:$taste"
+        val key = "$day:${all.size}:${_favs.value.size}:${statsStore.plays() / 5}:$taste:$mixSeed:${tasteStore.enabled}:${tasteStore.blockedArtists().size}:${tasteStore.blockedSongs().size}:${tasteStore.songCount()}"
         if (key == mixKey) return
         mixKey = key
         viewModelScope.launch {
@@ -790,13 +807,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val playCount = played.associate { (it.title.lowercase().trim() + "|" + it.artist.lowercase().trim()) to it.plays }
                 val favs = _favs.value
                 val out = ArrayList<Mix>()
-                val fav = all.filter { it.id in favs || (playCount[k(it)] ?: 0) >= 2 }.shuffled(rnd).take(40)
+                val snap = tasteStore.snapshot(favs)
+                val pool = all.filterNot { snap.banned(it) }
+                val seed = day * 7919L + all.size + mixSeed * 104729L
+                val yr = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                com.ubayanda.milonative.data.SmartMix.smart(all, snap, seed).takeIf { it.size >= 8 }?.let { out.add(Mix("Smart mix", "From what you play, like and skip", it, false)) }
+                com.ubayanda.milonative.data.SmartMix.daily(all, snap, seed).takeIf { it.size >= 10 }?.let { out.add(Mix("Daily rotation", "Favourites, new finds and ones you've missed", it, false)) }
+                com.ubayanda.milonative.data.SmartMix.forgotten(all, snap).takeIf { it.size >= 5 }?.let { out.add(Mix("Forgotten favourites", "Loved once, not played for a while", it, false)) }
+                com.ubayanda.milonative.data.SmartMix.discovery(all, snap, seed).takeIf { it.size >= 8 }?.let { out.add(Mix("Discovery", "Unplayed songs from artists you like", it, false)) }
+                val fav = pool.filter { it.id in favs || (playCount[k(it)] ?: 0) >= 2 }.shuffled(rnd).take(40)
                 if (fav.size >= 6) out.add(Mix("Daily mix", "Your favourites, reshuffled", fav, false))
-                val fresh = all.filter { (playCount[k(it)] ?: 0) == 0 && it.id !in favs }.shuffled(rnd).take(40)
+                val fresh = pool.filter { (playCount[k(it)] ?: 0) == 0 && it.id !in favs }.shuffled(rnd).take(40)
                 if (fresh.size >= 8) out.add(Mix("Rediscover", "Songs you haven't played yet", fresh, false))
+                var more = 0
                 statsStore.topArtists(3).forEach { (a, _) ->
-                    val xs = all.filter { it.artist.equals(a, true) }.shuffled(rnd)
-                    if (xs.size >= 5 && out.size < 5) out.add(Mix("More $a", "${xs.size} songs on your phone", xs.take(40), false))
+                    val xs = pool.filter { it.artist.equals(a, true) }.shuffled(rnd)
+                    if (xs.size >= 5 && more < 3) { more++; out.add(Mix("More $a", "${xs.size} songs on your phone", xs.take(40), false)) }
+                }
+                // moods come only from genre tags, release year and title words; a mood with too little to go on is left out rather than guessed
+                com.ubayanda.milonative.data.SmartMix.Mood.values().forEach { m ->
+                    com.ubayanda.milonative.data.SmartMix.mood(all, snap, m, seed, yr)?.let { out.add(Mix(m.label, if (m == com.ubayanda.milonative.data.SmartMix.Mood.NOSTALGIA) "Songs from 15+ years ago" else "Matched from genre tags", it, false)) }
                 }
                 out
             }
@@ -810,7 +840,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         val card = youtube.artists(a).firstOrNull()
                         val radioId = card?.let { youtube.page(it.id).radioId }.orEmpty()
                         if (radioId.isNotEmpty()) {
-                            val r = youtube.radio(radioId).take(40)
+                            val r = youtube.radio(radioId).filterNot { isBanned(it) }.take(40)
                             if (r.size >= 8) got.add(a to r)
                         }
                     } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) {}
@@ -940,17 +970,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun statsLoop() {
         refreshStats()
         var cur: Long? = null; var acc = 0L; var counted = false; var n = 0
+        var prev: Track? = null
         while (true) {
             delay(1000)
             val st = player.state.value
-            if (st.currentId != cur) { cur = st.currentId; acc = 0L; counted = false }
+            if (st.currentId != cur) {
+                // left a song early without it counting as a play: that is a skip
+                prev?.let { if (!counted && acc >= 1_000L) tasteStore.skip(it) }
+                cur = st.currentId; acc = 0L; counted = false
+            }
             val t = trackById(cur)
+            prev = t
             if (t != null && st.isPlaying) {
                 acc += 1000
                 val need = if (t.durationMs in 1..59_999L) t.durationMs / 2 else 30_000L
                 val play = !counted && acc >= need
                 if (play) counted = true
                 statsStore.add(t, 1000L, play)
+                tasteStore.tick(t, 1000L, play)
                 if (nowSent != t.id) { nowSent = t.id; viewModelScope.launch { scrobbler.nowPlaying(t) } }
                 if (play) viewModelScope.launch { scrobbler.scrobble(t) }
             }
@@ -958,7 +995,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 hostPing = 3
                 together.broadcast(t.uri.removePrefix("yt:"), t, st.positionMs, st.isPlaying)
             }
-            if (++n >= 10) { n = 0; statsStore.save(); refreshStats() }
+            if (++n >= 10) { n = 0; statsStore.save(); tasteStore.save(); refreshStats() }
         }
     }
 
@@ -1013,6 +1050,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     youtube.radio("RDAMVM" + cur.uri.removePrefix("yt:")).filter { it.id !in inQueue && it.id !in played }
                         .filter { have.add(com.ubayanda.milonative.data.LibrarySync.key(it.title, it.artist)) }
                         .filter { (skipArtists[it.artist] ?: 0) < 2 }
+                        .filter { !isBanned(it) }
                         .filter { perArtist.merge(it.artist, 1, Int::plus)!! <= 2 }.take(8)
                 } catch (_: Exception) { emptyList() }
             } else if (cur.id >= 0) {
@@ -1020,7 +1058,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val favs = _favs.value
                 val rnd = kotlin.random.Random(System.nanoTime())
                 withContext(Dispatchers.Default) {
-                    val scored = _tracks.value.asSequence().filter { it.id !in inQueue && it.id !in played && it.durationMs > 30_000L }.map { t ->
+                    val scored = _tracks.value.asSequence().filter { it.id !in inQueue && it.id !in played && it.durationMs > 30_000L && !isBanned(it) }.map { t ->
                         var sc = rnd.nextFloat() * 1.3f
                         val known = cur.artist != "Unknown artist"
                         if (known && t.artist == cur.artist) sc += 2.6f

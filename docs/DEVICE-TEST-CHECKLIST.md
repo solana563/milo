@@ -38,3 +38,11 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Force-close the app with songs queued: reopen, they are Paused, Resume works
 - [ ] Airplane mode, force-close, reopen: Downloads list and playback of saved songs work
 - [ ] Failed song shows reason; Retry works; auto-retry happened up to 3 times
+
+## Smart mixes and taste (Round 33)
+- [ ] Home shows Smart mix / Daily rotation after some listening; "Refresh" gives a different set
+- [ ] Skip 3 songs quickly: they drop in the next refresh; Skips noticed count rises in Taste profile
+- [ ] "Don't recommend this artist" removes them from mixes; Undo restores; Allow in Taste profile restores
+- [ ] Mood cards appear only when genre tags exist; none shown on a library without tags
+- [ ] Switch personalisation off: counters stop; Reset empties history but keeps blocked list
+- [ ] Taste profile on a 5k-song library opens quickly

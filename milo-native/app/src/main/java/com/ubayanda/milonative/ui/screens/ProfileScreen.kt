@@ -378,6 +378,7 @@ private fun InsightsCard(vm: MainViewModel) {
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text(if (year == null) "Your listening" else "Your $year recap", color = Milo.text, style = Ty.title)
+        Row(Modifier.padding(top = 8.dp)) { Pill("Taste profile", null, true, compact = true) { vm.showTaste = true } }
         if (years.isNotEmpty()) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill("All time", null, year == null, compact = true) { year = null }
             years.take(4).forEach { y -> Pill(y.toString(), null, year == y, compact = true) { year = y } }

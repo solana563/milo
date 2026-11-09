@@ -46,3 +46,17 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 
 ## Known gaps to schedule
 1. Password reset email flow. 2. Session/device list. 3. Large-library benchmark. 4. Instrumented tests for playback service. 5. Tombstones for sync deletes.
+
+## Phase 4 (Round 33): smart playlists and taste
+| Feature | Status | Notes |
+|---|---|---|
+| Smart mix (plays, likes, skips, artist affinity) | B | Local only. Tempo and energy are NOT analysed (needs audio analysis); not claimed |
+| Daily rotation (favourites / new finds / preferred artists / rested favourites, 12h no-repeat, artist cap) | B | Changes daily, or on refresh |
+| Forgotten favourites | B | Only after 45 days of recorded listening; appears empty before then by design |
+| Mood mixes (Chill, Focus, Workout, Energy, Sleep, Romantic, Party, Nostalgia) | C | From genre tags (Android 11+), year and title words only. Hidden when fewer than 8 songs qualify. YouTube songs have no genre, so no moods |
+| Discovery (local unplayed songs from liked artists) | B | Online discovery still the existing YouTube artist radios, now filtered by blocks |
+| Feedback: More like this / Don't recommend song / artist, undo, unblock list | B | Skip is recorded automatically (left early without counting as a play). A Like already exists |
+| Taste profile screen (top artists/songs, genres, active hours, new artists, weekly trend, playlist variety) | B | Reached from Profile > Your listening |
+| Personalisation switch + reset | B | Off = nothing new learned and mixes see no history; explicit blocks still apply |
+| Similar artists / related genres from an outside source | F | Not added; would need a permitted metadata source |
+

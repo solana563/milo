@@ -26,7 +26,7 @@ class MediaRepo(private val context: Context) {
             MediaStore.Audio.Media.TRACK,
             MediaStore.Audio.Media.YEAR,
             MediaStore.Audio.Media.DATE_ADDED,
-        )
+        ).let { if (android.os.Build.VERSION.SDK_INT >= 30) it + MediaStore.Audio.Media.GENRE else it }
         // music only (not ringtones, alarms or voice notes), and skip clips shorter than 10 seconds
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 10000"
         val out = ArrayList<Track>()
@@ -41,6 +41,7 @@ class MediaRepo(private val context: Context) {
                 val iTrack = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
                 val iYear = c.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
                 val iAdded = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+                val iGenre = if (android.os.Build.VERSION.SDK_INT >= 30) c.getColumnIndex(MediaStore.Audio.Media.GENRE) else -1
                 while (c.moveToNext()) {
                     val id = c.getLong(iId)
                     out.add(
@@ -56,6 +57,7 @@ class MediaRepo(private val context: Context) {
                             trackNo = c.getInt(iTrack) % 1000,
                             year = c.getInt(iYear),
                             addedSec = c.getLong(iAdded),
+                            genre = if (iGenre >= 0) clean(c.getString(iGenre), "") else "",
                         )
                     )
                 }

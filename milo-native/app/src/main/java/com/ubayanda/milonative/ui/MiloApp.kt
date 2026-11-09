@@ -356,6 +356,9 @@ fun MiloApp(vm: MainViewModel) {
             AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.DownloadManagerScreen { vm.showDownloads = false }
             }
+            AnimatedVisibility(visible = vm.showTaste, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.TasteProfileScreen(vm) { vm.showTaste = false }
+            }
             com.ubayanda.milonative.ui.screens.TourOverlay()
         }
 
