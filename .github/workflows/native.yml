@@ -129,10 +129,10 @@ jobs:
             if "$BT/apksigner" verify "$f" >/dev/null 2>&1; then row "$label signature" "valid" "$(echo "$sig" | grep -i 'SHA-256 digest' | head -1)"; else row "$label signature" "INVALID" ""; FAIL=1; fi
             if echo "$sig" | grep -qi "Android Debug"; then row "$label signed with" "DEBUG key" "fine for testing, not for release"; fi
           }
-          check_apk milo-native/app/build/outputs/apk/full/debug/app-full-debug.apk "Debug APK" yes
-          REL=$(ls milo-native/app/build/outputs/apk/full/release/*.apk 2>/dev/null | head -1)
+          check_apk app/build/outputs/apk/full/debug/app-full-debug.apk "Debug APK" yes
+          REL=$(ls app/build/outputs/apk/full/release/*.apk 2>/dev/null | head -1)
           check_apk "${REL:-none}" "Release APK" no
-          AAB=$(ls milo-native/app/build/outputs/bundle/fullRelease/*.aab 2>/dev/null | head -1)
+          AAB=$(ls app/build/outputs/bundle/fullRelease/*.aab 2>/dev/null | head -1)
           if [ -s "${AAB:-none}" ]; then row "AAB exists" "ok" "$(du -h "$AAB" | cut -f1)"; else row "AAB exists" "MISSING" ""; fi
           if [ -n "$KS_B64" ]; then row "Release key configured" "yes" ""; else row "Release key configured" "NO" "release builds use the debug key"; fi
           if [ "$FAIL" = "1" ]; then echo "Release gate FAILED" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
