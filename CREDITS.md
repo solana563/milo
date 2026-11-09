@@ -111,3 +111,5 @@ Round 28b: fix crash "Key mxPicked for you was already used" on Home (overlappin
 Round 29 (Windows): system tray with close-to-tray, start with Windows, ListenBrainz scrobbling. Feature ideas come from Limusic (GPL-3.0, github.com/SimoHypers/limusic); no Limusic code is used, so milo. for Windows keeps its own licence.
 
 Round 30 (Phase 1 hardening): safer cloud sync (merge instead of overwrite when both sides changed, local backup before replacing, empty cloud copy never wipes a library), first unit tests plus a CI test step, feature inventory and device test checklist in docs/.
+
+Round 30b: "Forgot password?" on the log-in screen sends a password-reset email.

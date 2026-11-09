@@ -19,7 +19,7 @@ Nothing here is marked "verified" unless a person ran it on a phone. The build s
 | Account | Email sign-up / log-in | A | |
 | Account | Google sign-in | B | Needs OAuth client per package |
 | Account | Delete account (RPC) | B | Needs `delete_my_account` in Supabase |
-| Account | Password reset | F | No flow in app (planned) |
+| Account | Password reset | B | "Forgot password?" sends Supabase recovery email (Round 30b). The link opens Supabase's hosted page, where the user sets the new password; set Site URL / redirect in Supabase |
 | Account | Device / session management | F | |
 | Account | Use without an account | A | Local library works signed out |
 | Sync | Whole-library cloud backup | B | Hardened in Round 30 (see below) |

@@ -180,6 +180,10 @@ private fun Form(vm: MainViewModel, a: AccountUi, signUp: Boolean) {
         if (signUp) field(user, { user = it }, "Username (letters, numbers, _)", KeyboardType.Ascii)
         field(pass, { pass = it }, "Password (6+ characters)", KeyboardType.Password, secret = true)
         ErrorText(a.err)
+        if (!signUp) Text(
+            "Forgot password?", color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable { vm.resetPassword(email) }.padding(vertical = 4.dp),
+        )
         PrimaryButton(if (signUp) "Sign up" else "Log in", a.busy) { if (signUp) vm.signUp(email, user, pass) else vm.signIn(email, pass) }
         Text(
             if (signUp) "Already have an account? Log in" else "New here? Sign up free",

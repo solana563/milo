@@ -135,6 +135,11 @@ class CloudApi(context: Context) {
         storeSession(j, j.optJSONObject("user")?.optString("email").orEmpty())
     }
 
+    /** Asks Supabase to email a password-reset link. The answer is the same whether or not the address has an account. */
+    suspend fun recover(email: String) {
+        request("/auth/v1/recover", "POST", JSONObject().put("email", email), anon = true)
+    }
+
     suspend fun signIn(email: String, password: String) {
         val r = request("/auth/v1/token?grant_type=password", "POST", JSONObject().put("email", email).put("password", password), anon = true)
         storeSession(JSONObject(r), email)

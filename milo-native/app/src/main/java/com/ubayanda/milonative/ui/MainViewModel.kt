@@ -195,6 +195,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun resetPassword(email: String) {
+        val e = email.trim()
+        if (!Regex("""^\S+@\S+\.\S+$""").matches(e)) return setAcct { it.copy(err = "Type your email above first.") }
+        setAcct { it.copy(busy = true, err = "") }
+        viewModelScope.launch {
+            try { cloud.recover(e); setAcct { it.copy(busy = false, err = "If that email has an account, a reset link is on its way. Open it, set a new password, then log in here.") } }
+            catch (x: Exception) { setAcct { it.copy(busy = false, err = cloud.friendly(x)) } }
+        }
+    }
+
     fun signInGoogle(context: android.content.Context) {
         setAcct { it.copy(busy = true, err = "") }
         viewModelScope.launch {
