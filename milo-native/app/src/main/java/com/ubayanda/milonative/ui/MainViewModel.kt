@@ -181,7 +181,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val connectMsg: StateFlow<String> = _connectMsg.asStateFlow()
     val thisDeviceId: String get() = connect.deviceId
     val thisDeviceName: String get() = connect.deviceName
-    val signedIn: Boolean get() = cloud.session != null
     /** The Connect screen is open. */
     var showConnect by androidx.compose.runtime.mutableStateOf(false)
 
