@@ -25,8 +25,16 @@ jobs:
         run: |
           if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"; echo "MILO_KEYSTORE_FILE=$RUNNER_TEMP/milo.jks" >> "$GITHUB_ENV"; echo "Release key found."; else echo "No release key: builds use the debug key."; fi
       - name: Unit tests
-        continue-on-error: true
+        id: tests
+        continue-on-error: true   # lets the artifacts below still build and upload; the "Release gate" step at the end fails the run if this failed
         run: gradle testFullDebugUnitTest --stacktrace
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milo-native-test-reports
+          path: milo-native/app/build/reports/tests/
+          if-no-files-found: ignore
       - run: gradle assembleFullDebug --stacktrace
       - name: Print the signing fingerprints (for Google sign-in)
         continue-on-error: true
@@ -58,6 +66,7 @@ jobs:
         run: gradle assembleFullRelease --stacktrace 2>&1 | tee release-build.log; exit ${PIPESTATUS[0]}
         shell: bash
       - name: Play Store bundle (.aab)
+        id: aab
         continue-on-error: true
         run: gradle bundleFullRelease --stacktrace
       - uses: actions/upload-artifact@v4
@@ -66,6 +75,7 @@ jobs:
           path: milo-native/app/build/outputs/bundle/fullRelease/*.aab
           if-no-files-found: ignore
       - name: F-Droid flavour compiles (no Google libraries)
+        id: fdroid
         continue-on-error: true
         run: gradle assembleFdroidRelease --stacktrace
       - name: Upload the release build log when the release build failed
@@ -83,9 +93,53 @@ jobs:
         with:
           name: milo-native-debug-apk
           path: milo-native/app/build/outputs/apk/full/debug/*.apk
+      # Never report a release as ready just because Gradle finished: check the files themselves.
+      - name: Release gate (artifact checks)
+        if: always()
+        shell: bash
+        env:
+          T_TESTS: ${{ steps.tests.outcome }}
+          T_REL: ${{ steps.rel.outcome }}
+          T_AAB: ${{ steps.aab.outcome }}
+          T_FDROID: ${{ steps.fdroid.outcome }}
+        run: |
+          set +e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -1)
+          FAIL=0
+          row() { echo "| $1 | $2 | $3 |" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          {
+            echo "## Release gate"
+            echo "| Check | Result | Detail |"
+            echo "|---|---|---|"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          row "Unit tests" "$T_TESTS" "failures block the gate"
+          [ "$T_TESTS" = "success" ] || FAIL=1
+          row "Release APK build" "$T_REL" "skipped or failed = not a release candidate"
+          row "AAB build" "$T_AAB" ""
+          row "F-Droid flavour" "$T_FDROID" ""
+          check_apk() {
+            f="$1"; label="$2"; need="$3"
+            if [ ! -s "$f" ]; then row "$label exists" "MISSING" "$f"; [ "$need" = "yes" ] && FAIL=1; return; fi
+            row "$label exists" "ok" "$(du -h "$f" | cut -f1)"
+            pkg=$("$BT/aapt2" dump badging "$f" 2>/dev/null | sed -n "s/^package: name='\([^']*\)' versionCode='\([^']*\)'.*/\1 code \2/p")
+            row "$label package" "${pkg:-unreadable}" "expect com.ubayanda.milonative, code > 0"
+            case "$pkg" in com.ubayanda.milonative*"code "[1-9]*) ;; *) FAIL=1;; esac
+            sig=$("$BT/apksigner" verify --print-certs "$f" 2>&1)
+            if echo "$sig" | grep -q "Verified using\|DOES NOT VERIFY"; then :; fi
+            if "$BT/apksigner" verify "$f" >/dev/null 2>&1; then row "$label signature" "valid" "$(echo "$sig" | grep -i 'SHA-256 digest' | head -1)"; else row "$label signature" "INVALID" ""; FAIL=1; fi
+            if echo "$sig" | grep -qi "Android Debug"; then row "$label signed with" "DEBUG key" "fine for testing, not for release"; fi
+          }
+          check_apk milo-native/app/build/outputs/apk/full/debug/app-full-debug.apk "Debug APK" yes
+          REL=$(ls milo-native/app/build/outputs/apk/full/release/*.apk 2>/dev/null | head -1)
+          check_apk "${REL:-none}" "Release APK" no
+          AAB=$(ls milo-native/app/build/outputs/bundle/fullRelease/*.aab 2>/dev/null | head -1)
+          if [ -s "${AAB:-none}" ]; then row "AAB exists" "ok" "$(du -h "$AAB" | cut -f1)"; else row "AAB exists" "MISSING" ""; fi
+          if [ -n "$KS_B64" ]; then row "Release key configured" "yes" ""; else row "Release key configured" "NO" "release builds use the debug key"; fi
+          if [ "$FAIL" = "1" ]; then echo "Release gate FAILED" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
+          echo "Release gate passed (distribution steps are separate and only run when their secrets are set)." | tee -a "$GITHUB_STEP_SUMMARY"
       # Optional: same Firebase App Distribution step as the web-wrapper APK (needs FIREBASE_APP_ID + FIREBASE_SERVICE_ACCOUNT secrets).
       - name: Firebase App Distribution
-        if: ${{ env.FB_APP != '' }}
+        if: ${{ success() && env.FB_APP != '' }}
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
