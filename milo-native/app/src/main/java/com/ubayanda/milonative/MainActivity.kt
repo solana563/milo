@@ -72,6 +72,7 @@ class MainActivity : ComponentActivity() {
             else -> null
         } ?: return
         if (raw.startsWith("milo://room/")) { vm.openRoomLink(raw); return }
+        if (raw.startsWith("milo://playlist/")) { vm.openPlaylistLink(raw); return }
         if (raw.startsWith("milo:")) return   // the "your account is verified" page opens the app: nothing to do
         vm.openLink(raw)
     }

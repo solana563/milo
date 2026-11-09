@@ -180,4 +180,27 @@ class CoreLogicTest {
         assertTrue(Sessions.hostAway(100_000L, 170_000L))
         assertFalse(Sessions.hostAway(0L, 170_000L))
     }
+
+    @Test
+    fun sharedPlaylistRulesAndLinks() {
+        assertEquals("ABC234", com.ubayanda.milonative.data.CPlaylists.parseCode("milo://playlist/abc234"))
+        assertEquals("ABC234", com.ubayanda.milonative.data.CPlaylists.parseCode(" abc 234 "))
+        assertNull(com.ubayanda.milonative.data.CPlaylists.parseCode("hi"))
+        val P = com.ubayanda.milonative.data.CPlaylists
+        assertTrue(P.canAdd("owner")); assertTrue(P.canAdd("editor")); assertFalse(P.canAdd("viewer"))
+        assertTrue(P.canRemove("owner", "x", "me"))
+        assertTrue(P.canRemove("editor", "me", "me")); assertFalse(P.canRemove("editor", "x", "me"))
+        assertFalse(P.canRemove("viewer", "me", "me"))
+        assertEquals("milo://playlist/ABC234", P.link("ABC234"))
+    }
+
+    @Test
+    fun sharedPlaylistMoveTargets() {
+        val P = com.ubayanda.milonative.data.CPlaylists
+        val ids = listOf(10L, 11L, 12L, 13L)
+        assertNull(P.afterIdFor(ids, 2, 0))        // to the top
+        assertEquals(12L, P.afterIdFor(ids, 1, 2)) // 11 moves down: goes after 12
+        assertEquals(10L, P.afterIdFor(ids, 2, 1)) // 12 moves up: goes after 10
+        assertEquals(13L, P.afterIdFor(ids, 0, 3))
+    }
 }

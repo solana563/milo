@@ -272,6 +272,74 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
 
+    // ---- shared (collaborative) playlists ----
+    private val cpl = com.ubayanda.milonative.data.CPlaylists(cloud)
+    private val _cplList = MutableStateFlow<List<com.ubayanda.milonative.data.CplSummary>>(emptyList())
+    val cplList: StateFlow<List<com.ubayanda.milonative.data.CplSummary>> = _cplList.asStateFlow()
+    private val _cplPublic = MutableStateFlow<List<com.ubayanda.milonative.data.CplPublic>>(emptyList())
+    val cplPublic: StateFlow<List<com.ubayanda.milonative.data.CplPublic>> = _cplPublic.asStateFlow()
+    private val _cplOpen = MutableStateFlow<com.ubayanda.milonative.data.CplDetail?>(null)
+    val cplOpen: StateFlow<com.ubayanda.milonative.data.CplDetail?> = _cplOpen.asStateFlow()
+    private val _cplMsg = MutableStateFlow("")
+    val cplMsg: StateFlow<String> = _cplMsg.asStateFlow()
+    private var cplId: String? = null
+    var showCpl by androidx.compose.runtime.mutableStateOf(false)
+    var pendingPlaylistCode by androidx.compose.runtime.mutableStateOf("")
+
+    fun openPlaylistLink(raw: String) {
+        val c = com.ubayanda.milonative.data.CPlaylists.parseCode(raw) ?: return
+        pendingPlaylistCode = c; showCpl = true
+    }
+
+    private fun cplError(x: Exception) {
+        _cplMsg.value = when {
+            x is CloudError && x.status == 404 -> "Shared playlists need a one-time setup: run supabase_native_playlists.sql in Supabase."
+            x is CloudError -> x.message.orEmpty().let { m -> Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(m)?.groupValues?.get(1) ?: m }.take(120)
+            else -> "Can't reach the server right now."
+        }
+    }
+
+    private suspend fun cplReload() {
+        _cplList.value = cpl.list()
+        val id = cplId
+        if (id != null) _cplOpen.value = try { cpl.get(id) } catch (x: CloudError) { if (x.status in 400..499) { cplId = null; null } else throw x }
+    }
+    fun cplRefresh() {
+        if (cloud.session == null) return
+        viewModelScope.launch { try { cplReload(); _cplPublic.value = cpl.publicLists(); _cplMsg.value = "" } catch (x: Exception) { cplError(x) } }
+    }
+    fun cplOpenList(id: String?) { cplId = id; if (id == null) _cplOpen.value = null else cplRefresh() }
+    private fun cplDo(block: suspend () -> Unit) {
+        if (cloud.session == null) { _cplMsg.value = "Sign in first (Profile)."; return }
+        viewModelScope.launch { try { block(); cplReload(); _cplMsg.value = "" } catch (x: Exception) { cplError(x) } }
+    }
+    fun cplCreate(name: String, public: Boolean, editors: Boolean) = cplDo {
+        val (id, _) = cpl.create(name, public, if (editors) "editor" else "viewer", myRoomName()); cplId = id
+    }
+    fun cplJoin(code: String) {
+        val c = com.ubayanda.milonative.data.CPlaylists.parseCode(code) ?: run { _cplMsg.value = "That code should be 6 letters or digits."; return }
+        cplDo { cplId = cpl.join(c, myRoomName()); pendingPlaylistCode = "" }
+    }
+    fun cplLeave(id: String) = cplDo { cpl.leave(id); cplId = null; _cplOpen.value = null }
+    fun cplDelete(id: String) = cplDo { cpl.delete(id); cplId = null; _cplOpen.value = null }
+    fun cplAdd(id: String, t: Track) = cplDo { rememberRemote(listOf(t)); cpl.add(id, t) }
+    fun cplRemove(item: Long) = cplDo { cpl.remove(item) }
+    fun cplMove(item: Long, after: Long?) = cplDo { cpl.move(item, after) }
+    fun cplSetRole(pl: String, uid: String, role: String) = cplDo { cpl.setRole(pl, uid, role) }
+    fun cplSettings(pl: String, name: String, public: Boolean, editors: Boolean) = cplDo { cpl.settings(pl, name, public, if (editors) "editor" else "viewer") }
+    fun cplPlay(d: com.ubayanda.milonative.data.CplDetail, from: Int = 0) {
+        val list = d.items.map { it.track }
+        if (list.isNotEmpty()) playRemote(list, from)
+    }
+    /** A private copy in my own library; later changes to the shared playlist don't follow. */
+    fun cplCopy(d: com.ubayanda.milonative.data.CplDetail) {
+        val list = d.items.map { it.track }
+        if (list.isEmpty()) return
+        rememberRemote(list)
+        createPlaylistWith(d.name, list.map { it.id })
+        android.widget.Toast.makeText(getApplication(), "Copied to your playlists", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     // ---- milo. Sessions: listening rooms ----
     private val sessions = com.ubayanda.milonative.data.Sessions(cloud)
     private val _room = MutableStateFlow<com.ubayanda.milonative.data.RoomSnap?>(null)

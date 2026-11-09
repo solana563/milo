@@ -69,3 +69,15 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Report and Block work; a third account never sees a private room
 - [ ] A ends the session: B is told; A's app closed for a minute: B sees "host away"
 - [ ] Public session shows in the list for C; stops showing when A ends it
+
+## Shared playlists (Round 36) - needs two accounts on two phones
+- [ ] Ran supabase_native_playlists.sql; Profile > Shared playlists opens
+- [ ] Phone A creates a playlist, adds songs by search and with "Add current song"
+- [ ] Phone B joins by code, by pasted link and by scanning the QR; role matches the "new members can edit" switch
+- [ ] B as editor adds a song; A sees it within ~6 s; History lists who did it
+- [ ] B can remove only B's songs; A can remove any; B as view-only sees no add/move/remove buttons
+- [ ] Reordering with the arrows keeps the new order on both phones
+- [ ] A switches B to view-only / removes B; B's buttons update, B can no longer edit
+- [ ] Public toggle lists the playlist on a third account; private hides it
+- [ ] Play and Copy to my library work; copy is independent afterwards
+- [ ] Local-storage songs cannot be added (clear message)

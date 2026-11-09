@@ -77,5 +77,6 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Sessions: moderation and safety (mute, remove, ban, report, block, end) | B | Reports land in `milo_reports` for you to review in Supabase; the app cannot read them. Block hides a person on that phone only. Display names are typed by the client, so impersonation inside a room is possible; host can remove anyone |
 | Sessions: real-time over websockets | C | Uses 2 s polling through RLS-locked functions instead (simpler, auditable); a little delay is normal |
 | Sessions: room outlives the app / push invites | F | Host's app must stay running; a room whose host is silent for 60 s shows "host away" |
+| Shared playlists: owner/editor/viewer roles, invite code/link/QR, public or private, add/remove/reorder, change history (last 50), copy to my library | B | Round 36. Needs `supabase_native_playlists.sql`. Server-enforced: editors remove only their own songs, 500 songs, 50 people, 1 add per second each. Only online (YouTube) songs. Updates by polling every 6 s, no live push. Copying makes a private copy that stops following. Display names are typed by the client |
 | Collaborative playlists | F | Round 36 |
 

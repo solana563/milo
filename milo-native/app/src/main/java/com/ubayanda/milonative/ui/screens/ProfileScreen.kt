@@ -639,6 +639,8 @@ private fun DownloadsCard(vm: MainViewModel) {
         Pill("milo. Connect: my devices", null, false) { vm.showConnect = true }
         Spacer(Modifier.height(10.dp))
         Pill("milo. Sessions: listening rooms", null, true) { vm.showSessions = true }
+        Spacer(Modifier.height(10.dp))
+        Pill("Shared playlists", null, false) { vm.showCpl = true }
         if (items.isNotEmpty()) Spacer(Modifier.height(10.dp))
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()

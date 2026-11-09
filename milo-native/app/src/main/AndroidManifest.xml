@@ -57,6 +57,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="milo" android:host="room" />
             </intent-filter>
+            <!-- shared playlist invites: milo://playlist/ABC234 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="milo" android:host="playlist" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
