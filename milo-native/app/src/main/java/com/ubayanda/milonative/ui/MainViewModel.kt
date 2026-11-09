@@ -437,7 +437,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val base = prefs.getLong("sync_base", 0L)
                 val dirty = ts > base          // edits on this phone the cloud hasn't seen yet
                 fun mark(t: Long) { prefs.edit().putLong("sync_ts", t).putLong("sync_base", t).apply() }
-                fun pushNow() { val now = System.currentTimeMillis(); libSync.push(now, snapshot()); mark(now) }
+                suspend fun pushNow() { val now = System.currentTimeMillis(); libSync.push(now, snapshot()); mark(now) }
                 val remoteEmpty = remote != null && (remote.data.optJSONArray("favs")?.length() ?: 0) == 0 && (remote.data.optJSONArray("playlists")?.length() ?: 0) == 0
                 when {
                     remote == null -> if (localHasData()) pushNow()

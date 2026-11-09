@@ -19,6 +19,9 @@ import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.ThumbDown
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.DragHandle
@@ -197,9 +200,9 @@ fun TrackRow(
                     PopupAction(Icons.Rounded.Checklist, "Select multiple") { menu = false; vm.toggleSelect(t.id) }
                     PopupAction(Icons.Rounded.Share, "Share") { menu = false; actions.share(t) }
                     if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(Icons.Rounded.Edit, "Edit info") { menu = false; editing = true }
-                    PopupAction(androidx.compose.material.icons.Icons.Rounded.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
-                    PopupAction(androidx.compose.material.icons.Icons.Rounded.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
-                    if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(androidx.compose.material.icons.Icons.Rounded.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }
+                    PopupAction(Icons.Rounded.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
+                    PopupAction(Icons.Rounded.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
+                    if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(Icons.Rounded.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }
                     if (isYt) PopupAction(
                         if (saved) Icons.Rounded.DeleteOutline else Icons.Rounded.Download,
                         if (saved) "Remove download" else "Download for offline",

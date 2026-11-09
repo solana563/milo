@@ -121,3 +121,5 @@ Round 31 (Phase 2): Android Auto support. The playback service is now a Media3 M
 Round 32 (Phase 3): Download Manager screen over the existing YouTube offline downloads (queue states, pause/resume, retry with automatic retries, Wi-Fi only, data-saver quality, storage limit with optional remove-oldest, free space, unfinished-file cleanup). The download format and playback path are unchanged.
 
 Round 33 (Phase 4): on-device smart mixes (Smart mix, Daily rotation, Forgotten favourites, Discovery, mood mixes from genre/year/title), skip tracking, More like this / Don't recommend controls, Taste profile dashboard with switch and reset. No outside AI service.
+
+Round 33b: build fix for Round 33 (missing icon imports; sync helper made suspend).
