@@ -225,4 +225,49 @@ class CoreLogicTest {
         assertFalse(com.ubayanda.milonative.player.AudioCaps.isHiRes(96000, false))
         assertEquals("FLAC", com.ubayanda.milonative.player.AudioCaps.mimeLabel("audio/flac"))
     }
+
+    @Test
+    fun syncRemembersRemovals() {
+        val ops = com.ubayanda.milonative.data.SyncOps()
+        ops.record("song", true, 100)
+        assertFalse(ops.dead("song"))
+        ops.record("song", false, 200)
+        assertTrue(ops.dead("song"))
+        ops.record("song", true, 300)          // liked again later
+        assertFalse(ops.dead("song"))
+        assertFalse(ops.dead("never seen"))    // no record = present
+    }
+
+    @Test
+    fun syncMergeNewestWinsAndTieKeeps() {
+        val a = com.ubayanda.milonative.data.SyncOps(); val b = com.ubayanda.milonative.data.SyncOps()
+        a.record("x", true, 100); b.record("x", false, 200)
+        a.merge(b); assertTrue(a.dead("x"))
+        val c = com.ubayanda.milonative.data.SyncOps(); c.record("x", true, 300)
+        a.merge(c); assertFalse(a.dead("x"))
+        val d = com.ubayanda.milonative.data.SyncOps(); val e = com.ubayanda.milonative.data.SyncOps()
+        d.record("t", false, 500); e.record("t", true, 500)
+        d.merge(e); assertFalse(d.dead("t"))   // exact tie keeps the item
+    }
+
+    @Test
+    fun syncOpsRoundTripAndPrune() {
+        val ops = com.ubayanda.milonative.data.SyncOps()
+        ops.record("p:1", false, 1_000_000_000_000L); ops.record("old", false, 1L)
+        ops.prune(now = 1_000_000_000_000L + 1000L)
+        assertEquals(1, ops.size)              // the ancient record went
+        val back = com.ubayanda.milonative.data.SyncOps.fromJson(ops.toJson())
+        assertTrue(back.dead("p:1"))
+        assertEquals(0, com.ubayanda.milonative.data.SyncOps.fromJson(null).size)
+    }
+
+    @Test
+    fun errorLogScrubsPersonalDetails() {
+        val L = com.ubayanda.milonative.util.ErrorLog
+        assertEquals("login failed for <email>", L.scrub("login failed for someone@example.com"))
+        assertFalse(L.scrub("GET https://x.supabase.co/rest/v1/a?select=*&token=abc").contains("select"))
+        assertFalse(L.scrub("bearer eyJhbGciOiJIUzI1NiJ9abcdef").contains("eyJ"))
+        assertEquals("row <id>", L.scrub("row 123e4567-e89b-12d3-a456-426614174000"))
+        assertTrue(L.scrub("cannot open /storage/emulated/0/Music/Private/song.mp3").contains("<folder>/"))
+    }
 }

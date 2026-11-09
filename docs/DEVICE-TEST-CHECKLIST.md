@@ -108,3 +108,11 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Fresh install: sign in, close the app, reopen: still signed in; restart the phone: still signed in
 - [ ] Music server (Subsonic) still connects after the update
 - [ ] After running supabase_security_hardening.sql: sign up, sign in, add a friend by username, send a message, Sessions and Shared playlists all still work
+
+## Diagnostics and sync deletions (Round 42) - two phones, same account
+- [ ] Phone A: unlike a song, sync; phone B syncs: the song is gone from B and does not come back after B syncs again
+- [ ] Delete a playlist on A, sync both: it stays deleted on both
+- [ ] Remove one song from a playlist on A: stays removed on B after syncing
+- [ ] Like the song again on B later: it returns on A and stays
+- [ ] Profile > Something not working?: switch history on, cause a failure (airplane mode, then Back up now), close and reopen, Send error report: the earlier line is there; no email or token appears
+- [ ] Switch history off, or Clear the list: the saved history is gone

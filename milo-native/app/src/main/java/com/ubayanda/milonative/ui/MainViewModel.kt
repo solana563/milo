@@ -617,7 +617,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _playlists = MutableStateFlow(store.load())
     val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
 
-    private fun savePlaylists(l: List<Playlist>) { _playlists.value = l; store.save(l); touch() }
+    private fun savePlaylists(l: List<Playlist>) { recordPlaylistDiff(_playlists.value, l); _playlists.value = l; store.save(l); touch() }
 
     // ---- online songs / stations the person kept ----
     private val savedStore = SavedStore(app)
@@ -658,6 +658,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return entry(t)
     }
 
+    // ---- remembering removals so a sync doesn't bring them back ----
+    private val ops = com.ubayanda.milonative.data.SyncOps.fromJson(try { JSONObject(prefs.getString("sync_ops", "{}") ?: "{}") } catch (_: Exception) { null })
+    private fun saveOps() { ops.prune(); prefs.edit().putString("sync_ops", ops.toJson().toString()).apply() }
+    private fun opKey(e: JSONObject) = e.optString("k") + "|" + e.optString("u")
+    private fun opKeyOf(id: Long): String? = entryOf(id)?.let { opKey(it) }
+    private fun recordFavDiff(old: Set<Long>, new: Set<Long>) {
+        val now = System.currentTimeMillis()
+        (new - old).forEach { id -> opKeyOf(id)?.let { ops.record(it, true, now) } }
+        (old - new).forEach { id -> opKeyOf(id)?.let { ops.record(it, false, now) } }
+        saveOps()
+    }
+    private fun recordPlaylistDiff(old: List<Playlist>, new: List<Playlist>) {
+        val now = System.currentTimeMillis()
+        val oldBy = old.associateBy { it.id }; val newBy = new.associateBy { it.id }
+        old.forEach { if (it.id !in newBy) ops.record("p:" + it.id, false, now) }
+        new.forEach { p ->
+            val before = oldBy[p.id]
+            if (before == null) ops.record("p:" + p.id, true, now)
+            val prev = before?.trackIds?.toSet() ?: emptySet()
+            (p.trackIds.toSet() - prev).forEach { id -> opKeyOf(id)?.let { ops.record("pi:" + p.id + ":" + it, true, now) } }
+            (prev - p.trackIds.toSet()).forEach { id -> opKeyOf(id)?.let { ops.record("pi:" + p.id + ":" + it, false, now) } }
+        }
+        saveOps()
+    }
+
     private fun snapshot(): JSONObject {
         val favs = JSONArray(); val seen = HashSet<String>()
         _favs.value.forEach { id -> entryOf(id)?.let { if (seen.add(it.optString("k") + it.optString("u"))) favs.put(it) } }
@@ -669,7 +694,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             pendingPl[p.id]?.forEach { items.put(it) }
             pls.put(JSONObject().put("id", p.id).put("n", p.name).put("items", items))
         }
-        return JSONObject().put("favs", favs).put("playlists", pls)
+        ops.prune()
+        return JSONObject().put("favs", favs).put("playlists", pls).put("ops", ops.toJson())
     }
 
     /** Local id for a synced entry, or null when the song isn't on this phone. Online ones are saved and always resolve. */
@@ -693,32 +719,37 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun applyRemote(d: JSONObject, union: Boolean) {
         val idx = localIndex()
         pendingFavs.clear(); pendingPl.clear()
+        ops.merge(com.ubayanda.milonative.data.SyncOps.fromJson(d.optJSONObject("ops"))); saveOps()
         val favs: MutableSet<Long> = if (union) _favs.value.toMutableSet() else HashSet<Long>()
         d.optJSONArray("favs")?.let { a ->
             for (i in 0 until a.length()) {
                 val e = a.getJSONObject(i)
+                if (ops.dead(opKey(e))) continue          // removed on some phone more recently than it was added
                 val id = resolve(e, idx)
                 if (id != null) favs.add(id) else pendingFavs.add(e)
             }
         }
+        if (union) favs.removeAll { id -> opKeyOf(id)?.let { ops.dead(it) } == true }
         val lists = ArrayList<Playlist>()
         val local = _playlists.value.associateBy { it.id }
         d.optJSONArray("playlists")?.let { a ->
             for (i in 0 until a.length()) {
                 val o = a.getJSONObject(i)
                 val pid = o.getString("id")
+                if (ops.dead("p:$pid")) continue          // deleted on some phone
                 val ids = ArrayList<Long>()
                 val items = o.optJSONArray("items") ?: JSONArray()
                 for (j in 0 until items.length()) {
                     val e = items.getJSONObject(j)
+                    if (ops.dead("pi:$pid:" + opKey(e))) continue
                     val id = resolve(e, idx)
                     if (id != null) { if (id !in ids) ids.add(id) } else pendingPl.getOrPut(pid) { ArrayList() }.add(e)
                 }
-                if (union) local[pid]?.trackIds?.forEach { if (it !in ids) ids.add(it) }
+                if (union) local[pid]?.trackIds?.forEach { if (it !in ids && opKeyOf(it)?.let { k -> ops.dead("pi:$pid:" + k) } != true) ids.add(it) }
                 lists.add(Playlist(pid, o.optString("n", "Playlist"), ids))
             }
         }
-        if (union) _playlists.value.forEach { p -> if (lists.none { it.id == p.id }) lists.add(p) }
+        if (union) _playlists.value.forEach { p -> if (lists.none { it.id == p.id } && !ops.dead("p:" + p.id)) lists.add(p) }
         _favs.value = favs
         prefs.edit().putStringSet("favs", favs.map { it.toString() }.toSet()).apply()
         _playlists.value = lists; store.save(lists)
@@ -782,8 +813,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 _syncMsg.value = "Backed up just now"
             } catch (e: CloudError) {
+                com.ubayanda.milonative.util.ErrorLog.add("sync", "server said ${e.status}")
                 _syncMsg.value = if (e.status == 404 || e.status == 400) "Cloud backup needs a one-time setup: run supabase_native_sync.sql in Supabase." else e.message.orEmpty()
             } catch (e: Exception) {
+                com.ubayanda.milonative.util.ErrorLog.add("sync", e.javaClass.simpleName)
                 _syncMsg.value = "Couldn't back up right now."
             } finally { syncing = false }
         }
@@ -1005,7 +1038,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _scanning.value = true
             com.ubayanda.milonative.data.MetaEdits.init(getApplication())
-            val scanned = repo.scan()
+            val scanned = com.ubayanda.milonative.util.ErrorLog.timed("library scan") { repo.scan() }
             // edits + grouping run off the main thread: with tens of thousands of songs they would otherwise freeze the UI
             val list = withContext(Dispatchers.Default) { com.ubayanda.milonative.data.MetaEdits.apply(scanned) }
             val (albums, artists) = withContext(Dispatchers.Default) {
@@ -1086,6 +1119,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun likeMany(ids: List<Long>) {
         val n = _favs.value.toMutableSet().also { it.addAll(ids) }
         ids.forEach { ensureSaved(it) }
+        recordFavDiff(_favs.value, n)
         _favs.value = n
         prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
         touch()
@@ -1436,6 +1470,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val n = _favs.value.toMutableSet()
         val added = n.add(id)
         if (!added) { n.remove(id); offerUndo("Removed from Liked songs") { toggleFav(id) } }
+        recordFavDiff(_favs.value, n)
         _favs.value = n
         prefs.edit().putStringSet("favs", n.map { it.toString() }.toSet()).apply()
         if (added) ensureSaved(id) else pruneSaved(id)

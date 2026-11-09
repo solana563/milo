@@ -71,6 +71,7 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")   // the phone provides org.json; plain JVM tests need a real copy
     implementation("com.google.zxing:core:3.5.3")   // draws the session QR code on the phone
     implementation("androidx.profileinstaller:profileinstaller:1.3.1")
     val composeBom = platform("androidx.compose:compose-bom:2024.09.03")

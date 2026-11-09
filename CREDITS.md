@@ -145,3 +145,5 @@ Round 39 (Phase 8): focused accessibility and state polish: buttons announce as 
 Round 40: security review (docs/SECURITY-AUDIT.md), encrypted storage of sign-in tokens and server password (Android Keystore), Supabase permission hardening SQL.
 
 Round 41: CI release gate in native.yml. Unit tests now fail the run (reports uploaded), and a final step checks that the debug APK exists, has the right package name and a valid version code and signature, reports AAB/release/F-Droid outcomes and whether a release key is configured. Firebase distribution only runs if the gate passed.
+
+Round 42: diagnostics (scrubbed, optional on-phone history, API/sync/perf entries) and sync deletion tracking (SyncOps) so removals no longer reappear.

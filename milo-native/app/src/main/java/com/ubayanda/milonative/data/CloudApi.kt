@@ -85,6 +85,7 @@ class CloudApi(context: Context) {
                         val o = JSONObject(tx)
                         listOf("msg", "error_description", "message", "error").map { o.optString(it) }.firstOrNull { it.isNotEmpty() }.orEmpty()
                     } catch (e: Exception) { "" }
+                    com.ubayanda.milonative.util.ErrorLog.api(method, path, r.code)
                     throw CloudError(r.code, m.ifEmpty { "HTTP ${r.code}" })
                 }
                 tx
@@ -92,6 +93,7 @@ class CloudApi(context: Context) {
         } catch (e: CloudError) {
             throw e
         } catch (e: Exception) {
+            com.ubayanda.milonative.util.ErrorLog.api(method, path, 0)
             throw CloudError(0, "Couldn't reach the server. Check your internet connection.")
         }
     }

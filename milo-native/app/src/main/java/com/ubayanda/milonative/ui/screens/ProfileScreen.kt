@@ -617,6 +617,13 @@ private fun ReportCard() {
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         Pill("Send error report", null, true) { com.ubayanda.milonative.util.ErrorLog.share(ctx) }
+        var keep by remember { mutableStateOf(com.ubayanda.milonative.util.ErrorLog.keepOn(ctx)) }
+        ShareRow("Keep this list when the app closes", keep) { keep = it; com.ubayanda.milonative.util.ErrorLog.setKeep(ctx, it) }
+        Text(
+            "Off by default. When on, the list is saved on this phone only (never uploaded) and holds failures, how long the library scan took, and server error codes. Emails, tokens and web-address details are removed before saving.",
+            color = Milo.dim, style = Ty.micro, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+        )
+        Pill("Clear the list", null, false) { com.ubayanda.milonative.util.ErrorLog.clear(ctx) }
     }
 }
 
