@@ -644,7 +644,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun signOut() {
         // leave the account's device list first, while the login still works
         val rid = roomId; val hosting = _room.value?.isHost == true
-        if (connect.enabled || rid != null) viewModelScope.launch {
+        if (connect.enabled || rid != null || com.ubayanda.milonative.push.Push.available(getApplication())) viewModelScope.launch {
+            try { com.ubayanda.milonative.push.Push.unregisterNow(getApplication()) } catch (_: Exception) {}
             try { if (connect.enabled) connect.remove() } catch (_: Exception) {}
             try { if (rid != null) { clearRoom(); if (hosting) sessions.end(rid) else sessions.leave(rid) } } catch (_: Exception) {}
             finishSignOut()
@@ -855,6 +856,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun syncNow() {
+        com.ubayanda.milonative.push.Push.sync(getApplication())
         if (cloud.session == null || syncing) return
         viewModelScope.launch {
             syncing = true

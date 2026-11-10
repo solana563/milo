@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Firebase push is switched on only for the "full" app and only when you have added app/google-services.json (see docs/FIREBASE-NATIVE.md).
+// Without that file everything builds exactly as before and push stays off.
+if (file("google-services.json").exists() && gradle.startParameter.taskNames.any { it.contains("full", ignoreCase = true) }) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.ubayanda.milonative"
     compileSdk = 34
@@ -91,6 +97,10 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
+
+    // push notifications (Google libraries: "full" app only; the F-Droid and Lite apps stay free of them)
+    "fullImplementation"(platform("com.google.firebase:firebase-bom:33.5.1"))
+    "fullImplementation"("com.google.firebase:firebase-messaging")
 
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")

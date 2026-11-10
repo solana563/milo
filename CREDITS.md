@@ -153,3 +153,5 @@ Round 43: downloads keep running with the app closed (foreground service with a 
 Round 43b: fix for the Release gate. Its file paths were written from the repository root, but the step runs inside milo-native (the job's working directory), so it looked in milo-native/milo-native/... and reported the APK and AAB as missing even though every build step succeeded.
 
 Round 44: Connect pairing across accounts (short-lived code or QR, restricted commands, revocable) and an in-app QR scanner for rooms, shared playlists and pairing.
+
+Round 45: Firebase-ready native app: push notification registration (full flavour only, built only when google-services.json is present), existing milo-push server reused, duplicate-free with the 15-minute check, CI secret step, docs/FIREBASE-NATIVE.md.

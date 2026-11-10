@@ -652,6 +652,11 @@ private fun DownloadsCard(vm: MainViewModel) {
         Pill("Audio info: formats and outputs", null, false) { vm.showAudioInfo = true }
         Spacer(Modifier.height(10.dp))
         Pill("Scan a milo. QR code", null, false) { vm.showScanner = true }
+        if (com.ubayanda.milonative.push.Push.available(androidx.compose.ui.platform.LocalContext.current)) {
+            val pctx = androidx.compose.ui.platform.LocalContext.current
+            var pushOn by remember { mutableStateOf(com.ubayanda.milonative.push.Push.enabled(pctx)) }
+            ShareRow("Instant message notifications", pushOn) { pushOn = it; com.ubayanda.milonative.push.Push.setEnabled(pctx, it) }
+        }
         if (items.isNotEmpty()) Spacer(Modifier.height(10.dp))
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()

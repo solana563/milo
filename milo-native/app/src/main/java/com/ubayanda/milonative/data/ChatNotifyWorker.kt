@@ -27,6 +27,7 @@ class ChatNotifyWorker(private val ctx: Context, params: WorkerParameters) : Cor
             val me = cloud.session?.userId ?: return Result.success()
             if (!cloud.fresh()) return Result.success()
             if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return Result.success()
+            if (com.ubayanda.milonative.push.Push.active(ctx)) return Result.success()   // instant push is working, so don't notify twice
             val prefs = ctx.getSharedPreferences("milo_notify", Context.MODE_PRIVATE)
             val since = URLEncoder.encode(Instant.now().minus(24, ChronoUnit.HOURS).toString(), "UTF-8")
 

@@ -14,6 +14,7 @@ class MiloApplication : Application() {
                     .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build()).build(),
             )
         } catch (_: Throwable) {}
+        try { com.ubayanda.milonative.push.Push.init(this) } catch (_: Throwable) {}
         val old = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             try {

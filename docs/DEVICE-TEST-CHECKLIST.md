@@ -136,3 +136,13 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Camera permission refused: message shown, typing the code still works
 - [ ] Scan a room QR and a shared playlist QR from the same scanner: each opens its own screen
 - [ ] The phone's own camera app scanning the QR opens milo. and fills the code
+
+## Push notifications (Round 45) - needs google-services.json and the milo-push function
+- [ ] Build with the Firebase file: Profile shows "Instant message notifications"; without it, the switch is absent
+- [ ] Sign in, then check the server has an `fcm` row for the account in `push_subs`
+- [ ] Close the app, send a message from another account: notification arrives within seconds
+- [ ] No double notification (the 15-minute check stays quiet while push is active)
+- [ ] Switch off: row disappears from `push_subs` and messages still arrive within about 15 minutes
+- [ ] Sign out: the phone's row is removed; no notifications for that account afterwards
+- [ ] Android 13+: notification permission prompt appears and refusing it doesn't crash anything
+- [ ] F-Droid and Lite builds still compile and show no push switch
