@@ -146,3 +146,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Sign out: the phone's row is removed; no notifications for that account afterwards
 - [ ] Android 13+: notification permission prompt appears and refusing it doesn't crash anything
 - [ ] F-Droid and Lite builds still compile and show no push switch
+- [ ] R48: play over Bluetooth; take a call, switch apps, pull the notification shade, lock and wake the phone. No stutter or speed-up; check Diagnostics for "audio underrun" lines.

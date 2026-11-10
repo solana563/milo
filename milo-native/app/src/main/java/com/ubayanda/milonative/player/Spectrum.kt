@@ -29,6 +29,9 @@ object Spectrum {
 
     private val taps = CopyOnWriteArrayList<Tap>()
 
+    /** When a screen last asked for bars. Without a recent ask the tap copies nothing, so playback in the background does no extra work. */
+    @Volatile private var askedAt = 0L
+
     @OptIn(UnstableApi::class)
     class Tap : BaseAudioProcessor() {
         private val ring = FloatArray(RING)
@@ -49,6 +52,8 @@ object Spectrum {
         override fun queueInput(input: ByteBuffer) {
             val n = input.remaining()
             if (n == 0) return
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - askedAt > 1500L) { val o = replaceOutputBuffer(n); o.put(input); o.flip(); return }
             val view = input.duplicate().order(input.order())
             val step = if (float) 4 else 2
             var w = written
@@ -91,6 +96,7 @@ object Spectrum {
 
         fun update() {
             val now = android.os.SystemClock.elapsedRealtime()
+            askedAt = now
             java.util.Arrays.fill(spec, 0.0)
             var rate = 44100
             var live = false

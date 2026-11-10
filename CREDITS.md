@@ -157,3 +157,11 @@ Round 44: Connect pairing across accounts (short-lived code or QR, restricted co
 Round 45: Firebase-ready native app: push notification registration (full flavour only, built only when google-services.json is present), existing milo-push server reused, duplicate-free with the 15-minute check, CI secret step, docs/FIREBASE-NATIVE.md.
 
 Round 46: web-check.yml workflow (drift, syntax, manifest checks, no deployment) and docs/IOS-FEASIBILITY.md.
+
+Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own database webhooks can trigger notifications (before, anyone with the public anon key could send fake ones). PUSH.md updated.
+
+## Round 48 — background / Bluetooth playback stutter
+- Audio buffer raised (min 600 ms, max 1.5 s) so short stalls (calls, app switches, notification shade, screen wake) are absorbed instead of heard over Bluetooth.
+- Spectrum tap no longer copies samples unless a visualiser screen asked within the last 1.5 s (no background work).
+- Underruns are logged to Diagnostics (tag "audio") with buffer size, gap, speed and skip-silence state.
+- Not verified on a device from the sandbox.

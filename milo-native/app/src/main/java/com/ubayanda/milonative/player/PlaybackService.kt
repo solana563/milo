@@ -61,6 +61,9 @@ class PlaybackService : MediaLibraryService() {
             androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                // a roomier audio buffer rides out short stalls (phone call, app switch, screen wake) that Bluetooth makes audible
+                .setAudioTrackBufferSizeProvider(androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider.Builder()
+                    .setMinPcmBufferDurationUs(600_000).setMaxPcmBufferDurationUs(1_500_000).setPcmBufferMultiplicationFactor(6).build())
                 .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
                 .build()
     }
@@ -238,6 +241,11 @@ class PlaybackService : MediaLibraryService() {
         BtOutput.start(this, { player.isPlaying }, { player.play() })
         svcScope.launch { Extras.state.collect { player.skipSilenceEnabled = it.skipSilence } }
         svcScope.launch { BtOutput.now.collect { ParamEq.useDevice(if (it.kind == "speaker") "default" else it.name) } }
+        player.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+            override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
+                com.ubayanda.milonative.util.ErrorLog.add("audio", "underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms speed=${player.playbackParameters.speed} skipSilence=${player.skipSilenceEnabled}")
+            }
+        })
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 com.ubayanda.milonative.util.ErrorLog.add("player", error.errorCodeName + ": " + error.message + (error.cause?.let { " / " + it.javaClass.simpleName + ": " + it.message } ?: "") + " | " + player.currentMediaItem?.localConfiguration?.uri)
