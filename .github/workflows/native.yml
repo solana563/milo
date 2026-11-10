@@ -24,6 +24,12 @@ jobs:
         shell: bash
         run: |
           if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/milo.jks"; echo "MILO_KEYSTORE_FILE=$RUNNER_TEMP/milo.jks" >> "$GITHUB_ENV"; echo "Release key found."; else echo "No release key: builds use the debug key."; fi
+      - name: Firebase config (only when the GOOGLE_SERVICES_JSON secret is set)
+        shell: bash
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > app/google-services.json; echo "Firebase push is enabled for this build."; else echo "No GOOGLE_SERVICES_JSON secret: push stays off, everything else is unchanged."; fi
       - name: Unit tests
         id: tests
         continue-on-error: true   # lets the artifacts below still build and upload; the "Release gate" step at the end fails the run if this failed
@@ -134,6 +140,7 @@ jobs:
           check_apk "${REL:-none}" "Release APK" no
           AAB=$(ls app/build/outputs/bundle/fullRelease/*.aab 2>/dev/null | head -1)
           if [ -s "${AAB:-none}" ]; then row "AAB exists" "ok" "$(du -h "$AAB" | cut -f1)"; else row "AAB exists" "MISSING" ""; fi
+          if [ -f app/google-services.json ]; then row "Firebase push config" "present" "full app can register for push"; else row "Firebase push config" "absent" "push is off in this build"; fi
           if [ -n "$KS_B64" ]; then row "Release key configured" "yes" ""; else row "Release key configured" "NO" "release builds use the debug key"; fi
           if [ "$FAIL" = "1" ]; then echo "Release gate FAILED" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
           echo "Release gate passed (distribution steps are separate and only run when their secrets are set)." | tee -a "$GITHUB_STEP_SUMMARY"
