@@ -225,7 +225,7 @@ class PlaybackService : MediaLibraryService() {
                 /* handleAudioFocus = */ true
             )
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         exo = player
         handler.post(fader)

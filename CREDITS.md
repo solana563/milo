@@ -165,3 +165,7 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Spectrum tap no longer copies samples unless a visualiser screen asked within the last 1.5 s (no background work).
 - Underruns are logged to Diagnostics (tag "audio") with buffer size, gap, speed and skip-silence state.
 - Not verified on a device from the sandbox.
+
+## Round 49 — background playback, second pass
+- Wake mode changed from CPU-only to CPU + Wi-Fi lock (`WAKE_MODE_NETWORK`, adds `ACCESS_WIFI_STATE`) so streamed songs keep their connection when the screen is off or the app is in the background.
+- Honest note: nothing in the app speeds playback up, so the catch-up effect is the audio output (Bluetooth stack/phone power management) recovering from a stall. Needs a Diagnostics report ("audio underrun" lines) to tell which.
