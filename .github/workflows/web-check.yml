@@ -1,0 +1,39 @@
+name: Web checks
+# Fast checks for the browser app (PWA) and the TV copies. Does not deploy anything.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["src/**", "index.html", "sw.js", "manifest.webmanifest", "build.mjs", ".github/workflows/web-check.yml"]
+  push:
+    paths: ["src/**", "index.html", "sw.js", "manifest.webmanifest", "build.mjs", ".github/workflows/web-check.yml"]
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: index.html matches src/ (no source/build drift)
+        run: node build.mjs --check
+      - name: Every script in src/js parses
+        shell: bash
+        run: |
+          set -e
+          n=0
+          for f in src/js/*.js sw.js; do [ -f "$f" ] || continue; node --check "$f"; n=$((n+1)); done
+          echo "$n script files parse"
+      - name: Manifest and parts list are valid JSON, files exist and are not empty
+        shell: bash
+        run: |
+          set -e
+          node -e 'JSON.parse(require("fs").readFileSync("manifest.webmanifest","utf8")); const p=JSON.parse(require("fs").readFileSync("src/parts.json","utf8")).parts; for(const f of p){const s=require("fs").statSync("src/"+f); if(!s.size) throw new Error(f+" is empty")} console.log(p.length+" parts ok")'
+          test -s index.html
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Web checks"
+            echo "Result: ${{ job.status }}"
+            echo "Checks: source/build drift, script syntax, manifest and parts list. Deployment is separate (Vercel) and not triggered here."
+          } >> "$GITHUB_STEP_SUMMARY"
