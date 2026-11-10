@@ -58,15 +58,22 @@ class PlaybackService : MediaLibraryService() {
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun eqRenderers() = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
         override fun buildAudioSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): androidx.media3.exoplayer.audio.AudioSink =
-            androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
-                .setEnableFloatOutput(enableFloatOutput)
-                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                // a roomier audio buffer rides out short stalls (phone call, app switch, screen wake) that Bluetooth makes audible
-                .setAudioTrackBufferSizeProvider(androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider.Builder()
-                    .setMinPcmBufferDurationUs(600_000).setMaxPcmBufferDurationUs(1_500_000).setPcmBufferMultiplicationFactor(6).build())
-                .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
-                .build()
+            if (btCompat()) androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context).setEnableFloatOutput(false).setEnableAudioTrackPlaybackParams(false).build()
+            else buildEqSink(context, enableFloatOutput, enableAudioTrackPlaybackParams)
     }
+
+    private fun btCompat() = getSharedPreferences("milo_fx", MODE_PRIVATE).getBoolean("btcompat", false)
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun buildEqSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): androidx.media3.exoplayer.audio.AudioSink =
+        androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+            .setEnableFloatOutput(enableFloatOutput)
+            .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+            // a roomier audio buffer rides out short stalls (phone call, app switch, screen wake) that Bluetooth makes audible
+            .setAudioTrackBufferSizeProvider(androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider.Builder()
+                .setMinPcmBufferDurationUs(600_000).setMaxPcmBufferDurationUs(1_500_000).setPcmBufferMultiplicationFactor(6).build())
+            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
+            .build()
 
     private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this, eqRenderers())
         .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
@@ -228,6 +235,14 @@ class PlaybackService : MediaLibraryService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         exo = player
+        if (btCompat()) {
+            // let the phone's audio chip play the music: it keeps going while the app is busy or in the background
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setAudioOffloadPreferences(androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                    .setAudioOffloadMode(androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
+                    .build())
+                .build()
+        }
         handler.post(fader)
         handler.postDelayed(resumeSaver, 10_000)
         // tapping the playback notification (or the lock-screen player) opens milo.

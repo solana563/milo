@@ -169,3 +169,8 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 ## Round 49 — background playback, second pass
 - Wake mode changed from CPU-only to CPU + Wi-Fi lock (`WAKE_MODE_NETWORK`, adds `ACCESS_WIFI_STATE`) so streamed songs keep their connection when the screen is off or the app is in the background.
 - Honest note: nothing in the app speeds playback up, so the catch-up effect is the audio output (Bluetooth stack/phone power management) recovering from a stall. Needs a Diagnostics report ("audio underrun" lines) to tell which.
+
+## Round 50 — Bluetooth compatibility mode
+- First real Diagnostics report (Samsung SM-A336E, Android 16) showed audio underruns in clusters right at the disruptions, with the 600 ms buffer in place and feed gaps of only a few ms. That points at the output path (Bluetooth/phone audio stack), not the app being too slow.
+- New switch in Profile: "Bluetooth compatibility mode" (restart milo). It plays through a plain audio sink with hardware audio offload, no EQ/balance/mono/spectrum/speed/crossfade. Meant as an A/B test: if it fixes the stutter, the cause is confirmed; if not, it is outside the app's audio path.
+- Not verified on a device from the sandbox.

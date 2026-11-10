@@ -128,6 +128,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         AccentCard()
         Spacer(Modifier.height(16.dp))
         HomeLocalCard()
+        BtCompatCard()
         Spacer(Modifier.height(16.dp))
         Box(Modifier.padding(horizontal = Sp.gutter)) { Pill("Show the welcome tour", null, false) { Tour.open.value = true } }
         if (a.signedIn) {
@@ -296,6 +297,19 @@ private fun SharingCard(vm: MainViewModel, a: AccountUi) {
         Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
         ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
+    }
+}
+
+@Composable
+private fun BtCompatCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+    var on by remember { mutableStateOf(prefs.getBoolean("btcompat", false)) }
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Bluetooth compatibility", color = Milo.text, style = Ty.title)
+        Text("If music stutters over Bluetooth when you take calls or switch apps, turn this on and restart milo. The phone's own audio chip plays the music, so milo's equaliser, balance, mono, spectrum, speed and crossfade are switched off while it is on.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Bluetooth compatibility mode (restart milo)", on) { on = it; prefs.edit().putBoolean("btcompat", it).apply() }
     }
 }
 
