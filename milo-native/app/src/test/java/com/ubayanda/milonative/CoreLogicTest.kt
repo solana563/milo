@@ -280,4 +280,26 @@ class CoreLogicTest {
         assertEquals("Waiting for Wi-Fi", S.summary(2, "Waiting for Wi-Fi", 0).second)
         assertEquals("Starting…", S.summary(2, "", 0).second)
     }
+
+    @Test
+    fun scannedCodesRouteToTheRightPlace() {
+        val P = com.ubayanda.milonative.data.Pairing
+        assertEquals("pair" to "ABCD2345", P.route("milo://pair/abcd2345"))
+        assertEquals("room" to "ABC234", P.route(" milo://room/abc234 "))
+        assertEquals("playlist" to "ABC234", P.route("milo://playlist/ABC234"))
+        assertNull(P.route("https://example.com"))
+        assertNull(P.route("milo://pair/short"))
+        assertNull(P.route(""))
+        assertEquals("ABCD2345", P.parseCode("abcd 2345"))
+        assertNull(P.parseCode("ABCD23"))
+    }
+
+    @Test
+    fun pairingExpiryWording() {
+        val P = com.ubayanda.milonative.data.Pairing
+        assertEquals("until removed", P.expiryText(0L, 1000L))
+        assertEquals("30 min left", P.expiryText(1000L + 30 * 60000L, 1000L))
+        assertEquals("5 h left", P.expiryText(1000L + 5 * 3600000L, 1000L))
+        assertEquals("0 min left", P.expiryText(500L, 1000L))
+    }
 }

@@ -371,6 +371,9 @@ fun MiloApp(vm: MainViewModel) {
             AnimatedVisibility(visible = vm.showAudioInfo, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.AudioInfoScreen(vm) { vm.showAudioInfo = false }
             }
+            AnimatedVisibility(visible = vm.showScanner, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.QrScannerScreen(vm) { vm.showScanner = false }
+            }
             com.ubayanda.milonative.ui.screens.TourOverlay()
         }
 

@@ -207,6 +207,68 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             .put("pl", st.isPlaying).put("at", System.currentTimeMillis()).put("q", q)
     }
 
+    // ---- pairing with someone else's account (supabase_native_pairing.sql) ----
+    private val pairing = com.ubayanda.milonative.data.Pairing(cloud)
+    private val _pairLists = MutableStateFlow(com.ubayanda.milonative.data.Pairing.Lists(emptyList(), emptyList()))
+    val pairLists: StateFlow<com.ubayanda.milonative.data.Pairing.Lists> = _pairLists.asStateFlow()
+    private val _pairCode = MutableStateFlow<com.ubayanda.milonative.data.Pairing.Code?>(null)
+    val pairCode: StateFlow<com.ubayanda.milonative.data.Pairing.Code?> = _pairCode.asStateFlow()
+    private val _pairDevices = MutableStateFlow<Map<String, List<com.ubayanda.milonative.data.Connect.Device>>>(emptyMap())
+    val pairDevices: StateFlow<Map<String, List<com.ubayanda.milonative.data.Connect.Device>>> = _pairDevices.asStateFlow()
+    private val _pairMsg = MutableStateFlow("")
+    val pairMsg: StateFlow<String> = _pairMsg.asStateFlow()
+    var pendingPairCode by androidx.compose.runtime.mutableStateOf("")
+    var showScanner by androidx.compose.runtime.mutableStateOf(false)
+
+    fun openPairLink(raw: String) {
+        val c = com.ubayanda.milonative.data.Pairing.parseCode(raw) ?: return
+        pendingPairCode = c; showConnect = true
+    }
+
+    /** What a scanned QR code was for. Rooms, shared playlists and pairing all arrive here. */
+    fun handleScanned(text: String) {
+        when (val r = com.ubayanda.milonative.data.Pairing.route(text)) {
+            null -> android.widget.Toast.makeText(getApplication(), "That isn't a milo. code.", android.widget.Toast.LENGTH_SHORT).show()
+            else -> when (r.first) {
+                "room" -> openRoomLink("milo://room/" + r.second)
+                "playlist" -> openPlaylistLink("milo://playlist/" + r.second)
+                else -> openPairLink("milo://pair/" + r.second)
+            }
+        }
+        showScanner = false
+    }
+
+    private fun pairError(x: Exception) {
+        _pairMsg.value = when {
+            x is CloudError && x.status == 404 -> "Sharing control needs a one-time setup: run supabase_native_pairing.sql in Supabase."
+            x is CloudError -> x.message.orEmpty().let { m -> Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(m)?.groupValues?.get(1) ?: m }.take(120)
+            else -> "Can't reach the server right now."
+        }
+    }
+
+    fun refreshPair() {
+        if (cloud.session == null) return
+        viewModelScope.launch {
+            try {
+                val l = pairing.list(); _pairLists.value = l
+                _pairDevices.value = l.controlling.associate { it.uid to (try { pairing.devices(it.uid) } catch (_: Exception) { emptyList() }) }
+                _pairMsg.value = ""
+            } catch (x: Exception) { pairError(x) }
+        }
+    }
+    fun pairCreate(hours: Int) {
+        viewModelScope.launch { try { _pairCode.value = pairing.create(hours, myRoomName()); _pairMsg.value = "" } catch (x: Exception) { pairError(x) } }
+    }
+    fun pairRedeem(code: String) {
+        val c = com.ubayanda.milonative.data.Pairing.parseCode(code) ?: run { _pairMsg.value = "That code should be 8 letters or digits."; return }
+        viewModelScope.launch {
+            try { val n = pairing.redeem(c, myRoomName()); pendingPairCode = ""; android.widget.Toast.makeText(getApplication(), "You can now control $n's player", android.widget.Toast.LENGTH_LONG).show(); refreshPair() }
+            catch (x: Exception) { pairError(x) }
+        }
+    }
+    fun pairRevoke(uid: String) { viewModelScope.launch { try { pairing.revoke(uid); refreshPair() } catch (x: Exception) { pairError(x) } } }
+    fun pairSend(owner: String, device: String, cmd: JSONObject) { viewModelScope.launch { try { pairing.send(owner, device, cmd) } catch (x: Exception) { pairError(x) } } }
+
     fun refreshPeers() {
         if (cloud.session == null) { _peers.value = emptyList(); return }
         viewModelScope.launch {
@@ -240,6 +302,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun applyCmd(c: JSONObject) {
         val playing = player.state.value.isPlaying
+        c.optString("by").takeIf { it.isNotEmpty() }?.let { who ->   // sent by someone you shared control with
+            android.widget.Toast.makeText(getApplication(), who + ": " + c.optString("t"), android.widget.Toast.LENGTH_SHORT).show()
+        }
         when (c.optString("t")) {
             "toggle" -> player.toggle()
             "play" -> if (!playing) player.toggle()

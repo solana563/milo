@@ -125,3 +125,14 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] All done: notification goes away by itself
 - [ ] Test on at least two brands with aggressive battery saving (e.g. Samsung, Xiaomi) and note which ones stop it
 - [ ] Notifications denied in Android settings: downloads still run
+
+## Pairing and QR scanner (Round 44) - two phones, two different accounts
+- [ ] Ran supabase_native_pairing.sql; both phones signed in to different accounts, Connect on
+- [ ] Phone A: Connect > Create a code (1 hour); phone B: Scan QR opens the camera, scans, fills the code; Link works
+- [ ] Phone B sees A's now-playing and Prev/Play/Next move A's music; A shows a short "name: command" message
+- [ ] Wrong code shows a clear message; 8 wrong codes in a row are blocked for a while
+- [ ] A code works only once and not after 5 minutes
+- [ ] A removes B: B's controls disappear within a few seconds and commands stop working
+- [ ] Camera permission refused: message shown, typing the code still works
+- [ ] Scan a room QR and a shared playlist QR from the same scanner: each opens its own screen
+- [ ] The phone's own camera app scanning the QR opens milo. and fills the code

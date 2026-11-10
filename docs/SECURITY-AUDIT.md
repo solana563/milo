@@ -30,3 +30,9 @@ Scope and honesty: this is a read-through of the files in this repository (Andro
 - Display names in rooms and playlists are typed by the client, so impersonation inside a room is possible.
 - Reports from Sessions land in `milo_reports`; nobody reads them unless you do. Before a public launch you need a way to review them.
 - Account deletion removes sync data, messages, friendships and the login; rooms and playlists are removed through database cascades. Data export exists as a backup file; there is no full export of server-side data.
+
+## Added in Round 44 (pairing)
+- Codes are 8 characters from a 31-letter set (about 850 billion combinations), last 5 minutes, work once, and wrong guesses are rate limited per account.
+- A controller can only send play, pause, next, previous and a seek of up to 60 seconds; the server refuses anything else, including loading songs. Access can be limited to 1 hour, 1 day or until removed, and the owner can remove it at any time.
+- The controller sees only the device name, whether it is online, and the current song and artist. The queue and everything else stay private.
+- Risk to know: anyone who has a valid, unexpired code can link. Treat the code like a key and don't post a screenshot.

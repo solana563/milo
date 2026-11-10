@@ -151,3 +151,5 @@ Round 42: diagnostics (scrubbed, optional on-phone history, API/sync/perf entrie
 Round 43: downloads keep running with the app closed (foreground service with a notification and Pause all, stops when the queue is empty).
 
 Round 43b: fix for the Release gate. Its file paths were written from the repository root, but the step runs inside milo-native (the job's working directory), so it looked in milo-native/milo-native/... and reported the APK and AAB as missing even though every build step succeeded.
+
+Round 44: Connect pairing across accounts (short-lived code or QR, restricted commands, revocable) and an in-app QR scanner for rooms, shared playlists and pairing.
