@@ -204,3 +204,8 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The first fade in that report was still cold (old song's position frozen ~0.5 s): the tail player was probably not ready when its first warm-up was due. It is now prepared 9 s before the swap (was 4 s).
 - Another fade showed the new song (a 20+ minute track) jump to 2:05 in the middle of the fade and go to buffering: the "resume where you left off" feature for long tracks. It is now skipped when the song arrives through a crossfade.
 - Not verified by ear.
+
+## Round 56 — bouncy lyrics
+- Synced lyrics: lines that aren't being sung sit slightly smaller and lower; the line being sung springs up to full size with a small overshoot (spring damping 0.38). The page follows with a spring scroll (glides to the next line and settles with a little give) instead of a fixed-speed scroll. A seek or other far jump moves straight there.
+- "Bouncy lyrics" switch in the lyrics ⋯ menu (on by default, saved as `lybounce`). It is forced off when the phone's animations are turned off.
+- Word highlight, translation, tap-to-seek and long-press share are unchanged. Not run on a device from the sandbox.

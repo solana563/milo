@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -519,6 +520,11 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val lyrics = fresh ?: lyrics0
     var wordMode by remember { mutableStateOf(fx.getBoolean("lyword", false)) }
     var lyOff by remember(t.id) { mutableStateOf(fx.getLong("lyoff_" + t.id, 0L)) }
+    // bouncy lyrics: the sung line pops and springs into place and the page eases after it. Off when the phone's animations are off.
+    var bouncyPref by remember { mutableStateOf(fx.getBoolean("lybounce", true)) }
+    val calm = remember { try { android.provider.Settings.Global.getFloat(ctx.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (_: Throwable) { false } }
+    val bouncy = bouncyPref && !calm
+    val dens = androidx.compose.ui.platform.LocalDensity.current.density
     var moreMenu by remember { mutableStateOf(false) }
     var lang by remember { mutableStateOf(fx.getString("lylang", "") ?: "") }
     var langMenu by remember { mutableStateOf(false) }
@@ -583,6 +589,9 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text(if (wordMode) "Word highlight: on" else "Word highlight: off") }, onClick = {
                             wordMode = !wordMode; fx.edit().putBoolean("lyword", wordMode).apply(); moreMenu = false
                         })
+                        DropdownMenuItem(text = { Text(if (bouncyPref) "Bouncy lyrics: on" else "Bouncy lyrics: off") }, onClick = {
+                            bouncyPref = !bouncyPref; fx.edit().putBoolean("lybounce", bouncyPref).apply(); moreMenu = false
+                        })
                         DropdownMenuItem(text = { Text("Lyrics earlier (\u22120.5 s)") }, onClick = { lyOff -= 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         DropdownMenuItem(text = { Text("Lyrics later (+0.5 s)") }, onClick = { lyOff += 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         if (lyOff != 0L) DropdownMenuItem(text = { Text("Reset timing (" + (if (lyOff > 0) "+" else "") + (lyOff / 1000.0) + " s)") }, onClick = { lyOff = 0; fx.edit().remove("lyoff_" + t.id).apply(); moreMenu = false })
@@ -618,12 +627,31 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         val btDelay = if (btNow.bt) com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx) else 0
                         val pos = ui.positionMs - btDelay - lyOff
                         val idx = lyrics.synced.indexOfLast { it.timeMs <= pos + 250 }
-                        LaunchedEffect(idx) { if (idx >= 0) state.animateScrollToItem((idx - 2).coerceAtLeast(0)) }
+                        LaunchedEffect(idx, bouncy) {
+                            if (idx < 0) return@LaunchedEffect
+                            val target = (idx - 2).coerceAtLeast(0)
+                            if (!bouncy) { state.animateScrollToItem(target); return@LaunchedEffect }
+                            val info = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }
+                            // a spring, so the page glides to the next line and settles with a little give; far jumps (a seek) just go there
+                            if (info == null) state.scrollToItem(target)
+                            else state.animateScrollBy((info.offset - state.layoutInfo.beforeContentPadding).toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 170f))
+                        }
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
                             itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
                                 val on = i == idx
+                                val sc by androidx.compose.animation.core.animateFloatAsState(
+                                    if (!bouncy || on) 1f else 0.9f,
+                                    androidx.compose.animation.core.spring(dampingRatio = 0.38f, stiffness = 260f), label = "lyScale",
+                                )
+                                val kick by androidx.compose.animation.core.animateFloatAsState(
+                                    if (bouncy && !on) 8f else 0f,
+                                    androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 300f), label = "lyKick",
+                                )
                                 Column(
-                                    Modifier.fillMaxWidth().combinedClickable(
+                                    Modifier.fillMaxWidth().graphicsLayer {
+                                        scaleX = sc; scaleY = sc; translationY = kick * dens
+                                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                                    }.combinedClickable(
                                         onClick = { vm.player.seekTo(line.timeMs) },
                                         onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
                                     ).padding(vertical = 12.dp),
