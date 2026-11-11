@@ -148,3 +148,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] F-Droid and Lite builds still compile and show no push switch
 - [ ] R48: play over Bluetooth; take a call, switch apps, pull the notification shade, lock and wake the phone. No stutter or speed-up; check Diagnostics for "audio underrun" lines.
 - [ ] R50: Profile → Bluetooth compatibility mode on, restart milo, repeat the call / app switch / lock-wake test over Bluetooth. Stutter gone? Report either way.
+- [ ] R51: over Bluetooth, play music and have someone call you. Music pauses when it rings; if you reject or end the call, music resumes by itself. No fast/high-pitched audio. Repeat with a WhatsApp call. Pausing yourself before the call must not auto-resume.

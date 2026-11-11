@@ -174,3 +174,8 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - First real Diagnostics report (Samsung SM-A336E, Android 16) showed audio underruns in clusters right at the disruptions, with the 600 ms buffer in place and feed gaps of only a few ms. That points at the output path (Bluetooth/phone audio stack), not the app being too slow.
 - New switch in Profile: "Bluetooth compatibility mode" (restart milo). It plays through a plain audio sink with hardware audio offload, no EQ/balance/mono/spectrum/speed/crossfade. Meant as an A/B test: if it fixes the stutter, the cause is confirmed; if not, it is outside the app's audio path.
 - Not verified on a device from the sandbox.
+
+## Round 51 — pause for phone calls
+- Finding from the user's tests: milo kept playing while the phone rang, and over Bluetooth the music came out fast and high-pitched (Poweramp pauses on calls and doesn't do this). Bluetooth switches from music mode to call mode during a call; playing across that switch plays audio at the wrong rate.
+- Fix: the service watches the phone's audio mode every 500 ms (no permission needed). Ringing, in a call, or in an app call (WhatsApp etc.) pauses; when the call ends it resumes after ~1.5 s, only if milo paused itself and within 30 minutes. A manual pause/play during the call is respected. Logged to Diagnostics as "paused for a call".
+- Not verified on a device from the sandbox.

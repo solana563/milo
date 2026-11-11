@@ -54,6 +54,38 @@ class PlaybackService : MediaLibraryService() {
     private var xfOwn = false
     private var lastTick = 0L
 
+    // Phone calls: Bluetooth swaps from music mode to call mode, and music still playing across that swap comes out fast and high-pitched.
+    // So like other players, pause when a call rings or starts (cell or app calls) and carry on when it ends.
+    private var pausedByCall = 0L
+    private var callClear = 0
+    private val callWatch = object : Runnable {
+        override fun run() {
+            try {
+                val p = exo
+                val am = getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+                val inCall = am.mode == android.media.AudioManager.MODE_RINGTONE || am.mode == android.media.AudioManager.MODE_IN_CALL || am.mode == android.media.AudioManager.MODE_IN_COMMUNICATION
+                if (p != null) {
+                    if (inCall) {
+                        callClear = 0
+                        if (p.playWhenReady && pausedByCall == 0L) {
+                            pausedByCall = System.currentTimeMillis()
+                            p.pause()
+                            com.ubayanda.milonative.util.ErrorLog.add("audio", "paused for a call")
+                        }
+                    } else if (pausedByCall != 0L) {
+                        // wait a moment after the call so the phone has switched the headphones back
+                        if (++callClear >= 3) {
+                            val fresh = System.currentTimeMillis() - pausedByCall < 30 * 60_000L
+                            pausedByCall = 0L; callClear = 0
+                            if (fresh && !p.playWhenReady) p.play()
+                        }
+                    }
+                }
+            } catch (_: Throwable) {}
+            handler.postDelayed(this, 500)
+        }
+    }
+
     /** Renderers whose audio goes through the parametric equaliser first. */
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun eqRenderers() = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
@@ -244,6 +276,7 @@ class PlaybackService : MediaLibraryService() {
                 .build()
         }
         handler.post(fader)
+        handler.post(callWatch)
         handler.postDelayed(resumeSaver, 10_000)
         // tapping the playback notification (or the lock-screen player) opens milo.
         val open = android.app.PendingIntent.getActivity(
