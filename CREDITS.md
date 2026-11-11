@@ -209,3 +209,9 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Synced lyrics: lines that aren't being sung sit slightly smaller and lower; the line being sung springs up to full size with a small overshoot (spring damping 0.38). The page follows with a spring scroll (glides to the next line and settles with a little give) instead of a fixed-speed scroll. A seek or other far jump moves straight there.
 - "Bouncy lyrics" switch in the lyrics ⋯ menu (on by default, saved as `lybounce`). It is forced off when the phone's animations are turned off.
 - Word highlight, translation, tap-to-seek and long-press share are unchanged. Not run on a device from the sandbox.
+
+## Round 57 — double-tap gestures on Now Playing
+- Double-tap the cover: left third = back 10 s, right third = forward 10 s, middle = play / pause. A round bubble confirms it (back/forward icon, or play/pause); repeated double-taps on the same side show the running total (20 s, 30 s...).
+- Single taps, swipe sideways (next/previous) and swipe down (close) are unchanged, as are the buttons on the art.
+- "Double-tap gestures" switch in the ⋯ menu (on by default, saved as `dtap`) in case of accidental taps.
+- Not run on a device from the sandbox.

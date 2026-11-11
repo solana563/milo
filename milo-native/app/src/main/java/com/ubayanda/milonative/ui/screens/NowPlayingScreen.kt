@@ -59,7 +59,9 @@ import androidx.compose.material.icons.rounded.BluetoothAudio
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Forward10
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Repeat
@@ -127,6 +129,9 @@ import com.ubayanda.milonative.ui.components.liquidGlass
 import com.ubayanda.milonative.ui.components.glassStroke
 import com.ubayanda.milonative.ui.components.lift
 
+/** The little bubble that confirms a double-tap on the art. [zone]: -1 back, 0 play/pause, 1 forward. */
+private data class TapFlash(val zone: Int, val count: Int, val token: Long, val playing: Boolean = false)
+
 private enum class Panel { None, Queue, Sound, Lyrics, Visual }
 
 private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
@@ -142,6 +147,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val cover = if (coverPair.first == t.id) coverPair.second else null
     val coverDone = coverPair.first == t.id
     val soft = rememberSoft(vm, t).value
+    // double-tap the art: left = back 10 s, right = forward 10 s, middle = play / pause
+    val uiNow by rememberUpdatedState(ui)
+    val npCtx = androidx.compose.ui.platform.LocalContext.current
+    var tapFlash by remember { mutableStateOf<TapFlash?>(null) }
+    LaunchedEffect(tapFlash?.token) { if (tapFlash != null) { kotlinx.coroutines.delay(750); tapFlash = null } }
     val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
     val npBackdrop = com.ubayanda.milonative.ui.components.rememberBackdropState()
     val npLive = npBackdrop.takeIf { android.os.Build.VERSION.SDK_INT >= 31 && !com.ubayanda.milonative.BuildConfig.LITE }
@@ -178,7 +188,21 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         Column(Modifier.fillMaxSize().blur(behindBlur)) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("swipe-skip") {
+                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
+                    detectTapGestures(onDoubleTap = { off ->
+                        if (!npCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) return@detectTapGestures
+                        val cur = uiNow
+                        val zone = if (off.x < size.width / 3f) -1 else if (off.x > size.width * 2f / 3f) 1 else 0
+                        val prev = tapFlash
+                        // taps in a row on the same side add up (+10 s, +20 s ...) like video players
+                        val n = if (zone != 0 && prev != null && prev.zone == zone) prev.count + 1 else 1
+                        when (zone) {
+                            0 -> vm.player.toggle()
+                            else -> vm.player.seekTo((cur.positionMs + zone * 10_000L).coerceIn(0L, if (cur.durationMs > 0) cur.durationMs else Long.MAX_VALUE))
+                        }
+                        tapFlash = TapFlash(zone, if (zone == 0) 1 else n, System.nanoTime(), playing = zone == 0 && !cur.isPlaying)
+                    })
+                }.pointerInput("swipe-skip") {
                     // swipe the art sideways: left = next song, right = previous
                     var hx = 0f
                     detectHorizontalDragGestures(
@@ -222,6 +246,21 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.3f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f))))
 
+                tapFlash?.let { f ->
+                    Box(
+                        Modifier.align(if (f.zone < 0) Alignment.CenterStart else if (f.zone > 0) Alignment.CenterEnd else Alignment.Center).padding(horizontal = 36.dp)
+                            .size(92.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                if (f.zone < 0) Icons.Rounded.Replay10 else if (f.zone > 0) Icons.Rounded.Forward10 else if (f.playing) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                                null, tint = Color.White, modifier = Modifier.size(40.dp),
+                            )
+                            if (f.zone != 0 && f.count > 1) Text("${f.count * 10} s", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
                 RoundBtn(Icons.Rounded.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
 
                 Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -713,6 +752,11 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
+            val dtapCtx = androidx.compose.ui.platform.LocalContext.current
+            var dtapOn by remember { mutableStateOf(dtapCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) }
+            DropdownMenuItem(text = { Text(if (dtapOn) "Double-tap gestures: on" else "Double-tap gestures: off") }, onClick = {
+                dtapOn = !dtapOn; dtapCtx.getSharedPreferences("milo_fx", 0).edit().putBoolean("dtap", dtapOn).apply(); open = false
+            })
             DropdownMenuItem(text = { Text("Car mode") }, onClick = { open = false; actions.carMode() })
             if (ui.sleepLeftMs > 0) {
                 DropdownMenuItem(text = { Text("Sleep timer: ${fmtTime(ui.sleepLeftMs)} left. Cancel") }, onClick = { vm.player.sleepIn(0); open = false })

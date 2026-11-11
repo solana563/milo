@@ -154,3 +154,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R54: crossfade on, let 4 songs change by themselves. At the swap the old song should carry on without a dip or restart and then fade out under the new song. Also try: pause during the last 10 s then resume, scrub back from the last 5 s, press Next near the end. Send the "swap:" Diagnostics lines.
 - [ ] R55: first crossfade after opening milo is as smooth as later ones; crossfading into a 20+ minute mix does not jump to a saved position mid-fade.
 - [ ] R56: open synced lyrics. The sung line pops up with a small bounce, the page glides after it, no stutter on long songs. ⋯ → Bouncy lyrics: off returns to the plain look. Tapping a line still seeks; seeking far jumps without a long scroll.
+- [ ] R57: Now Playing, double-tap the left / middle / right of the cover: -10 s / pause-play / +10 s with a bubble. Swipes and the side buttons still work. ⋯ → Double-tap gestures: off disables them.
