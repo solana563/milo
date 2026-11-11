@@ -7,7 +7,7 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      FB_APP: ${{ secrets.FIREBASE_APP_ID }}
+      FB_APP: ${{ secrets.FIREBASE_WEB_APP_ID }}
     defaults: { run: { working-directory: native } }
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +28,13 @@ jobs:
           name: milo-WEB-WRAPPER-debug-apk
           path: native/android/app/build/outputs/apk/debug/*.apk
       # Optional: send the APK to testers through Firebase App Distribution.
-      # Runs only when the repo secrets FIREBASE_APP_ID and FIREBASE_SERVICE_ACCOUNT are set (see FIREBASE-DISTRIBUTION.md).
+      # Runs only when the repo secrets FIREBASE_WEB_APP_ID (the Firebase app for the web wrapper's own package) and FIREBASE_SERVICE_ACCOUNT are set.
+      # It no longer uses FIREBASE_APP_ID, which now belongs to the native app (docs/FIREBASE_APP_DISTRIBUTION.md).
       - name: Firebase App Distribution
         if: ${{ env.FB_APP != '' }}
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
+          appId: ${{ secrets.FIREBASE_WEB_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
           file: native/android/app/build/outputs/apk/debug/app-debug.apk

@@ -1,13 +1,32 @@
 name: Build milo. native APK
 on:
   workflow_dispatch:
+    inputs:
+      track:
+        description: "Firebase tester track for this run (none = build only)"
+        type: choice
+        default: none
+        options: [none, internal, beta, rc]
+  pull_request:
+    paths: ["milo-native/**", ".github/workflows/native.yml", ".github/scripts/**"]
   push:
-    paths: ["milo-native/**", ".github/workflows/native.yml"]
+    branches: ["**"]
+    paths: ["milo-native/**", ".github/workflows/native.yml", ".github/scripts/**"]
+    tags: ["v*"]
+# Pull requests and ordinary branches: build and test only. Firebase distribution runs for pushes to main (internal testers),
+# version tags v* (beta, or release-candidate when the tag contains "-rc") and a manual run that picks a track.
+permissions:
+  contents: read
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   apk:
     runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.tests.outcome }}
+      rel: ${{ steps.rel.outcome }}
     env:
-      FB_APP: ${{ secrets.FIREBASE_APP_ID }}
       KS_B64: ${{ secrets.MILO_KEYSTORE_B64 }}
       MILO_KEYSTORE_PASSWORD: ${{ secrets.MILO_KEYSTORE_PASSWORD }}
       MILO_KEY_ALIAS: ${{ secrets.MILO_KEY_ALIAS }}
@@ -20,6 +39,11 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
+      - name: Version name (tag v1.2.3 gives 1.2.3, otherwise 1.0)
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF_NAME#v}"; else V="1.0"; fi
+          echo "MILO_VERSION_NAME=$V" >> "$GITHUB_ENV"
       - name: Release signing key (only when the MILO_KEYSTORE_B64 secret is set)
         shell: bash
         run: |
@@ -144,13 +168,86 @@ jobs:
           if [ -n "$KS_B64" ]; then row "Release key configured" "yes" ""; else row "Release key configured" "NO" "release builds use the debug key"; fi
           if [ "$FAIL" = "1" ]; then echo "Release gate FAILED" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
           echo "Release gate passed (distribution steps are separate and only run when their secrets are set)." | tee -a "$GITHUB_STEP_SUMMARY"
-      # Optional: same Firebase App Distribution step as the web-wrapper APK (needs FIREBASE_APP_ID + FIREBASE_SERVICE_ACCOUNT secrets).
-      - name: Firebase App Distribution
-        if: ${{ success() && env.FB_APP != '' }}
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
+      - name: Distribution decision
+        if: always()
+        shell: bash
+        env:
+          T_TESTS: ${{ steps.tests.outcome }}
+          T_REL: ${{ steps.rel.outcome }}
+        run: |
+          {
+            echo "### Firebase distribution"
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then echo "Not distributed: pull requests only build and test."
+            elif [ "$T_TESTS" != "success" ]; then echo "Not distributed: unit tests did not pass ($T_TESTS)."
+            elif [ "$T_REL" != "success" ]; then echo "Not distributed: the release APK did not build ($T_REL)."
+            elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" != "refs/heads/main" ] && [[ "$GITHUB_REF" != refs/tags/v* ]]; then echo "Not distributed: branch builds are build-and-test only (distribution runs for main and v* tags)."
+            elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${{ inputs.track }}" = "none" ]; then echo "Not distributed: the manual run chose track 'none'."
+            else echo "Eligible: see the 'distribute' job for the result."; fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  distribute:
+    needs: apk
+    if: >-
+      needs.apk.outputs.tests == 'success' && needs.apk.outputs.rel == 'success' &&
+      github.event_name != 'pull_request' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.track != 'none') ||
+       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/download-artifact@v4
         with:
-          appId: ${{ secrets.FIREBASE_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          groups: testers
-          file: milo-native/app/build/outputs/apk/full/debug/app-full-debug.apk
-          releaseNotes: "milo. native debug build"
+          name: milo-native-release-apk
+          path: release-apk
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Track and tester groups
+        id: track
+        shell: bash
+        env:
+          INPUT_TRACK: ${{ inputs.track }}
+          G_INTERNAL: ${{ secrets.FIREBASE_TESTER_GROUPS }}
+          G_BETA: ${{ secrets.FIREBASE_BETA_GROUPS }}
+          G_RC: ${{ secrets.FIREBASE_RC_GROUPS }}
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch) T="$INPUT_TRACK" ;;
+            *) if [[ "$GITHUB_REF" == refs/tags/v* ]]; then case "$GITHUB_REF_NAME" in *-rc*) T=rc ;; *) T=beta ;; esac; else T=internal; fi ;;
+          esac
+          case "$T" in internal) G="$G_INTERNAL" ;; beta) G="$G_BETA" ;; rc) G="$G_RC" ;; *) G="" ;; esac
+          echo "track=$T" >> "$GITHUB_OUTPUT"
+          echo "groups=$G" >> "$GITHUB_OUTPUT"
+      - name: Release notes
+        shell: bash
+        env:
+          LABEL: Full release
+          TRACK: ${{ steps.track.outputs.track }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          TESTS_OUTCOME: ${{ needs.apk.outputs.tests }}
+          TEST_TASK: testFullDebugUnitTest
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          B=$("$BT/aapt2" dump badging release-apk/*.apk | sed -n "s/^package: name='[^']*' versionCode='\([^']*\)' versionName='\([^']*\)'.*/\1|\2/p")
+          export VERSION_CODE="${B%%|*}" VERSION_NAME="${B##*|}"
+          bash .github/scripts/fb-release-notes.sh "$RUNNER_TEMP/release-notes.txt"
+      - name: Upload to Firebase App Distribution
+        shell: bash
+        env:
+          APK_DIR: release-apk
+          EXPECT_PKG: com.ubayanda.milonative
+          LABEL: milo. Full
+          TRACK: ${{ steps.track.outputs.track }}
+          FB_APP: ${{ secrets.FIREBASE_APP_ID }}
+          FB_GROUPS: ${{ steps.track.outputs.groups }}
+          FB_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.txt
+        run: bash .github/scripts/fb-distribute.sh
+      - name: Remove any leftover credential files
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP"/fbsa.* "$RUNNER_TEMP"/fb.* 2>/dev/null || true
