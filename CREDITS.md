@@ -223,3 +223,10 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Responsive: all three widgets use Glance responsive sizes (SizeMode.Responsive). Player: tiny (cover + play), narrow-tall (cover, title, play/next), slim row, full player, roomy full player (bigger cover/title). Pill: cover+play, +text and next, +previous, tall variant. Cover: play only when narrow, play+next when wider, text hidden when short. The launcher picks the layout from the size the person drags it to / their home-screen grid.
 - Widget cover picture capped at 256 px (several size variants each carry a copy; the home screen refuses oversized pictures).
 - Not run on a device from the sandbox (Glance layouts can only be judged on a real launcher).
+
+## Round 59 — Firebase App Distribution, CI/CD
+- Audit: `native.yml` uploaded the DEBUG APK to a hard-coded group "testers" on every push to any branch via an unpinned third-party action; `android.yml` (web wrapper) used the same `FIREBASE_APP_ID` (wrong app); Lite had no distribution and no tests; no workflow permissions, concurrency, release notes or summary.
+- New: `.github/scripts/fb-release-notes.sh`, `.github/scripts/fb-distribute.sh` (APK validation, pinned firebase-tools 13.29.1, temp credentials removed on exit, failure diagnosis, summary with only real links).
+- `native.yml` and `lite.yml`: triggers (PR build/test only; main = internal; `v*` = beta; `v*-rc*` = rc; manual input), `permissions: contents: read`, concurrency, version name from tag, separate `distribute` job gated on tests + signed release APK, track-specific group secrets, Lite uses its own `FIREBASE_LITE_*` secrets, Lite gets a unit-test step and a release-APK artifact. `android.yml`: now reads `FIREBASE_WEB_APP_ID`.
+- Docs: `docs/FIREBASE_APP_DISTRIBUTION.md`.
+- Not verified: no real Firebase upload, no invitations sent, runner tool checks untested. Release signing and the build steps themselves are unchanged.

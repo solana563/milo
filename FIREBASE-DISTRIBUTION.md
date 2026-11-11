@@ -1,3 +1,5 @@
+> The native and Lite apps now distribute through `docs/FIREBASE_APP_DISTRIBUTION.md` (release APKs, tracks, tags). This older page covers the web-wrapper only.
+
 # Send the test APK to your phone with Firebase App Distribution
 
 Project: milo-2026563. The GitHub workflow can upload every APK build there automatically.
