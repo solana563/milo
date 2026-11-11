@@ -198,3 +198,9 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The Round 53 trace (Samsung SM-A336E) showed volumes and fade progress were exactly right, but the old song's tail player sat at the same position for ~0.3-0.4 s after the swap ("old@242641" twice, the "waited 408ms" hold). So at the swap the main player was silenced instantly, the tail player took ~0.4 s to start making sound, and the old song came back afterwards: the "plays as if I clicked next, then the old song comes back" effect.
 - Fix: the tail player is now started silently a little before the swap (default 450 ms) so it is already running when it takes over. The lead is learned: every swap logs "old song Nms behind, lead Mms" and adjusts the lead for the next one (saved as `xflead`, 150-1500 ms). Pausing, scrubbing back, and skipping while it is warming are handled (it follows pause/resume, is set up again after a scrub, and a skip drops it).
 - Not verified by ear; the next report's "swap:" line shows how well aligned it was.
+
+## Round 55 — crossfade follow-up
+- R54 verified from the user's report: the second swap logged "old song -6ms behind" (lead 501 ms) and its old-song position moved straight away: the start-up gap is gone. Fade curves and progress were correct throughout.
+- The first fade in that report was still cold (old song's position frozen ~0.5 s): the tail player was probably not ready when its first warm-up was due. It is now prepared 9 s before the swap (was 4 s).
+- Another fade showed the new song (a 20+ minute track) jump to 2:05 in the middle of the fade and go to buffering: the "resume where you left off" feature for long tracks. It is now skipped when the song arrives through a crossfade.
+- Not verified by ear.

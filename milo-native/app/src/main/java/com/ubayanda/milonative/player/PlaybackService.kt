@@ -192,7 +192,7 @@ class PlaybackService : MediaLibraryService() {
             if (item != null && dur != C.TIME_UNSET && dur > x * 3) {
                 val toEnd = dur - p.currentPosition
                 val key = item.mediaId + "#" + p.currentMediaItemIndex
-                if (toEnd <= x + 4000L && primedKey != key) {
+                if (toEnd <= x + 9000L && primedKey != key) {
                     val g = ghostPlayer()
                     g.stop()
                     g.setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT)
@@ -355,7 +355,8 @@ class PlaybackService : MediaLibraryService() {
                     if (id != null && resumedFor != id) {
                         resumedFor = id
                         val d = player.duration
-                        if (d >= Resume.LONG_MS) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
+                        // arriving through a crossfade: start the song from its beginning; jumping to a saved spot would cut the fade
+                        if (d >= Resume.LONG_MS && xfLen == 0L) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
                             if (pos > 10_000 && pos < d - 30_000) { player.seekTo(pos); if (sp > 0f && sp != player.playbackParameters.speed) player.setPlaybackSpeed(sp) }
                         }
                     }
