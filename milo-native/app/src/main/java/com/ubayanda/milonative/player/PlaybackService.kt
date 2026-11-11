@@ -53,6 +53,8 @@ class PlaybackService : MediaLibraryService() {
     /** Set just before the crossfade itself moves to the next song, so a skip by the person can be told apart. */
     private var xfOwn = false
     private var xfF = 0f   // how far the fade has got; it only ever moves forward
+    private var xfG0 = 0L  // where the old song's tail was when the fade began
+    private var xfTrace = 0L
     private var lastTick = 0L
 
     // Phone calls: Bluetooth swaps from music mode to call mode, and music still playing across that swap comes out fast and high-pitched.
@@ -148,6 +150,8 @@ class PlaybackService : MediaLibraryService() {
                 if (p.playbackState == Player.STATE_READY && p.playWhenReady && ghostOk) {
                     xfWait = false
                     xfF = 0f
+                    xfG0 = g?.currentPosition ?: 0L
+                    xfTrace = 0L
                     xfT0 = now
                     val rem = if (g != null && g.duration != C.TIME_UNSET) g.duration - g.currentPosition else xfLen
                     xfLen = rem.coerceIn(400L, xfLen)
@@ -160,15 +164,24 @@ class PlaybackService : MediaLibraryService() {
                 g?.let { it.volume = rgPrev; it.playWhenReady = p.playWhenReady }
             } else {
                 if (!p.playWhenReady) xfT0 += dt.coerceAtMost(100L) // paused: hold the fade where it is
-                val f = maxOf(xfF, ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f))
+                // progress follows the old song's own playback position, so it reaches silence exactly where that song ends;
+                // the clock is only the fallback while the old song's length is unknown
+                val gd = g?.duration ?: C.TIME_UNSET
+                val byClock = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
+                val byPos = if (g != null && gd != C.TIME_UNSET && gd - xfG0 > 300L) ((g.currentPosition - xfG0).toFloat() / (gd - xfG0)).coerceIn(0f, 1f) else byClock
+                val f = maxOf(xfF, byPos)
                 xfF = f
+                if (now - xfTrace >= 300L) {
+                    xfTrace = now
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "f=${"%.2f".format(f)} clock=${"%.2f".format(byClock)} new=${p.currentMediaItem?.mediaId?.takeLast(6)}@${p.currentPosition}/${p.playbackState} vol=${"%.2f".format(p.volume)} old@${g?.currentPosition}/${g?.playbackState} vol=${"%.2f".format(g?.volume ?: 0f)} idx=${p.currentMediaItemIndex}")
+                }
                 val gn = XFade.gains(f, fxPrefs.getInt("xfcurve", 0))
                 v = gn.second
                 g?.let {
                     it.volume = gn.first * rgPrev
                     it.playWhenReady = p.playWhenReady
                 }
-                if (f >= 1f) endGhost()
+                if (f >= 1f || g?.playbackState == Player.STATE_ENDED) endGhost()
             }
         } else if (x > 0L && p.isPlaying && session?.player === p && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
             val dur = p.duration

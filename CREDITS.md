@@ -187,3 +187,9 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The old song is only re-positioned if it is more than 1.5 s off (was 0.3 s); re-positioning forces a reload that sounds like a restart.
 - Diagnostics now records "xfade" lines: fade start and wait time, the old song moving, giving up, or a song change cutting the fade short. If it still happens, that report shows which.
 - Not verified on a device.
+
+## Round 53 — crossfade: position-driven fade + trace
+- User description: the fade starts, the new song then comes in "as if Next was pressed", and the old song returns to finish the fade. Not found by reading the code (curves return old/new in the right order; no other code path touches the fade).
+- The fade now follows the old song's own playback position (it reaches silence exactly where that song ends); the wall clock is only a fallback. The fade also ends if the old song reaches its end.
+- Diagnostics gets one "xfade" trace line every 300 ms during a fade: progress, both songs' positions, states and volumes. A single report from a bad transition will show whether the new song is loud at the wrong time, the old song restarts, or a song-change event cuts in.
+- Full dual-deck spec (settings for fade-in/out/skip fade, short-track protection, source capability matrix, PCM tests) is a larger project: see the plan given in chat; nothing in it is claimed done.
