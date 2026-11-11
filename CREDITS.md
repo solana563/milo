@@ -179,3 +179,11 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Finding from the user's tests: milo kept playing while the phone rang, and over Bluetooth the music came out fast and high-pitched (Poweramp pauses on calls and doesn't do this). Bluetooth switches from music mode to call mode during a call; playing across that switch plays audio at the wrong rate.
 - Fix: the service watches the phone's audio mode every 500 ms (no permission needed). Ringing, in a call, or in an app call (WhatsApp etc.) pauses; when the call ends it resumes after ~1.5 s, only if milo paused itself and within 30 minutes. A manual pause/play during the call is respected. Logged to Diagnostics as "paused for a call".
 - Not verified on a device from the sandbox.
+
+## Round 52 — crossfade: old song "restarting" its fade
+- Reported: during a crossfade the fading-out song suddenly starts fading out again. Could not be reproduced from the sandbox; three plausible causes fixed and the rest logged.
+- The fade now waits for the old song's tail to be playable as well as the new song (previously the old song could still be loading, drop out, and come in mid-fade).
+- Fade progress can never go backwards (a long main-thread stall while paused could previously push the fade start later and make the volume jump back up).
+- The old song is only re-positioned if it is more than 1.5 s off (was 0.3 s); re-positioning forces a reload that sounds like a restart.
+- Diagnostics now records "xfade" lines: fade start and wait time, the old song moving, giving up, or a song change cutting the fade short. If it still happens, that report shows which.
+- Not verified on a device.
