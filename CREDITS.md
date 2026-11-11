@@ -193,3 +193,8 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The fade now follows the old song's own playback position (it reaches silence exactly where that song ends); the wall clock is only a fallback. The fade also ends if the old song reaches its end.
 - Diagnostics gets one "xfade" trace line every 300 ms during a fade: progress, both songs' positions, states and volumes. A single report from a bad transition will show whether the new song is loud at the wrong time, the old song restarts, or a song-change event cuts in.
 - Full dual-deck spec (settings for fade-in/out/skip fade, short-track protection, source capability matrix, PCM tests) is a larger project: see the plan given in chat; nothing in it is claimed done.
+
+## Round 54 — crossfade gap found from the trace and fixed
+- The Round 53 trace (Samsung SM-A336E) showed volumes and fade progress were exactly right, but the old song's tail player sat at the same position for ~0.3-0.4 s after the swap ("old@242641" twice, the "waited 408ms" hold). So at the swap the main player was silenced instantly, the tail player took ~0.4 s to start making sound, and the old song came back afterwards: the "plays as if I clicked next, then the old song comes back" effect.
+- Fix: the tail player is now started silently a little before the swap (default 450 ms) so it is already running when it takes over. The lead is learned: every swap logs "old song Nms behind, lead Mms" and adjusts the lead for the next one (saved as `xflead`, 150-1500 ms). Pausing, scrubbing back, and skipping while it is warming are handled (it follows pause/resume, is set up again after a scrub, and a skip drops it).
+- Not verified by ear; the next report's "swap:" line shows how well aligned it was.

@@ -55,6 +55,7 @@ class PlaybackService : MediaLibraryService() {
     private var xfF = 0f   // how far the fade has got; it only ever moves forward
     private var xfG0 = 0L  // where the old song's tail was when the fade began
     private var xfTrace = 0L
+    private var xfWarm = false   // the old song's tail player is already running silently, so it can take over with no start-up gap
     private var lastTick = 0L
 
     // Phone calls: Bluetooth swaps from music mode to call mode, and music still playing across that swap comes out fast and high-pitched.
@@ -118,6 +119,7 @@ class PlaybackService : MediaLibraryService() {
 
     private fun endGhost() {
         xfLen = 0L
+        xfWarm = false
         xfWait = false
         primedKey = null
         ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
@@ -140,6 +142,7 @@ class PlaybackService : MediaLibraryService() {
     private fun tick(p: ExoPlayer, now: Long, dt: Long) {
         val x = fxPrefs.getInt("xfade", 0) * 1000L
         var v = 1f
+        if (xfWarm && xfLen == 0L) ghost?.let { if (it.playWhenReady != p.playWhenReady) it.playWhenReady = p.playWhenReady }
         if (xfLen > 0L) {
             // a crossfade is running: old song (ghost) goes down, new song goes up, equal power
             val g = ghost
@@ -200,8 +203,26 @@ class PlaybackService : MediaLibraryService() {
                     g.prepare()
                     primedKey = key
                 }
+                // The old song's tail player needs a few hundred ms to start making sound (measured on the phone: its position sat still for
+                // ~0.4 s). Starting it only at the swap cut the old song, left a gap, and brought it back. So set it running, silent, a little
+                // earlier. The lead is learned: each swap measures how far behind it was and adjusts the next one.
+                val lead = fxPrefs.getInt("xflead", 450).toLong()
+                if (primedKey == key && !xfWarm && toEnd <= x + lead && toEnd > x) {
+                    val g = ghostPlayer()
+                    if (g.playbackState == Player.STATE_READY) { g.volume = 0f; g.playWhenReady = true; xfWarm = true }
+                }
+                if (xfWarm && toEnd > x + lead + 1500L) {
+                    // the person scrubbed back: stop warming and set the old song up again for the new position
+                    ghost?.let { try { it.pause() } catch (_: Throwable) {} }
+                    xfWarm = false; primedKey = null
+                }
                 if (toEnd <= x && primedKey == key) {
                     val g = ghostPlayer()
+                    if (xfWarm) {
+                        val d = p.currentPosition - g.currentPosition
+                        com.ubayanda.milonative.util.ErrorLog.add("xfade", "swap: old song ${d}ms behind, lead ${lead}ms")
+                        if (Math.abs(d) < 1000L) fxPrefs.edit().putInt("xflead", (lead + d * 0.7).toInt().coerceIn(150, 1500)).apply()
+                    }
                     // already waiting at the right spot; only nudge it if the two clocks disagree
                     if (Math.abs(g.currentPosition - p.currentPosition) > 1500L) { com.ubayanda.milonative.util.ErrorLog.add("xfade", "old song moved ${g.currentPosition - p.currentPosition}ms"); g.seekTo(p.currentPosition) }
                     g.volume = rgPrev

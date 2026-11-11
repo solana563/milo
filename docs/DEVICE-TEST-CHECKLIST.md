@@ -151,3 +151,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R51: over Bluetooth, play music and have someone call you. Music pauses when it rings; if you reject or end the call, music resumes by itself. No fast/high-pitched audio. Repeat with a WhatsApp call. Pausing yourself before the call must not auto-resume.
 - [ ] R52: crossfade 6 s on, play 6+ songs in a row (downloaded and streamed). Old song only ever fades down once; no jump back up. If it happens, send Diagnostics ("xfade" lines).
 - [ ] R53: crossfade on, let 3 songs change by themselves, then open Profile → Diagnostics → Share and send the "xfade" lines.
+- [ ] R54: crossfade on, let 4 songs change by themselves. At the swap the old song should carry on without a dip or restart and then fade out under the new song. Also try: pause during the last 10 s then resume, scrub back from the last 5 s, press Next near the end. Send the "swap:" Diagnostics lines.
