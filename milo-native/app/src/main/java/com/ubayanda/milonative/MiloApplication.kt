@@ -7,6 +7,8 @@ import java.io.File
 class MiloApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        // a new process has no player service yet: whatever the widgets remember about one is out of date
+        try { com.ubayanda.milonative.widget.WidgetState.setAlive(this, false) } catch (_: Throwable) {}
         try {
             androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
                 "milo_chat_check", androidx.work.ExistingPeriodicWorkPolicy.KEEP,

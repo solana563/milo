@@ -65,6 +65,8 @@ class MainActivity : ComponentActivity() {
         when (i?.action) {
             "com.ubayanda.milonative.SHUFFLE" -> { vm.runShortcut("shuffle"); return }
             "com.ubayanda.milonative.LIKED" -> { vm.runShortcut("liked"); return }
+            // a home-screen widget button pressed while milo wasn't running: bring back the last queue and carry on
+            "com.ubayanda.milonative.RESUME" -> { vm.resumePlayback(); return }
         }
         val raw = when (i?.action) {
             Intent.ACTION_VIEW -> i.dataString

@@ -138,6 +138,7 @@ class PlayerHolder(context: Context) {
     }
     fun removeFromQueue(i: Int) = withController { c -> if (i in 0 until c.mediaItemCount) c.removeMediaItem(i) }
 
+    fun play() = withController { c -> c.play() }
     fun toggle() = withController { c -> if (c.isPlaying) c.pause() else c.play() }
     /** 1 when the last change of song went forward, -1 when it went back. The art slides the matching way. */
     @Volatile var navDir = 1

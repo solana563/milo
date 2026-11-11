@@ -215,3 +215,11 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Single taps, swipe sideways (next/previous) and swipe down (close) are unchanged, as are the buttons on the art.
 - "Double-tap gestures" switch in the ⋯ menu (on by default, saved as `dtap`) in case of accidental taps.
 - Not run on a device from the sandbox.
+
+## Round 58 — widgets: alive, responsive, and buttons that recover
+- Why they felt dead: widget state was only rewritten on song/play events, so a killed service or a reboot left "playing" stuck on screen, the progress bar never moved between events, and every button failed silently when the player service wasn't running (the queue lives inside it) or a command threw (errors were swallowed).
+- Alive: a 5 s heartbeat from the player service while music plays keeps progress/"playing" fresh. A "playing" claim not refreshed for 25 s, or from before the app process started, shows as paused. The service tells the widgets when it is up/down (`alive`), reset on every app process start so it can never outlive the service.
+- Buttons: with the player running they talk to it as before (connection time-out 6 s, kept open 1.5 s). With the player not running (app swiped away, phone restarted) Play/Next/Previous now open milo with a new `RESUME` action that brings the last queue back and plays it; other buttons just open milo. A command with an empty player does the same. Every failure is now logged to Diagnostics as "widget".
+- Responsive: all three widgets use Glance responsive sizes (SizeMode.Responsive). Player: tiny (cover + play), narrow-tall (cover, title, play/next), slim row, full player, roomy full player (bigger cover/title). Pill: cover+play, +text and next, +previous, tall variant. Cover: play only when narrow, play+next when wider, text hidden when short. The launcher picks the layout from the size the person drags it to / their home-screen grid.
+- Widget cover picture capped at 256 px (several size variants each carry a copy; the home screen refuses oversized pictures).
+- Not run on a device from the sandbox (Glance layouts can only be judged on a real launcher).

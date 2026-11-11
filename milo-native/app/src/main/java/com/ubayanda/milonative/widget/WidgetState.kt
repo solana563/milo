@@ -11,7 +11,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** What the home-screen widgets show: written by the playback service, read by the widgets. */
-data class WidgetState(val title: String, val artist: String, val playing: Boolean, val pos: Long, val dur: Long, val art: Bitmap?, val accent: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFFF99C00), val liked: Boolean = false, val shuffle: Boolean = false) {
+data class WidgetState(val title: String, val artist: String, val playing: Boolean, val pos: Long, val dur: Long, val art: Bitmap?, val accent: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color(0xFFF99C00), val liked: Boolean = false, val shuffle: Boolean = false, val alive: Boolean = true) {
     val progress: Float get() = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
     val empty: Boolean get() = title.isEmpty()
 
@@ -22,17 +22,29 @@ data class WidgetState(val title: String, val artist: String, val playing: Boole
         fun read(ctx: Context): WidgetState {
             val p = prefs(ctx)
             val f = artFile(ctx)
-            val art = try { if (p.getBoolean("art", false) && f.exists()) BitmapFactory.decodeFile(f.path) else null } catch (_: Throwable) { null }
+            // small on purpose: several widgets each carry a copy, and the home screen refuses oversized pictures
+            val art = try {
+                if (p.getBoolean("art", false) && f.exists()) BitmapFactory.decodeFile(f.path)?.let { b ->
+                    val sc = 256f / maxOf(b.width, b.height)
+                    if (sc < 1f) Bitmap.createScaledBitmap(b, (b.width * sc).toInt().coerceAtLeast(1), (b.height * sc).toInt().coerceAtLeast(1), true) else b
+                } else null
+            } catch (_: Throwable) { null }
             // the colour the person picked in Profile
             val a = ctx.getSharedPreferences("milo_ui", Context.MODE_PRIVATE).getLong("accent", 0L)
             val accent = if (a != 0L) androidx.compose.ui.graphics.Color(a.toULong()) else androidx.compose.ui.graphics.Color(0xFFF99C00)
-            return WidgetState(p.getString("title", "").orEmpty(), p.getString("artist", "").orEmpty(), p.getBoolean("playing", false), p.getLong("pos", 0L), p.getLong("dur", 0L), art, accent, p.getBoolean("liked", false), p.getBoolean("shuffle", false))
+            // "playing" that nobody has refreshed for a while is a stale claim (the service was killed, the phone rebooted): show it as paused
+            val fresh = System.currentTimeMillis() - p.getLong("ts", 0L) < 25_000L
+            // the player service is up (set by the service itself; reset whenever the app process starts, so it can never outlive the service)
+            val alive = p.getBoolean("alive", false)
+            return WidgetState(p.getString("title", "").orEmpty(), p.getString("artist", "").orEmpty(), p.getBoolean("playing", false) && fresh && alive, p.getLong("pos", 0L), p.getLong("dur", 0L), art, accent, p.getBoolean("liked", false), p.getBoolean("shuffle", false), alive)
         }
 
         fun write(ctx: Context, title: String, artist: String, playing: Boolean, pos: Long, dur: Long, id: String = "", shuffle: Boolean = false) {
             prefs(ctx).edit().putString("title", title).putString("artist", artist).putBoolean("playing", playing).putLong("pos", pos).putLong("dur", dur)
-                .putString("cur", id).putBoolean("shuffle", shuffle).putBoolean("liked", isLiked(ctx, id)).apply()
+                .putString("cur", id).putBoolean("shuffle", shuffle).putBoolean("liked", isLiked(ctx, id)).putLong("ts", System.currentTimeMillis()).putBoolean("alive", true).apply()
         }
+
+        fun setAlive(ctx: Context, alive: Boolean) { prefs(ctx).edit().putBoolean("alive", alive).apply() }
 
         /** Is this song in Liked songs? Reads the same list the app saves. */
         fun isLiked(ctx: Context, id: String): Boolean =
@@ -40,7 +52,7 @@ data class WidgetState(val title: String, val artist: String, val playing: Boole
 
         fun currentId(ctx: Context): String = prefs(ctx).getString("cur", "").orEmpty()
 
-        fun clear(ctx: Context) { prefs(ctx).edit().clear().apply(); artFile(ctx).delete() }
+        fun clear(ctx: Context) { prefs(ctx).edit().clear().putBoolean("alive", false).apply(); artFile(ctx).delete() }
 
         /** Saves a small cover for the widgets: from the web address if there is one, else the phone's album art. */
         fun saveArt(ctx: Context, media: Uri?, artwork: Uri?) {

@@ -58,6 +58,14 @@ class PlaybackService : MediaLibraryService() {
     private var xfWarm = false   // the old song's tail player is already running silently, so it can take over with no start-up gap
     private var lastTick = 0L
 
+    // keeps the home-screen widgets alive: the progress bar moves and "playing" stays fresh while music plays
+    private val widgetBeat = object : Runnable {
+        override fun run() {
+            try { exo?.let { if (it.isPlaying) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, it) } } catch (_: Throwable) {}
+            handler.postDelayed(this, 5_000)
+        }
+    }
+
     // Phone calls: Bluetooth swaps from music mode to call mode, and music still playing across that swap comes out fast and high-pitched.
     // So like other players, pause when a call rings or starts (cell or app calls) and carry on when it ends.
     private var pausedByCall = 0L
@@ -318,6 +326,8 @@ class PlaybackService : MediaLibraryService() {
         }
         handler.post(fader)
         handler.post(callWatch)
+        handler.post(widgetBeat)
+        com.ubayanda.milonative.widget.WidgetUpdater.serviceUp(this)
         handler.postDelayed(resumeSaver, 10_000)
         // tapping the playback notification (or the lock-screen player) opens milo.
         val open = android.app.PendingIntent.getActivity(

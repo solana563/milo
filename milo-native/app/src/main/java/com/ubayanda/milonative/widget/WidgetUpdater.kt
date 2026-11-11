@@ -35,6 +35,13 @@ object WidgetUpdater {
         }
     }
 
+    /** The player service just started: the widgets' buttons can talk to it now. */
+    fun serviceUp(ctx: Context) {
+        if (com.ubayanda.milonative.BuildConfig.LITE) return
+        val app = ctx.applicationContext
+        scope.launch { try { WidgetState.setAlive(app, true); refresh(app) } catch (_: Throwable) {} }
+    }
+
     /** The Liked songs list changed (in the app or from a widget): redraw the heart. */
     fun pokeLiked(ctx: Context) {
         if (com.ubayanda.milonative.BuildConfig.LITE) return

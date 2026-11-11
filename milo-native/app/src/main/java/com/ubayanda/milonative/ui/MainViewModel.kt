@@ -1052,6 +1052,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ---- remember what was playing ----
     private val lastPrefs = app.getSharedPreferences("milo_last", Context.MODE_PRIVATE)
 
+    /** Widget buttons while milo was closed: restore the last queue (if the player is empty) and play it. */
+    fun resumePlayback() {
+        restoreLast()
+        viewModelScope.launch { kotlinx.coroutines.delay(900); player.play() }
+    }
+
     private fun restoreLast() {
         try {
             val arr = JSONArray(lastPrefs.getString("queue", "[]"))
