@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.Y2K
+import com.ubayanda.milonative.ui.theme.Spider
 import kotlin.math.roundToInt
 
 /*
@@ -70,7 +72,14 @@ fun Modifier.glass(shape: Shape, strength: Float = 1f, tint: Color? = null): Mod
     .clip(shape)
     .background(tint ?: Milo.card, shape)
     .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f * strength), Color.White.copy(alpha = 0.025f * strength))), shape)
-    .border(1.dp, glassStroke(strength), shape)
+    // Y2K: the aqua-gel look: a bright glossy top half with a hard edge, a cool glow at the bottom, a brighter rim
+    .then(
+        if (Y2K.on) Modifier.background(
+            Brush.verticalGradient(0f to Color.White.copy(alpha = 0.24f * strength), 0.5f to Color.White.copy(alpha = 0.06f * strength), 0.5f to Color.Transparent, 1f to Y2K.aqua.copy(alpha = 0.12f * strength)), shape,
+        ) else Modifier,
+    )
+    .then(if (Spider.on) Modifier.webCorner() else Modifier)
+    .border(1.dp, if (Spider.on) Brush.linearGradient(listOf(Spider.red.copy(alpha = 0.75f), Color.White.copy(alpha = 0.10f), Spider.red.copy(alpha = 0.35f))) else if (Y2K.on) Brush.linearGradient(listOf(Color.White.copy(alpha = 0.8f), Y2K.aqua.copy(alpha = 0.35f), Color.White.copy(alpha = 0.5f))) else glassStroke(strength), shape)
     .specular(shape, strength)
 
 /** The liquid edge: a thin bright line just inside the rim at the top, fading out, with a faint glow coming back at the bottom. */
@@ -115,7 +124,8 @@ fun MiloSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier
         Box(
             Modifier.offset(x = 3.dp + x).size(26.dp)
                 .shadow(4.dp, CircleShape, clip = false, ambientColor = Color.Black, spotColor = Color.Black)
-                .clip(CircleShape).background(Color.White, CircleShape),
+                .clip(CircleShape).background(Color.White, CircleShape)
+                .then(if (Y2K.on) Modifier.background(Brush.verticalGradient(listOf(Color.Transparent, Y2K.chromeDark.copy(alpha = 0.7f))), CircleShape) else Modifier),
         )
     }
 }
@@ -158,10 +168,16 @@ fun MiloSlider(
         val cy = size.height / 2f
         val x = edge + frac * (size.width - 2 * edge)
         drawRoundRect(Color(0x33FFFFFF), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(size.width - 2 * edge + 12.dp.toPx(), th), CornerRadius(th / 2))
-        if (frac > 0f) drawRoundRect(amber, Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+        if (frac > 0f) {
+            if (Spider.on) drawRoundRect(Brush.horizontalGradient(listOf(Spider.deepRed, Spider.red)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+            else if (Y2K.on) drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFF1FA8FF), amber)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+            else drawRoundRect(amber, Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+        }
         val tw = 34.dp.toPx(); val thh = 24.dp.toPx()
+        if (Spider.on) { drawSpider(Offset(x, cy), 12.dp.toPx(), body = Color.Black, mark = Spider.red, phase = frac * 40f); return@Canvas }
         drawRoundRect(Color(0x55000000), Offset(x - tw / 2, cy - thh / 2 + 2.dp.toPx()), Size(tw, thh), CornerRadius(thh / 2))
-        drawRoundRect(Color.White, Offset(x - tw / 2, cy - thh / 2), Size(tw, thh), CornerRadius(thh / 2))
+        if (Y2K.on) drawRoundRect(Brush.verticalGradient(listOf(Y2K.chromeLight, Y2K.chromeDark), cy - thh / 2, cy + thh / 2), Offset(x - tw / 2, cy - thh / 2), Size(tw, thh), CornerRadius(thh / 2))
+        else drawRoundRect(Color.White, Offset(x - tw / 2, cy - thh / 2), Size(tw, thh), CornerRadius(thh / 2))
     }
 }
 

@@ -113,11 +113,16 @@ fun MiloApp(vm: MainViewModel) {
     val panelT = if (neutral) Color(0xFF0B0A09) else if (hsl[1] < 0.2) hue(0.065, 1.0) else hue(0.105, 0.9)
     val panel by animateColorAsState(panelT, tween(300), label = "panel")
     val white = Color.White
+    val y2k = com.ubayanda.milonative.ui.theme.Y2K.on
+    val spiderOn = com.ubayanda.milonative.ui.theme.Spider.on
     SideEffect {
-        TintState.panel = panel
-        TintState.card = lerp(panel, white, 0.06f)
-        TintState.card2 = lerp(panel, white, 0.11f)
-        TintState.line = lerp(panel, white, 0.17f)
+        // Y2K: the panel leans towards deep blue (the song's colour still shows through)
+        // Spider: almost black with a faint blood tint; the song's colour barely shows
+        val base = if (spiderOn) lerp(panel, com.ubayanda.milonative.ui.theme.Spider.ink, 0.85f) else if (y2k) lerp(panel, com.ubayanda.milonative.ui.theme.Y2K.navy, 0.62f) else panel
+        TintState.panel = base
+        TintState.card = lerp(base, white, 0.06f)
+        TintState.card2 = lerp(base, white, 0.11f)
+        TintState.line = lerp(base, white, 0.17f)
         TintState.art = !neutral
     }
 
@@ -180,6 +185,7 @@ fun MiloApp(vm: MainViewModel) {
 
     CompositionLocalProvider(LocalActions provides actions) {
         Box(Modifier.fillMaxSize().background(Milo.bg)) {
+            if (spiderOn) com.ubayanda.milonative.ui.components.WebCorners(alpha = 0.22f)
             // the song's art, stretched soft, fills the screen behind the header and panel
             if (current != null && headerArt != null) {
                 // the art behind the logo stays crisp and fully visible, fading out down the screen (like the web)

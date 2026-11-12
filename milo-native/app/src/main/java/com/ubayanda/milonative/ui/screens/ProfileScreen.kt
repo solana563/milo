@@ -127,6 +127,10 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         AccentCard()
         Spacer(Modifier.height(16.dp))
+        Y2KCard()
+        Spacer(Modifier.height(16.dp))
+        SpiderCard()
+        Spacer(Modifier.height(16.dp))
         HomeLocalCard()
         Spacer(Modifier.height(16.dp))
         BtCompatCard()
@@ -298,6 +302,30 @@ private fun SharingCard(vm: MainViewModel, a: AccountUi) {
         Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
         ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
+    }
+}
+
+@Composable
+private fun Y2KCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val on = com.ubayanda.milonative.ui.theme.Y2K.on
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Y2K mode", color = Milo.text, style = Ty.title)
+        Text("Aqua gel and chrome, a deep-blue panel, a spinning CD for the cover and an LCD read-out on Now Playing. Your accent colour is replaced by aqua while it is on.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Y2K theme", on) { v -> com.ubayanda.milonative.ui.theme.Y2K.set(ctx, v); if (v) com.ubayanda.milonative.ui.theme.Spider.set(ctx, false) }
+    }
+}
+
+@Composable
+private fun SpiderCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val on = com.ubayanda.milonative.ui.theme.Spider.on
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Spider mode", color = Milo.text, style = Ty.title)
+        Text("Pitch black with blood-red accents, webs in the corners of every screen and panel, a spider hanging over the cover on Now Playing and a spider riding the sliders. Turns Y2K mode off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Spider theme", on) { com.ubayanda.milonative.ui.theme.Spider.set(ctx, it) }
     }
 }
 

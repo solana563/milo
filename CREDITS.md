@@ -243,3 +243,18 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Report from R61: at the swap the old song's player says it is playing (isPlaying true, playWhenReady true, READY) yet its position stays put for ~0.6 s right as the new song's output starts; the old player logs no underrun, so it is the output not consuming it. 0.6 s equals the 600 ms audio buffer introduced in Round 48 (which did not fix the original complaint). Buffer sizing is back to Media3's default so the next trace shows whether the freeze shrinks or goes. An experiment, not a proven fix.
 - Stall recovery from R61 fired as designed (3 underruns, a restart ~150 ms later, logged "stall: restarting the output"). Whether the rush is gone is for the listener to judge.
 - The "cut short by a song change" line also appeared for ordinary gapless changes (reason 1) when no crossfade was running; it now only logs when a crossfade was actually cut.
+
+## Round 63 — Y2K mode, part 1 (Aqua chrome)
+- New switch in Profile ("Y2K mode"); off by default, so the normal look is untouched.
+- On: aqua gel panels (glossy top half, bright rim), deep-blue panel tint (song colour still shows through), aqua accent and ice-white text, chrome slider thumb and play button.
+- Now Playing: the cover becomes a spinning CD (iridescent sheen, hub, spins up/down with playback, no frames drawn while paused) over a darkened copy of the art; an LCD strip (monospace, scan lines) shows time, quality, title and artist.
+- Not compiled or seen on a device here: judge the look on the phone and send a screenshot to tune it.
+- Later ideas: sound pack/chime, buddy list with now-listening, mixtape/CD-R playlist look, plastic widget skin.
+
+## Round 64 — Spider mode
+- New switch in Profile ("Spider mode"); off by default; turning it on turns Y2K off (and the reverse).
+- Pitch-black panels, bone-white text, blood-red accent; red-edged glass rims.
+- Webs: drawn in the top-left and bottom-right corners of every screen, and tucked into the top-right corner of every panel.
+- Now Playing: art sinks into a black/red vignette with a web across it; a spider hangs on a thread from the top and rocks while music plays (idle when paused).
+- Sliders and the Now Playing scrubber: red thread for the played part, a little spider as the thumb (black widow hourglass).
+- Everything is original drawing code (no character artwork). Not compiled or seen on a device here.

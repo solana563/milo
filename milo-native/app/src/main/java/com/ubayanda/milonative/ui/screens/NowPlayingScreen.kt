@@ -60,6 +60,13 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Forward10
+import com.ubayanda.milonative.ui.components.LcdStrip
+import com.ubayanda.milonative.ui.components.SpinningCd
+import com.ubayanda.milonative.ui.theme.Y2K
+import com.ubayanda.milonative.ui.theme.Spider
+import com.ubayanda.milonative.ui.components.HangingSpider
+import com.ubayanda.milonative.ui.components.WebCorners
+import com.ubayanda.milonative.ui.components.drawSpider
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -239,12 +246,25 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     Box(Modifier.fillMaxSize()) {
                         if (k.bmp == null && !k.done) Box(Modifier.fillMaxSize().shimmer())
                         androidx.compose.animation.Crossfade(targetState = k.bmp, animationSpec = androidx.compose.animation.core.tween(320), label = "coverFade") { b ->
-                            if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
+                            if (b != null && Y2K.on) Box(Modifier.fillMaxSize()) {
+                                // Y2K: the cover is a spinning CD on a darkened copy of itself
+                                Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.55f)
+                                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Y2K.navy.copy(alpha = 0.55f), Y2K.navy.copy(alpha = 0.85f)))))
+                                SpinningCd(b.asImageBitmap(), uiNow.isPlaying, Modifier.align(Alignment.Center).fillMaxWidth(0.72f))
+                            }
+                            else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
                             else if (k.done) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
                         }
                     }
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.3f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f))))
+                if (Spider.on) {
+                    // Spider: the art sinks into a black and red vignette, with a web across it and a spider on a thread
+                    Box(Modifier.fillMaxSize().background(Brush.radialGradient(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Spider.red.copy(alpha = 0.22f))))
+                    WebCorners(alpha = 0.34f)
+                    HangingSpider(uiNow.isPlaying, Modifier.align(Alignment.TopEnd).padding(end = 76.dp).width(60.dp).height(150.dp))
+                }
 
                 tapFlash?.let { f ->
                     Box(
@@ -314,6 +334,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     .lift(cardShape, 18f).then(npGlass)
                     .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {
+                if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter)) { vm.player.seekTo(it) }
                 Row(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(fmtTime(ui.positionMs), color = Milo.dim, style = Ty.caption)
@@ -326,7 +347,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     IconTap(Icons.Rounded.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
                     RoundDark(Icons.Rounded.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
-                        Modifier.size(88.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
+                        Modifier.size(88.dp).clip(CircleShape)
+                            .background(if (Y2K.on) Brush.verticalGradient(listOf(Y2K.chromeLight, Y2K.chromeDark)) else androidx.compose.ui.graphics.SolidColor(Milo.cream))
+                            .pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
@@ -809,9 +832,14 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
             val r = 9.dp.toPx()
             drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
             val px = (size.width * shown).coerceIn(r, size.width - r)
-            drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
-            drawCircle(Color.White, r, Offset(px, cy))
-            drawCircle(ring, 3.dp.toPx(), Offset(px, cy), style = Stroke(1.5.dp.toPx()))
+            if (Spider.on) {
+                drawRoundRect(Spider.red, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                drawSpider(Offset(px, cy), 12.dp.toPx(), phase = shown * 40f)
+            } else {
+                drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                drawCircle(Color.White, r, Offset(px, cy))
+                drawCircle(ring, 3.dp.toPx(), Offset(px, cy), style = Stroke(1.5.dp.toPx()))
+            }
         }
     }
 }
