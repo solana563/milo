@@ -233,3 +233,8 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 
 ## Round 60 — Profile spacing fix
 - The Bluetooth compatibility card (Round 50) sat directly against the Home card with no gap, and its switch label ran right up to the switch. Added the 16 dp gap every other card has, and a 12 dp gap between a switch label and its switch (all switch rows in Profile).
+
+## Round 61 — stall recovery + swap diagnostics
+- From the user's logs (R54/55 build): at each swap the old song is aligned (11-12 ms) and the fade is smooth, but the old-song player's position barely moves for ~0.3-0.65 s right as the fade starts (old@138921 on three lines; old@207021 to 207034), i.e. the old song stalls just as the new one starts: the "minimal but noticeable cut". Cause not yet known (the trace cannot tell a stall of the old player from the output stalling). The fade-start trace now also logs both players' isPlaying/playWhenReady, and the old-song player logs its own underruns and isPlaying changes ("xfade" lines).
+- The speed-up after a stall: the audio queued in the output while the app/phone was busy plays back in a rush. New "Skip interrupted moments, don't rush" switch (Profile, on by default, saved as `resync`): after an underrun on the main player, milo waits 150 ms and restarts the output at the current position, throwing away the stale queued audio. Not during a crossfade, not for live radio, at most once per 8 s; logged as "stall: restarting the output...".
+- Experimental: could not be tried on a device; if it causes a click on every app switch, turn the switch off and tell me.

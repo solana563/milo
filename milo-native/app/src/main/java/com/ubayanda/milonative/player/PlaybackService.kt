@@ -58,6 +58,29 @@ class PlaybackService : MediaLibraryService() {
     private var xfWarm = false   // the old song's tail player is already running silently, so it can take over with no start-up gap
     private var lastTick = 0L
 
+    // After a stall (app switch, notification shade, screen wake) the audio left in the output's queue plays back in a rush to catch up.
+    // Throw that stale audio away instead: one clean restart at the current spot, so the interrupted moment is simply lost, not replayed fast.
+    // Never during a crossfade, never for live radio, and at most once per 8 seconds.
+    private var lastResync = 0L
+    private fun resyncAfterStall(p: Player) {
+        try {
+            if (!fxPrefs.getBoolean("resync", true)) return
+            if (xfLen > 0L || xfWarm || xfWait) return
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastResync < 8_000L) return
+            if (!p.isPlaying || p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) return
+            lastResync = now
+            handler.postDelayed({
+                try {
+                    if (p.isPlaying && p.playbackState == Player.STATE_READY && xfLen == 0L && !xfWarm && !xfWait) {
+                        com.ubayanda.milonative.util.ErrorLog.add("audio", "stall: restarting the output at ${p.currentPosition} ms to drop queued audio")
+                        p.seekTo(p.currentPosition)
+                    }
+                } catch (_: Throwable) {}
+            }, 150L)
+        } catch (_: Throwable) {}
+    }
+
     // keeps the home-screen widgets alive: the progress bar moves and "playing" stays fresh while music plays
     private val widgetBeat = object : Runnable {
         override fun run() {
@@ -123,7 +146,20 @@ class PlaybackService : MediaLibraryService() {
         .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
         .setHandleAudioBecomingNoisy(false)
-        .build().also { ghost = it }
+        .build().also { g ->
+            ghost = g
+            // the old song's tail player: log its dropouts too, so a cut at the swap can be told apart from a stall of the main player
+            g.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+                override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "old-song player underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms")
+                }
+            })
+            g.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (xfLen > 0L || xfWarm) com.ubayanda.milonative.util.ErrorLog.add("xfade", "old-song player isPlaying=$isPlaying")
+                }
+            })
+        }
 
     private fun endGhost() {
         xfLen = 0L
@@ -184,7 +220,7 @@ class PlaybackService : MediaLibraryService() {
                 xfF = f
                 if (now - xfTrace >= 300L) {
                     xfTrace = now
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "f=${"%.2f".format(f)} clock=${"%.2f".format(byClock)} new=${p.currentMediaItem?.mediaId?.takeLast(6)}@${p.currentPosition}/${p.playbackState} vol=${"%.2f".format(p.volume)} old@${g?.currentPosition}/${g?.playbackState} vol=${"%.2f".format(g?.volume ?: 0f)} idx=${p.currentMediaItemIndex}")
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "f=${"%.2f".format(f)} clock=${"%.2f".format(byClock)} new=${p.currentMediaItem?.mediaId?.takeLast(6)}@${p.currentPosition}/${p.playbackState} vol=${"%.2f".format(p.volume)} old@${g?.currentPosition}/${g?.playbackState} vol=${"%.2f".format(g?.volume ?: 0f)} idx=${p.currentMediaItemIndex} playing new=${p.isPlaying} old=${g?.isPlaying}/${g?.playWhenReady}")
                 }
                 val gn = XFade.gains(f, fxPrefs.getInt("xfcurve", 0))
                 v = gn.second
@@ -343,6 +379,7 @@ class PlaybackService : MediaLibraryService() {
         player.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
             override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
                 com.ubayanda.milonative.util.ErrorLog.add("audio", "underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms speed=${player.playbackParameters.speed} skipSilence=${player.skipSilenceEnabled}")
+                resyncAfterStall(player)
             }
         })
         player.addListener(object : Player.Listener {

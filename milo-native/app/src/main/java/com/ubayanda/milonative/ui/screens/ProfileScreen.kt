@@ -311,6 +311,9 @@ private fun BtCompatCard() {
         Text("Bluetooth compatibility", color = Milo.text, style = Ty.title)
         Text("If music stutters over Bluetooth when you take calls or switch apps, turn this on and restart milo. The phone's own audio chip plays the music, so milo's equaliser, balance, mono, spectrum, speed and crossfade are switched off while it is on.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Bluetooth compatibility mode (restart milo)", on) { on = it; prefs.edit().putBoolean("btcompat", it).apply() }
+        var resync by remember { mutableStateOf(prefs.getBoolean("resync", true)) }
+        Text("After a stall (switching apps, the notification shade, waking the phone) milo drops the audio that was queued up instead of letting it play back in a rush. The moment that was interrupted is simply skipped.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        ShareRow("Skip interrupted moments, don't rush", resync) { resync = it; prefs.edit().putBoolean("resync", it).apply() }
     }
 }
 
