@@ -128,6 +128,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         AccentCard()
         Spacer(Modifier.height(16.dp))
         HomeLocalCard()
+        Spacer(Modifier.height(16.dp))
         BtCompatCard()
         Spacer(Modifier.height(16.dp))
         Box(Modifier.padding(horizontal = Sp.gutter)) { Pill("Show the welcome tour", null, false) { Tour.open.value = true } }
@@ -327,7 +328,7 @@ private fun HomeLocalCard() {
 @Composable
 private fun ShareRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = Milo.text, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Text(label, color = Milo.text, fontSize = 16.sp, modifier = Modifier.weight(1f).padding(end = 12.dp))
         com.ubayanda.milonative.ui.components.MiloSwitch(
             checked = on, onCheckedChange = onChange,
             colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber),

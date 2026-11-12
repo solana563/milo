@@ -230,3 +230,6 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - `native.yml` and `lite.yml`: triggers (PR build/test only; main = internal; `v*` = beta; `v*-rc*` = rc; manual input), `permissions: contents: read`, concurrency, version name from tag, separate `distribute` job gated on tests + signed release APK, track-specific group secrets, Lite uses its own `FIREBASE_LITE_*` secrets, Lite gets a unit-test step and a release-APK artifact. `android.yml`: now reads `FIREBASE_WEB_APP_ID`.
 - Docs: `docs/FIREBASE_APP_DISTRIBUTION.md`.
 - Not verified: no real Firebase upload, no invitations sent, runner tool checks untested. Release signing and the build steps themselves are unchanged.
+
+## Round 60 — Profile spacing fix
+- The Bluetooth compatibility card (Round 50) sat directly against the Home card with no gap, and its switch label ran right up to the switch. Added the 16 dp gap every other card has, and a 12 dp gap between a switch label and its switch (all switch rows in Profile).
