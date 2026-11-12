@@ -136,9 +136,7 @@ class PlaybackService : MediaLibraryService() {
         androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-            // a roomier audio buffer rides out short stalls (phone call, app switch, screen wake) that Bluetooth makes audible
-            .setAudioTrackBufferSizeProvider(androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider.Builder()
-                .setMinPcmBufferDurationUs(600_000).setMaxPcmBufferDurationUs(1_500_000).setPcmBufferMultiplicationFactor(6).build())
+            // Round 62: back to Media3's default audio buffer. The Round 48 bigger buffer (600 ms) did not help and matches the ~0.6 s freeze seen at every crossfade swap.
             .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
             .build()
 
@@ -413,7 +411,10 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 // the person skipped, or the queue changed, in the middle of a crossfade: drop the old song's tail at once
-                if (xfOwn) xfOwn = false else if (xfLen > 0L || ghost != null) { com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)"); endGhost() }
+                if (xfOwn) xfOwn = false else if (xfLen > 0L || ghost != null) {
+                        if (xfLen > 0L || xfWait) com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)")
+                        endGhost()
+                    }
                 resumedFor = null
                 mediaItem?.mediaId?.let { RecentStore.add(this@PlaybackService, it) }
                 Extras.clearLoop()
