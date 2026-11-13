@@ -272,3 +272,10 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Panels: neon cyan-to-magenta outline over a violet wash; accent cyan; sliders and scrubber get a glowing orb thumb and a cyan-to-magenta fill.
 - Now Playing: art washed in violet/magenta; an original astronaut helmet with a glowing cyan visor and glittering magenta glass floats in the corner while music plays.
 - All artwork is original drawing code; the reference skeleton, cloud-pattern and astronaut artwork were not copied. Not compiled or seen on a device here.
+
+## Round 67 — Chrome mode
+- New "Chrome mode" switch in Profile (off by default); Y2K, Spider, Sticker, Nebula and Chrome are mutually exclusive (Themes.apply).
+- Liquid-silver look: black base, silver text/accent; panels get a polished-metal rim (banded light/dark gradient) with two chrome sparkles in the corner; sliders/scrubber are chrome tubes with a glossy chrome ball thumb.
+- Whole-screen scatter of chrome sparkles, tilted orbit rings, a heart and a planet (static, faint).
+- Now Playing: cover art goes silver and dark; a chrome planet bobs and sparkles pulse while music plays.
+- All shapes are original drawing code in the generic Y2K-chrome style; no brand logos or marks (the requested "chrome hearts" name is a real brand, so the theme is called Chrome). Not compiled or seen on a device here.

@@ -135,6 +135,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         NebulaCard()
         Spacer(Modifier.height(16.dp))
+        ChromeCard()
+        Spacer(Modifier.height(16.dp))
         HomeLocalCard()
         Spacer(Modifier.height(16.dp))
         BtCompatCard()
@@ -354,6 +356,18 @@ private fun NebulaCard() {
         Text("Nebula mode", color = Milo.text, style = Ty.title)
         Text("Deep violet with a purple-and-teal marble that flows while music plays, twinkling glitter, curly clouds, neon cyan and magenta outlines, glowing sliders and an astronaut on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Nebula theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "nebula" else null) }
+    }
+}
+
+@Composable
+private fun ChromeCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val on = com.ubayanda.milonative.ui.theme.ChromeStyle.on
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Chrome mode", color = Milo.text, style = Ty.title)
+        Text("Liquid silver on black: polished-metal panel rims, chrome sparkles, orbit rings, a heart and a planet around the screen, glossy ball sliders and a floating chrome planet on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Chrome theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "chrome" else null) }
     }
 }
 

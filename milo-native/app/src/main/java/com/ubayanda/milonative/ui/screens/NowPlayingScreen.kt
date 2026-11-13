@@ -66,6 +66,10 @@ import com.ubayanda.milonative.ui.theme.Y2K
 import com.ubayanda.milonative.ui.theme.Spider
 import com.ubayanda.milonative.ui.theme.Sticker
 import com.ubayanda.milonative.ui.theme.Nebula
+import com.ubayanda.milonative.ui.theme.ChromeStyle
+import com.ubayanda.milonative.ui.components.ChromeFloat
+import com.ubayanda.milonative.ui.components.drawChromeBall
+import com.ubayanda.milonative.ui.components.chromeBrush
 import com.ubayanda.milonative.ui.components.HelmetSticker
 import com.ubayanda.milonative.ui.components.BuddySticker
 import com.ubayanda.milonative.ui.components.StickerScatter
@@ -259,12 +263,17 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                                 SpinningCd(b.asImageBitmap(), uiNow.isPlaying, Modifier.align(Alignment.Center).fillMaxWidth(0.72f))
                             }
                             else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
-                                colorFilter = if (Sticker.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
+                                colorFilter = if (Sticker.on || ChromeStyle.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
                             else if (k.done) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
                         }
                     }
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.3f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f))))
+                if (ChromeStyle.on) {
+                    // Chrome: the art goes silver and dark, with a floating chrome planet and pulsing sparkles
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.25f), 1f to Color.Black.copy(alpha = 0.45f))))
+                    ChromeFloat(uiNow.isPlaying, Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 52.dp).size(width = 170.dp, height = 120.dp))
+                }
                 if (Nebula.on) {
                     // Nebula: the art is washed in violet and magenta, with the astronaut floating in the corner
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Nebula.violet.copy(alpha = 0.38f), Nebula.magenta.copy(alpha = 0.30f)))))
@@ -850,7 +859,10 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
             val r = 9.dp.toPx()
             drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
             val px = (size.width * shown).coerceIn(r, size.width - r)
-            if (Nebula.on) {
+            if (ChromeStyle.on) {
+                drawRoundRect(Brush.verticalGradient(0f to Color.White, 0.35f to Color(0xFF8E959E), 0.55f to Color(0xFF30343B), 0.8f to Color(0xFFD3D7DD), 1f to Color(0xFF8E959E), startY = cy - th / 2, endY = cy + th / 2), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                drawChromeBall(Offset(px, cy), 13.dp.toPx())
+            } else if (Nebula.on) {
                 drawRoundRect(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, size.width), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
                 drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(px, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(px, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(px, cy))
             } else if (Sticker.on) {

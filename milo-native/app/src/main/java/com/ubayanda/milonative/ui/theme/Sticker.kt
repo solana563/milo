@@ -30,5 +30,6 @@ object Themes {
         Spider.set(c, name == "spider")
         Sticker.set(c, name == "sticker")
         Nebula.set(c, name == "nebula")
+        ChromeStyle.set(c, name == "chrome")
     }
 }

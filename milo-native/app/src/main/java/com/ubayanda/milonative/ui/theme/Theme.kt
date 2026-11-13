@@ -41,10 +41,10 @@ object Milo {
     val card: Color get() = TintState.card
     val card2: Color get() = TintState.card2
     val line: Color get() = TintState.line
-    val text: Color get() = if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF3EDE0)
-    val cream: Color get() = if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF4EFE4)
-    val dim: Color get() = if (Nebula.on) Nebula.dim else if (Sticker.on) Sticker.dim else if (Spider.on) Spider.dim else if (Y2K.on) Y2K.dim else Color(0xFFA8A194)
-    val amber: Color get() = if (Nebula.on) Nebula.cyan else if (Sticker.on) Color.White else if (Spider.on) Spider.red else if (Y2K.on) Y2K.aqua else TintState.accent
+    val text: Color get() = if (ChromeStyle.on) ChromeStyle.text else if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF3EDE0)
+    val cream: Color get() = if (ChromeStyle.on) ChromeStyle.text else if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF4EFE4)
+    val dim: Color get() = if (ChromeStyle.on) ChromeStyle.dim else if (Nebula.on) Nebula.dim else if (Sticker.on) Sticker.dim else if (Spider.on) Spider.dim else if (Y2K.on) Y2K.dim else Color(0xFFA8A194)
+    val amber: Color get() = if (ChromeStyle.on) ChromeStyle.silver else if (Nebula.on) Nebula.cyan else if (Sticker.on) Color.White else if (Spider.on) Spider.red else if (Y2K.on) Y2K.aqua else TintState.accent
 }
 
 val Figtree = FontFamily(
@@ -62,7 +62,7 @@ val Fraunces = FontFamily(
 @Composable
 fun MiloTheme(content: @Composable () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    androidx.compose.runtime.remember { Accent.load(ctx); Y2K.load(ctx); Spider.load(ctx); Sticker.load(ctx); Nebula.load(ctx) }
+    androidx.compose.runtime.remember { Accent.load(ctx); Y2K.load(ctx); Spider.load(ctx); Sticker.load(ctx); Nebula.load(ctx); ChromeStyle.load(ctx) }
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Milo.amber,

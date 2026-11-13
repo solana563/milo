@@ -57,6 +57,7 @@ import com.ubayanda.milonative.ui.theme.Y2K
 import com.ubayanda.milonative.ui.theme.Spider
 import com.ubayanda.milonative.ui.theme.Sticker
 import com.ubayanda.milonative.ui.theme.Nebula
+import com.ubayanda.milonative.ui.theme.ChromeStyle
 import kotlin.math.roundToInt
 
 /*
@@ -81,8 +82,8 @@ fun Modifier.glass(shape: Shape, strength: Float = 1f, tint: Color? = null): Mod
         ) else Modifier,
     )
     .then(if (Nebula.on) Modifier.background(Brush.verticalGradient(listOf(Nebula.violet.copy(alpha = 0.16f * strength), Color.Transparent)), shape) else Modifier)
-    .then(if (Spider.on) Modifier.webCorner() else if (Sticker.on) Modifier.sparkleCorner() else Modifier)
-    .border(if (Sticker.on) 2.dp else if (Nebula.on) 1.5.dp else 1.dp, if (Nebula.on) Brush.linearGradient(listOf(Nebula.cyan.copy(alpha = 0.9f), Nebula.magenta.copy(alpha = 0.55f), Nebula.cyan.copy(alpha = 0.4f))) else if (Sticker.on) Brush.linearGradient(listOf(Color.White, Color.White)) else if (Spider.on) Brush.linearGradient(listOf(Spider.red.copy(alpha = 0.75f), Color.White.copy(alpha = 0.10f), Spider.red.copy(alpha = 0.35f))) else if (Y2K.on) Brush.linearGradient(listOf(Color.White.copy(alpha = 0.8f), Y2K.aqua.copy(alpha = 0.35f), Color.White.copy(alpha = 0.5f))) else glassStroke(strength), shape)
+    .then(if (Spider.on) Modifier.webCorner() else if (Sticker.on) Modifier.sparkleCorner() else if (ChromeStyle.on) Modifier.chromeCorner() else Modifier)
+    .border(if (Sticker.on) 2.dp else if (Nebula.on || ChromeStyle.on) 1.5.dp else 1.dp, if (ChromeStyle.on) ChromeStyle.rim else if (Nebula.on) Brush.linearGradient(listOf(Nebula.cyan.copy(alpha = 0.9f), Nebula.magenta.copy(alpha = 0.55f), Nebula.cyan.copy(alpha = 0.4f))) else if (Sticker.on) Brush.linearGradient(listOf(Color.White, Color.White)) else if (Spider.on) Brush.linearGradient(listOf(Spider.red.copy(alpha = 0.75f), Color.White.copy(alpha = 0.10f), Spider.red.copy(alpha = 0.35f))) else if (Y2K.on) Brush.linearGradient(listOf(Color.White.copy(alpha = 0.8f), Y2K.aqua.copy(alpha = 0.35f), Color.White.copy(alpha = 0.5f))) else glassStroke(strength), shape)
     .specular(shape, strength)
 
 /** The liquid edge: a thin bright line just inside the rim at the top, fading out, with a faint glow coming back at the bottom. */
@@ -172,13 +173,15 @@ fun MiloSlider(
         val x = edge + frac * (size.width - 2 * edge)
         drawRoundRect(Color(0x33FFFFFF), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(size.width - 2 * edge + 12.dp.toPx(), th), CornerRadius(th / 2))
         if (frac > 0f) {
-            if (Nebula.on) drawRoundRect(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+            if (ChromeStyle.on) drawRoundRect(Brush.verticalGradient(0f to Color.White, 0.35f to Color(0xFF8E959E), 0.55f to Color(0xFF30343B), 0.8f to Color(0xFFD3D7DD), 1f to Color(0xFF8E959E), startY = cy - th / 2, endY = cy + th / 2), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
+            else if (Nebula.on) drawRoundRect(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
             else if (Sticker.on) drawRoundRect(Color.White, Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
             else if (Spider.on) drawRoundRect(Brush.horizontalGradient(listOf(Spider.deepRed, Spider.red)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
             else if (Y2K.on) drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFF1FA8FF), amber)), Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
             else drawRoundRect(amber, Offset(edge - 6.dp.toPx(), cy - th / 2), Size(x - edge + 6.dp.toPx(), th), CornerRadius(th / 2))
         }
         val tw = 34.dp.toPx(); val thh = 24.dp.toPx()
+        if (ChromeStyle.on) { drawChromeBall(Offset(x, cy), 13.dp.toPx()); return@Canvas }
         if (Nebula.on) { drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(x, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(x, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(x, cy)); return@Canvas }
         if (Sticker.on) { drawSparkle(Offset(x, cy), 16.dp.toPx(), Color.White); return@Canvas }
         if (Spider.on) { drawSpider(Offset(x, cy), 12.dp.toPx(), body = Color.Black, mark = Spider.red, phase = frac * 40f); return@Canvas }
