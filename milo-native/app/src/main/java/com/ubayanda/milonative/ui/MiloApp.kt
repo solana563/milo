@@ -115,10 +115,12 @@ fun MiloApp(vm: MainViewModel) {
     val white = Color.White
     val y2k = com.ubayanda.milonative.ui.theme.Y2K.on
     val spiderOn = com.ubayanda.milonative.ui.theme.Spider.on
+    val stickerOn = com.ubayanda.milonative.ui.theme.Sticker.on
+    val nebulaOn = com.ubayanda.milonative.ui.theme.Nebula.on
     SideEffect {
         // Y2K: the panel leans towards deep blue (the song's colour still shows through)
         // Spider: almost black with a faint blood tint; the song's colour barely shows
-        val base = if (spiderOn) lerp(panel, com.ubayanda.milonative.ui.theme.Spider.ink, 0.85f) else if (y2k) lerp(panel, com.ubayanda.milonative.ui.theme.Y2K.navy, 0.62f) else panel
+        val base = if (nebulaOn) lerp(panel, com.ubayanda.milonative.ui.theme.Nebula.night, 0.88f) else if (stickerOn) lerp(panel, Color.Black, 0.92f) else if (spiderOn) lerp(panel, com.ubayanda.milonative.ui.theme.Spider.ink, 0.85f) else if (y2k) lerp(panel, com.ubayanda.milonative.ui.theme.Y2K.navy, 0.62f) else panel
         TintState.panel = base
         TintState.card = lerp(base, white, 0.06f)
         TintState.card2 = lerp(base, white, 0.11f)
@@ -186,6 +188,8 @@ fun MiloApp(vm: MainViewModel) {
     CompositionLocalProvider(LocalActions provides actions) {
         Box(Modifier.fillMaxSize().background(Milo.bg)) {
             if (spiderOn) com.ubayanda.milonative.ui.components.WebCorners(alpha = 0.22f)
+            if (stickerOn) com.ubayanda.milonative.ui.components.StickerScatter()
+            if (nebulaOn) com.ubayanda.milonative.ui.components.NebulaBackdrop(ui.isPlaying)
             // the song's art, stretched soft, fills the screen behind the header and panel
             if (current != null && headerArt != null) {
                 // the art behind the logo stays crisp and fully visible, fading out down the screen (like the web)

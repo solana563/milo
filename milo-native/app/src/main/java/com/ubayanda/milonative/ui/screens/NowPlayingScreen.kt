@@ -64,6 +64,12 @@ import com.ubayanda.milonative.ui.components.LcdStrip
 import com.ubayanda.milonative.ui.components.SpinningCd
 import com.ubayanda.milonative.ui.theme.Y2K
 import com.ubayanda.milonative.ui.theme.Spider
+import com.ubayanda.milonative.ui.theme.Sticker
+import com.ubayanda.milonative.ui.theme.Nebula
+import com.ubayanda.milonative.ui.components.HelmetSticker
+import com.ubayanda.milonative.ui.components.BuddySticker
+import com.ubayanda.milonative.ui.components.StickerScatter
+import com.ubayanda.milonative.ui.components.drawSparkle
 import com.ubayanda.milonative.ui.components.HangingSpider
 import com.ubayanda.milonative.ui.components.WebCorners
 import com.ubayanda.milonative.ui.components.drawSpider
@@ -252,12 +258,24 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Y2K.navy.copy(alpha = 0.55f), Y2K.navy.copy(alpha = 0.85f)))))
                                 SpinningCd(b.asImageBitmap(), uiNow.isPlaying, Modifier.align(Alignment.Center).fillMaxWidth(0.72f))
                             }
-                            else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
+                            else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
+                                colorFilter = if (Sticker.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
                             else if (k.done) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
                         }
                     }
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.3f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f))))
+                if (Nebula.on) {
+                    // Nebula: the art is washed in violet and magenta, with the astronaut floating in the corner
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Nebula.violet.copy(alpha = 0.38f), Nebula.magenta.copy(alpha = 0.30f)))))
+                    HelmetSticker(uiNow.isPlaying, Modifier.align(Alignment.TopStart).padding(start = 10.dp, top = 52.dp).size(112.dp))
+                }
+                if (Sticker.on) {
+                    // Sticker: black-and-white print, a heavy white frame, sparkles and the doodle buddy
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.55f))))
+                    StickerScatter(alpha = 0.7f)
+                    BuddySticker(uiNow.isPlaying, Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 56.dp).size(104.dp))
+                }
                 if (Spider.on) {
                     // Spider: the art sinks into a black and red vignette, with a web across it and a spider on a thread
                     Box(Modifier.fillMaxSize().background(Brush.radialGradient(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
@@ -832,7 +850,13 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
             val r = 9.dp.toPx()
             drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
             val px = (size.width * shown).coerceIn(r, size.width - r)
-            if (Spider.on) {
+            if (Nebula.on) {
+                drawRoundRect(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, size.width), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(px, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(px, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(px, cy))
+            } else if (Sticker.on) {
+                drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                drawSparkle(Offset(px, cy), 16.dp.toPx(), Color.White)
+            } else if (Spider.on) {
                 drawRoundRect(Spider.red, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
                 drawSpider(Offset(px, cy), 12.dp.toPx(), phase = shown * 40f)
             } else {

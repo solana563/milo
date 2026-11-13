@@ -131,6 +131,10 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         SpiderCard()
         Spacer(Modifier.height(16.dp))
+        StickerCard()
+        Spacer(Modifier.height(16.dp))
+        NebulaCard()
+        Spacer(Modifier.height(16.dp))
         HomeLocalCard()
         Spacer(Modifier.height(16.dp))
         BtCompatCard()
@@ -313,7 +317,7 @@ private fun Y2KCard() {
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Y2K mode", color = Milo.text, style = Ty.title)
         Text("Aqua gel and chrome, a deep-blue panel, a spinning CD for the cover and an LCD read-out on Now Playing. Your accent colour is replaced by aqua while it is on.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Y2K theme", on) { v -> com.ubayanda.milonative.ui.theme.Y2K.set(ctx, v); if (v) com.ubayanda.milonative.ui.theme.Spider.set(ctx, false) }
+        ShareRow("Y2K theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "y2k" else null) }
     }
 }
 
@@ -325,7 +329,31 @@ private fun SpiderCard() {
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Spider mode", color = Milo.text, style = Ty.title)
         Text("Pitch black with blood-red accents, webs in the corners of every screen and panel, a spider hanging over the cover on Now Playing and a spider riding the sliders. Turns Y2K mode off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Spider theme", on) { com.ubayanda.milonative.ui.theme.Spider.set(ctx, it) }
+        ShareRow("Spider theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "spider" else null) }
+    }
+}
+
+@Composable
+private fun StickerCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val on = com.ubayanda.milonative.ui.theme.Sticker.on
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Sticker mode", color = Milo.text, style = Ty.title)
+        Text("Black and white like a sticker sheet: heavy white outlines, sparkles and orbit rings, a chequered strip, black-and-white cover art and a doodle buddy on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Sticker theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "sticker" else null) }
+    }
+}
+
+@Composable
+private fun NebulaCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val on = com.ubayanda.milonative.ui.theme.Nebula.on
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Nebula mode", color = Milo.text, style = Ty.title)
+        Text("Deep violet with a purple-and-teal marble that flows while music plays, twinkling glitter, curly clouds, neon cyan and magenta outlines, glowing sliders and an astronaut on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Nebula theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "nebula" else null) }
     }
 }
 

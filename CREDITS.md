@@ -258,3 +258,17 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Now Playing: art sinks into a black/red vignette with a web across it; a spider hangs on a thread from the top and rocks while music plays (idle when paused).
 - Sliders and the Now Playing scrubber: red thread for the played part, a little spider as the thumb (black widow hourglass).
 - Everything is original drawing code (no character artwork). Not compiled or seen on a device here.
+
+## Round 65 — Sticker mode
+- New "Sticker mode" switch in Profile (off by default). Y2K, Spider and Sticker are mutually exclusive (Themes.apply).
+- Black-and-white sticker-sheet look: white text/accent, near-black panels with 2 dp white outlines and a sparkle in each panel corner, faint sparkles, orbit rings and a chequered strip scattered over every screen.
+- Now Playing: cover art printed black-and-white, sparkles, and an original doodle buddy that bobs and twitches its ears while music plays; scrubber/sliders use a white sparkle thumb.
+- All artwork is drawn in code and original; the reference mascots/characters were not copied.
+- Not compiled or seen on a device here. Possible later preset: light "paper" version (black ink on white).
+
+## Round 66 — Nebula mode
+- New "Nebula mode" switch in Profile (off by default); Y2K, Spider, Sticker and Nebula are mutually exclusive (Themes.apply).
+- Deep violet backdrop with a purple-and-teal marble made of drifting wave bands (they move only while music plays, ~12 updates/s), magenta/indigo glows, twinkling blue/pink glitter at the top and curly white-outlined clouds.
+- Panels: neon cyan-to-magenta outline over a violet wash; accent cyan; sliders and scrubber get a glowing orb thumb and a cyan-to-magenta fill.
+- Now Playing: art washed in violet/magenta; an original astronaut helmet with a glowing cyan visor and glittering magenta glass floats in the corner while music plays.
+- All artwork is original drawing code; the reference skeleton, cloud-pattern and astronaut artwork were not copied. Not compiled or seen on a device here.
