@@ -42,20 +42,28 @@ class PlaybackService : MediaLibraryService() {
     private var rgPrev = 1f
     private val fxPrefs by lazy { getSharedPreferences("milo_fx", MODE_PRIVATE) }
 
-    // ---- true crossfade: a second, short-lived player carries the tail of the old song while the main player starts the next one ----
+    // ---- true crossfade (two players, like the web app's two decks) ----
+    // The OLD song keeps playing in the main player, untouched, and fades out. The NEXT song is prepared in a second player ("ghost"),
+    // started silently a little early so it is already making sound, and fades in. When the old song is done the main player takes the new
+    // song over at the same spot and the two copies of it are blended for a third of a second, so there is no restart and no gap.
     private var ghost: ExoPlayer? = null
     private var primedKey: String? = null
+    private var xfDeadKey: String? = null   // a song where the fade was given up, so it isn't tried again
+    /** 0 = no crossfade; 1 = fading (old out in the main player, new in on the second); 2 = main player is taking the new song over; 3 = blending the two copies. */
+    private var xfPhase = 0
     private var xfT0 = 0L
     private var xfLen = 0L
-    /** The new song hasn't started yet: the old one stays at full volume until it has, then the fade begins. */
-    private var xfWait = false
-    private var xfStart = 0L
-    /** Set just before the crossfade itself moves to the next song, so a skip by the person can be told apart. */
-    private var xfOwn = false
-    private var xfF = 0f   // how far the fade has got; it only ever moves forward
-    private var xfG0 = 0L  // where the old song's tail was when the fade began
+    private var xfP0 = 0L          // where the old song was when the fade began
+    private var xfF = 0f           // how far the fade has got; it only ever moves forward
+    private var xfNextIdx = -1     // queue index of the song being faded in
+    private var xfRgNew = 1f       // loudness scale of the song being faded in
+    private var xfWarmAt = 0L
+    private var xfHStart = 0L
+    private var xfH2 = 0L
     private var xfTrace = 0L
-    private var xfWarm = false   // the old song's tail player is already running silently, so it can take over with no start-up gap
+    /** Set just before the crossfade itself moves the main player to another song, so a skip by the person can be told apart. */
+    private var xfOwn = false
+    private var xfWarm = false     // the next song is already running silently on the second player
     private var lastTick = 0L
 
     // After a stall (app switch, notification shade, screen wake) the audio left in the output's queue plays back in a rush to catch up.
@@ -65,14 +73,14 @@ class PlaybackService : MediaLibraryService() {
     private fun resyncAfterStall(p: Player) {
         try {
             if (!fxPrefs.getBoolean("resync", true)) return
-            if (xfLen > 0L || xfWarm || xfWait) return
+            if (xfPhase != 0 || xfWarm) return
             val now = android.os.SystemClock.elapsedRealtime()
             if (now - lastResync < 8_000L) return
             if (!p.isPlaying || p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) return
             lastResync = now
             handler.postDelayed({
                 try {
-                    if (p.isPlaying && p.playbackState == Player.STATE_READY && xfLen == 0L && !xfWarm && !xfWait) {
+                    if (p.isPlaying && p.playbackState == Player.STATE_READY && xfPhase == 0 && !xfWarm) {
                         com.ubayanda.milonative.util.ErrorLog.add("audio", "stall: restarting the output at ${p.currentPosition} ms to drop queued audio")
                         p.seekTo(p.currentPosition)
                     }
@@ -149,20 +157,20 @@ class PlaybackService : MediaLibraryService() {
             // the old song's tail player: log its dropouts too, so a cut at the swap can be told apart from a stall of the main player
             g.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
                 override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "old-song player underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms")
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "new-song player underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms")
                 }
             })
             g.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    if (xfLen > 0L || xfWarm) com.ubayanda.milonative.util.ErrorLog.add("xfade", "old-song player isPlaying=$isPlaying")
+                    if (xfPhase != 0 || xfWarm) com.ubayanda.milonative.util.ErrorLog.add("xfade", "new-song player isPlaying=$isPlaying")
                 }
             })
         }
 
     private fun endGhost() {
+        xfPhase = 0
         xfLen = 0L
         xfWarm = false
-        xfWait = false
         primedKey = null
         ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
     }
@@ -181,103 +189,131 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    /** The old song is done: the main player moves to the new song at the spot where the second player has got to. */
+    private fun beginHandoff(p: ExoPlayer, g: ExoPlayer, now: Long) {
+        xfPhase = 2
+        xfHStart = now
+        val lat = fxPrefs.getInt("xflat", 300)
+        val target = g.currentPosition + lat
+        if (p.currentMediaItemIndex == xfNextIdx) p.seekTo(target)
+        else { xfOwn = true; p.seekTo(xfNextIdx, target) }
+        com.ubayanda.milonative.util.ErrorLog.add("xfade", "hand-over: new song at ${g.currentPosition}ms, main player asked for ${target}ms")
+    }
+
     private fun tick(p: ExoPlayer, now: Long, dt: Long) {
         val x = fxPrefs.getInt("xfade", 0) * 1000L
         var v = 1f
-        if (xfWarm && xfLen == 0L) ghost?.let { if (it.playWhenReady != p.playWhenReady) it.playWhenReady = p.playWhenReady }
-        if (xfLen > 0L) {
-            // a crossfade is running: old song (ghost) goes down, new song goes up, equal power
-            val g = ghost
-            if (xfWait) {
-                // hold the old song at full volume until the new one is really playing (a slow link would otherwise fade into silence)
-                // wait for the new song AND the old song's tail to be playable, or the old song drops out and comes back mid-fade
-                val ghostOk = g == null || g.playbackState == Player.STATE_READY || g.playbackState == Player.STATE_ENDED
-                if (p.playbackState == Player.STATE_READY && p.playWhenReady && ghostOk) {
-                    xfWait = false
-                    xfF = 0f
-                    xfG0 = g?.currentPosition ?: 0L
-                    xfTrace = 0L
-                    xfT0 = now
-                    val rem = if (g != null && g.duration != C.TIME_UNSET) g.duration - g.currentPosition else xfLen
-                    xfLen = rem.coerceIn(400L, xfLen)
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "fade starts, ${xfLen}ms, waited ${now - xfStart}ms")
-                } else if (now - xfStart > 8000L) {
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "gave up waiting: new=${p.playbackState} old=${g?.playbackState}")
-                    endGhost()   // the next song didn't start: stop waiting
+        val g = ghost
+        if (xfPhase == 0) {
+            if (xfWarm && g != null && g.playWhenReady != p.playWhenReady) g.playWhenReady = p.playWhenReady
+            if (x > 0L && p.isPlaying && session?.player === p && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
+                val dur = p.duration
+                val item = p.currentMediaItem
+                if (item != null && dur != C.TIME_UNSET && dur > x * 3) {
+                    val toEnd = dur - p.currentPosition
+                    val key = item.mediaId + "#" + p.currentMediaItemIndex
+                    val ni = p.nextMediaItemIndex
+                    if (toEnd <= x + 9000L && primedKey != key && xfDeadKey != key && ni != C.INDEX_UNSET) {
+                        // get the next song ready on the second player well ahead (paused, silent)
+                        val gp = ghostPlayer()
+                        gp.stop()
+                        gp.setMediaItem(p.getMediaItemAt(ni), 0L)
+                        gp.volume = 0f
+                        gp.playWhenReady = false
+                        gp.setPlaybackSpeed(p.playbackParameters.speed)
+                        gp.prepare()
+                        primedKey = key
+                        xfNextIdx = ni
+                        xfWarm = false
+                    }
+                    // The second player needs a few hundred ms before it makes sound, so it is set running (silent) a little before the fade.
+                    // The lead is learned: each fade measures how long it really took and adjusts the next one.
+                    val lead = fxPrefs.getInt("xflead", 700).toLong()
+                    if (primedKey == key && !xfWarm && toEnd <= x + lead && toEnd > 0L) {
+                        val gp = ghostPlayer()
+                        if (gp.playbackState == Player.STATE_READY) { gp.volume = 0f; gp.playWhenReady = true; xfWarm = true; xfWarmAt = now }
+                    }
+                    if (xfWarm && toEnd > x + lead + 1500L) {
+                        // the person scrubbed back: stop and set the next song up again later
+                        endGhost()
+                    }
+                    if (primedKey == key && xfWarm && toEnd <= x) {
+                        val gp = ghostPlayer()
+                        if (gp.isPlaying && gp.currentPosition > 60L) {
+                            val took = now - xfWarmAt
+                            fxPrefs.edit().putInt("xflead", ((lead + (took + 150L)) / 2).toInt().coerceIn(300, 1500)).apply()
+                            xfPhase = 1
+                            xfT0 = now
+                            xfP0 = p.currentPosition
+                            xfLen = toEnd.coerceIn(500L, x)
+                            xfF = 0f
+                            xfTrace = 0L
+                            xfRgNew = gainOf(gp)
+                            com.ubayanda.milonative.util.ErrorLog.add("xfade", "fade starts, ${xfLen}ms, new song took ${took}ms to start, next=${gp.currentMediaItem?.mediaId?.takeLast(6)}")
+                        } else if (toEnd <= 600L) {
+                            com.ubayanda.milonative.util.ErrorLog.add("xfade", "gave up: the next song wasn't playing in time (state ${gp.playbackState})")
+                            xfDeadKey = key
+                            endGhost()
+                        }
+                    } else if (primedKey == key && !xfWarm && toEnd <= 600L) {
+                        com.ubayanda.milonative.util.ErrorLog.add("xfade", "gave up: the next song wasn't ready in time")
+                        xfDeadKey = key
+                        endGhost()
+                    }
                 }
-                v = 0f
-                g?.let { it.volume = rgPrev; it.playWhenReady = p.playWhenReady }
-            } else {
+            }
+        } else if (xfPhase == 1) {
+            // old song (main player) goes down, new song (second player) comes up
+            if (g == null) { endGhost() } else {
+                g.playWhenReady = p.playWhenReady
                 if (!p.playWhenReady) xfT0 += dt.coerceAtMost(100L) // paused: hold the fade where it is
-                // progress follows the old song's own playback position, so it reaches silence exactly where that song ends;
-                // the clock is only the fallback while the old song's length is unknown
-                val gd = g?.duration ?: C.TIME_UNSET
+                val dur = p.duration
                 val byClock = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
-                val byPos = if (g != null && gd != C.TIME_UNSET && gd - xfG0 > 300L) ((g.currentPosition - xfG0).toFloat() / (gd - xfG0)).coerceIn(0f, 1f) else byClock
+                // progress follows the old song's own position, so it reaches silence exactly where that song ends
+                val byPos = if (dur != C.TIME_UNSET && dur - xfP0 > 300L) ((p.currentPosition - xfP0).toFloat() / (dur - xfP0)).coerceIn(0f, 1f) else byClock
                 val f = maxOf(xfF, byPos)
                 xfF = f
                 if (now - xfTrace >= 300L) {
                     xfTrace = now
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "f=${"%.2f".format(f)} clock=${"%.2f".format(byClock)} new=${p.currentMediaItem?.mediaId?.takeLast(6)}@${p.currentPosition}/${p.playbackState} vol=${"%.2f".format(p.volume)} old@${g?.currentPosition}/${g?.playbackState} vol=${"%.2f".format(g?.volume ?: 0f)} idx=${p.currentMediaItemIndex} playing new=${p.isPlaying} old=${g?.isPlaying}/${g?.playWhenReady}")
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "f=${"%.2f".format(f)} old@${p.currentPosition}/${p.playbackState} vol=${"%.2f".format(p.volume)} new@${g.currentPosition}/${g.playbackState} vol=${"%.2f".format(g.volume)} playing old=${p.isPlaying} new=${g.isPlaying}")
                 }
-                val gn = XFade.gains(f, fxPrefs.getInt("xfcurve", 0))
-                v = gn.second
-                g?.let {
-                    it.volume = gn.first * rgPrev
-                    it.playWhenReady = p.playWhenReady
+                if (p.currentPosition < xfP0 - 1500L) {
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short: the old song was moved back")
+                    endGhost()
+                } else {
+                    val gn = XFade.gains(f, fxPrefs.getInt("xfcurve", 0))
+                    v = gn.first
+                    g.volume = (gn.second * xfRgNew).coerceIn(0f, 1f)
+                    if (f >= 0.99f && xfPhase == 1) beginHandoff(p, g, now)
                 }
-                if (f >= 1f || g?.playbackState == Player.STATE_ENDED) endGhost()
             }
-        } else if (x > 0L && p.isPlaying && session?.player === p && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
-            val dur = p.duration
-            val item = p.currentMediaItem
-            if (item != null && dur != C.TIME_UNSET && dur > x * 3) {
-                val toEnd = dur - p.currentPosition
-                val key = item.mediaId + "#" + p.currentMediaItemIndex
-                if (toEnd <= x + 9000L && primedKey != key) {
-                    val g = ghostPlayer()
-                    g.stop()
-                    g.setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT)
-                    g.setMediaItem(item, (dur - x).coerceAtLeast(0L))
-                    g.volume = 0f
-                    g.playWhenReady = false
-                    g.setPlaybackSpeed(p.playbackParameters.speed)
-                    g.prepare()
-                    primedKey = key
+        } else if (xfPhase == 2) {
+            // the new song plays on the second player at full volume while the main player moves over to it (silent)
+            v = 0f
+            if (g == null) { endGhost() } else {
+                g.volume = xfRgNew.coerceIn(0f, 1f)
+                g.playWhenReady = p.playWhenReady
+                if (p.playbackState == Player.STATE_READY && p.isPlaying && now - xfHStart > 120L) {
+                    val d = g.currentPosition - p.currentPosition   // positive: the main player is behind
+                    val lat = fxPrefs.getInt("xflat", 300)
+                    if (Math.abs(d) < 1500L) fxPrefs.edit().putInt("xflat", (lat + d * 0.7).toInt().coerceIn(50, 1200)).apply()
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "main player ready, ${d}ms behind the new song")
+                    xfPhase = 3
+                    xfH2 = now
+                } else if (now - xfHStart > 7000L) {
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "gave up: the main player didn't take over (state ${p.playbackState})")
+                    endGhost()
                 }
-                // The old song's tail player needs a few hundred ms to start making sound (measured on the phone: its position sat still for
-                // ~0.4 s). Starting it only at the swap cut the old song, left a gap, and brought it back. So set it running, silent, a little
-                // earlier. The lead is learned: each swap measures how far behind it was and adjusts the next one.
-                val lead = fxPrefs.getInt("xflead", 450).toLong()
-                if (primedKey == key && !xfWarm && toEnd <= x + lead && toEnd > x) {
-                    val g = ghostPlayer()
-                    if (g.playbackState == Player.STATE_READY) { g.volume = 0f; g.playWhenReady = true; xfWarm = true }
-                }
-                if (xfWarm && toEnd > x + lead + 1500L) {
-                    // the person scrubbed back: stop warming and set the old song up again for the new position
-                    ghost?.let { try { it.pause() } catch (_: Throwable) {} }
-                    xfWarm = false; primedKey = null
-                }
-                if (toEnd <= x && primedKey == key) {
-                    val g = ghostPlayer()
-                    if (xfWarm) {
-                        val d = p.currentPosition - g.currentPosition
-                        com.ubayanda.milonative.util.ErrorLog.add("xfade", "swap: old song ${d}ms behind, lead ${lead}ms")
-                        if (Math.abs(d) < 1000L) fxPrefs.edit().putInt("xflead", (lead + d * 0.7).toInt().coerceIn(150, 1500)).apply()
-                    }
-                    // already waiting at the right spot; only nudge it if the two clocks disagree
-                    if (Math.abs(g.currentPosition - p.currentPosition) > 1500L) { com.ubayanda.milonative.util.ErrorLog.add("xfade", "old song moved ${g.currentPosition - p.currentPosition}ms"); g.seekTo(p.currentPosition) }
-                    g.volume = rgPrev
-                    g.playWhenReady = true
-                    xfLen = toEnd.coerceIn(500L, x)
-                    xfT0 = now
-                    xfStart = now
-                    xfWait = true
-                    xfOwn = true
-                    v = 0f
-                    p.volume = 0f
-                    p.seekToNextMediaItem()
-                }
+            }
+        } else {
+            // blend the two copies of the new song, then drop the second player
+            if (g == null) { endGhost() } else {
+                val f = ((now - xfH2) / 350f).coerceIn(0f, 1f)
+                g.playWhenReady = p.playWhenReady
+                val gn = XFade.gains(f, XFade.EQUAL_POWER)
+                v = gn.second
+                g.volume = (gn.first * xfRgNew).coerceIn(0f, 1f)
+                if (f >= 1f) endGhost()
             }
         }
         // sleep timer: ease the volume down over the last 30 seconds
@@ -286,7 +322,7 @@ class PlaybackService : MediaLibraryService() {
             val left = se - System.currentTimeMillis()
             if (left in 1..30_000L) {
                 v = minOf(v, left / 30_000f)
-                ghost?.takeIf { xfLen > 0L }?.let { it.volume = minOf(it.volume, left / 30_000f) }
+                ghost?.takeIf { xfPhase != 0 }?.let { it.volume = minOf(it.volume, left / 30_000f) }
             }
         }
         val tv = v * rgScale
@@ -295,8 +331,12 @@ class PlaybackService : MediaLibraryService() {
 
     /** Loudness matching: songs that are louder than average are turned down to match (never boosted, so nothing clips). */
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun updateGain(p: Player) {
-        if (!fxPrefs.getBoolean("rg", true)) { rgScale = 1f; return }
+    private fun updateGain(p: Player) { rgScale = gainOf(p) }
+
+    /** The loudness scale (0.05..1) for the song [p] is on. */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun gainOf(p: Player): Float {
+        if (!fxPrefs.getBoolean("rg", true)) return 1f
         var db = Double.NaN
         val u = p.currentMediaItem?.localConfiguration?.uri
         if (u?.scheme == "yt") {
@@ -317,7 +357,7 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         }
-        rgScale = if (db.isNaN()) 1f else Math.pow(10.0, minOf(db, 0.0) / 20.0).toFloat().coerceIn(0.05f, 1f)
+        return if (db.isNaN()) 1f else Math.pow(10.0, minOf(db, 0.0) / 20.0).toFloat().coerceIn(0.05f, 1f)
     }
 
     /** Gapless for streamed songs: look up the next song's link while the current one plays. */
@@ -401,7 +441,7 @@ class PlaybackService : MediaLibraryService() {
                         resumedFor = id
                         val d = player.duration
                         // arriving through a crossfade: start the song from its beginning; jumping to a saved spot would cut the fade
-                        if (d >= Resume.LONG_MS && xfLen == 0L) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
+                        if (d >= Resume.LONG_MS && xfPhase == 0) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
                             if (pos > 10_000 && pos < d - 30_000) { player.seekTo(pos); if (sp > 0f && sp != player.playbackParameters.speed) player.setPlaybackSpeed(sp) }
                         }
                     }
@@ -410,11 +450,14 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-                // the person skipped, or the queue changed, in the middle of a crossfade: drop the old song's tail at once
-                if (xfOwn) xfOwn = false else if (xfLen > 0L || ghost != null) {
-                        if (xfLen > 0L || xfWait) com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)")
-                        endGhost()
-                    }
+                // the main player reached the end of the old song by itself during the fade: that is the hand-over
+                if (xfOwn) xfOwn = false
+                else if (xfPhase == 1 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && ghost != null) beginHandoff(player, ghost!!, android.os.SystemClock.elapsedRealtime())
+                else if (xfPhase != 0 || xfWarm || primedKey != null) {
+                    // the person skipped, or the queue changed, while the next song was being got ready or faded in: drop the second player at once
+                    if (xfPhase != 0) com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)")
+                    endGhost()
+                }
                 resumedFor = null
                 mediaItem?.mediaId?.let { RecentStore.add(this@PlaybackService, it) }
                 Extras.clearLoop()

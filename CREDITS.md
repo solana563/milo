@@ -279,3 +279,21 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Whole-screen scatter of chrome sparkles, tilted orbit rings, a heart and a planet (static, faint).
 - Now Playing: cover art goes silver and dark; a chrome planet bobs and sparkles pulse while music plays.
 - All shapes are original drawing code in the generic Y2K-chrome style; no brand logos or marks (the requested "chrome hearts" name is a real brand, so the theme is called Chrome). Not compiled or seen on a device here.
+
+## Round 68 — Classic player mode (click wheel)
+- New "Classic player mode" switch in Profile. While on, MainActivity shows ClassicApp instead of MiloApp: a small screen with a plain menu and a click wheel; nothing else of the app is shown (no Home, Discover, friends, recommendations).
+- Menu: Music (Playlists, Artists, Albums, Songs), Search (your songs + YouTube Music when online), Downloaded, Now Playing, Shuffle Songs, Settings. Only songs you downloaded, songs on the phone and search results.
+- Wheel: drag a finger round it to scroll the list (haptic tick per step; volume on Now Playing); tap the rim for MENU (back), previous, next, play/pause; tap the middle to choose. Rows can also be tapped. Back gesture also goes back.
+- Now Playing: cover, title/artist/album, progress bar (tap to seek) with elapsed/remaining.
+- Settings inside: Back to milo. (leave the mode), Silver/Black body, wheel ticks on/off, Shuffle, Refresh library.
+- Silver/black body and wheel are drawn in code. No Apple logos or names are used in the app.
+- Not compiled or tried on a device here. The YouTube download/offline path is untouched.
+
+## Round 69 — Crossfade rewritten as two players (like the web app's two decks)
+- Why: the web app's crossfade never moves the old song: it keeps playing on its own deck while the next song, already loaded on the other deck, fades in. The native version moved the main player to the next song and rebuilt the old song's tail on a second player, which is what caused the cut/jump at the swap (the second player's position sat still for 0.3-0.65 s in the logs).
+- Now: the OLD song stays in the main player, untouched, and fades out. The NEXT song is prepared on the second player (paused) well ahead, started silently about 0.7 s early (the lead is learned) and, once it is really playing, fades in. The fade follows the old song's own position, so the old song reaches silence exactly where it ends.
+- Hand-over: when the old song is done the main player moves to the new song at the second player's position (a learned latency is added), stays silent until it is playing, then the two identical copies are blended over 350 ms and the second player is dropped. Nothing restarts and nothing is re-seeked while it is audible.
+- Safe exits: skip, scrub back or a dead stream during any stage drops the second player at once; if the next song is not playing in time the crossfade is skipped for that song and the normal gapless change happens.
+- What changes for the person: the title/cover/queue position switch to the new song at the hand-over (the end of the fade) instead of the start of it, because the main player is still on the old song while it fades.
+- Log lines: "fade starts", "f=... old@... new@...", "hand-over", "main player ready, Nms behind", plus second-player underruns. Please send one Diagnostics report after a crossfade.
+- Not compiled and not heard on a device here. The old version is kept as a backup at /tmp only; the previous round zip (round62) has it.

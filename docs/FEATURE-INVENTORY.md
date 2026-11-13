@@ -7,7 +7,7 @@ Nothing here is marked "verified" unless a person ran it on a phone. The build s
 |---|---|---|---|
 | Playback | Local files via Media3 + MediaSessionService | A | Background play, notification, lock screen |
 | Playback | YouTube streaming | B | Depends on stream client availability; can break when YouTube changes |
-| Playback | Crossfade (ghost player), EQ, bass, spatial | B | Custom code; test on low-end devices |
+| Playback | Crossfade (two players: old song untouched in the main player, next song faded in on a second one, then handed over), EQ, bass, spatial | C | Round 69 rewrite of the crossfade, written but not compiled or heard on a device here. Test on low-end devices |
 | Playback | Resume last queue and position | B | `PlayerHolder.restore` |
 | Playback | Audio focus / headphones unplugged | B | Standard Media3 handling |
 | Playback | Android Auto / car browsing | B | Round 31: `MediaLibraryService` + browse tree. Never run on a DHU or car yet; see docs/ANDROID-AUTO.md |
@@ -97,3 +97,4 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | iOS | D/E | `milo-ios` is a small SwiftUI skeleton that builds unsigned. Not tested on a phone, no lock-screen controls. Feasibility written in `docs/IOS-FEASIBILITY.md`. Do not advertise iOS |
 | Collaborative playlists | F | Round 36 |
 
+| Classic player mode (click-wheel UI: menu, Music, Search, Downloaded, Now Playing, Settings) | C | Round 68. Written, not compiled or tried on a device. Replaces the whole UI while on; only downloaded songs, phone songs and search results. Online search results play as normal; downloaded songs play offline. Volume on Now Playing uses the system music volume |

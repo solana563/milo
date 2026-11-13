@@ -62,7 +62,7 @@ val Fraunces = FontFamily(
 @Composable
 fun MiloTheme(content: @Composable () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    androidx.compose.runtime.remember { Accent.load(ctx); Y2K.load(ctx); Spider.load(ctx); Sticker.load(ctx); Nebula.load(ctx); ChromeStyle.load(ctx) }
+    androidx.compose.runtime.remember { Accent.load(ctx); Y2K.load(ctx); Spider.load(ctx); Sticker.load(ctx); Nebula.load(ctx); ChromeStyle.load(ctx); ClassicMode.load(ctx) }
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Milo.amber,

@@ -127,6 +127,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         AccentCard()
         Spacer(Modifier.height(16.dp))
+        ClassicCard()
+        Spacer(Modifier.height(16.dp))
         Y2KCard()
         Spacer(Modifier.height(16.dp))
         SpiderCard()
@@ -308,6 +310,17 @@ private fun SharingCard(vm: MainViewModel, a: AccountUi) {
         Text("Only your friends can see these, and only song names (never your files).", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Show what I'm listening to", a.shareNp) { vm.setShare(np = it) }
         ShareRow("Share my playlists and liked songs", a.sharePl) { vm.setShare(pl = it) }
+    }
+}
+
+@Composable
+private fun ClassicCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Classic player mode", color = Milo.text, style = Ty.title)
+        Text("Turns the whole app into a small click-wheel player: a plain menu, only the songs you've downloaded, the songs on your phone and what you search for. Turn the wheel with your finger to scroll. To come back, open Settings inside it and choose Back to milo.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+        ShareRow("Classic player mode", false) { v -> if (v) com.ubayanda.milonative.ui.theme.ClassicMode.setOn(ctx, true) }
     }
 }
 

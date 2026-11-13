@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
             GateScreen(vm, acct)
         } else if (granted) {
             LaunchedEffect(Unit) { vm.start() }
-            MiloApp(vm)
+            if (com.ubayanda.milonative.ui.theme.ClassicMode.on) com.ubayanda.milonative.ui.screens.ClassicApp(vm) else MiloApp(vm)
         } else {
             PermissionScreen(
                 blockedForever = asked && blocked,
