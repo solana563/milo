@@ -304,3 +304,9 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The report showed the hand-over itself is accurate (the main player ends up 20/-63/-32 ms from the new song and is ready within the same second); the "main player ready" log line now also says how long that took.
 - The report showed normal playback rates (old and new positions advance in step with the clock) and no underruns during the fades, so the remaining speed-up was not visible in this data: needs the moment it happens (see the chat).
 - Not compiled or heard on a device here.
+
+## Round 71 — UI refinements before publishing
+- Profile: the six separate theme cards (Y2K, Spider, Sticker, Nebula, Chrome + accent) are now one "Appearance" card with a row of theme chips (Default, Y2K, Spider, Sticker, Nebula, Chrome), a one-line description of the chosen theme, and the accent colours shown only for the Default theme. Classic player mode stays its own card.
+- Reduced motion: when the phone's "Remove animations" setting is on, the moving theme decorations (Nebula backdrop, hanging spider, doodle buddy, chrome planet, Y2K spinning CD) stay still.
+- Touch targets: the per-song download button, the selection-bar close button and the accent colour swatches are now at least 44-48 dp.
+- Nothing else about the layout changed. Not compiled or seen on a device here.

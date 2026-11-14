@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.graphics.asImageBitmap
 import com.ubayanda.milonative.data.ChatMedia
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -125,19 +127,13 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         Spacer(Modifier.height(16.dp))
         ReportCard()
         Spacer(Modifier.height(16.dp))
-        AccentCard()
+        AppearanceCard()
+        if (!(com.ubayanda.milonative.ui.theme.Y2K.on || com.ubayanda.milonative.ui.theme.Spider.on || com.ubayanda.milonative.ui.theme.Sticker.on || com.ubayanda.milonative.ui.theme.Nebula.on || com.ubayanda.milonative.ui.theme.ChromeStyle.on)) {
+            Spacer(Modifier.height(16.dp))
+            AccentCard()
+        }
         Spacer(Modifier.height(16.dp))
         ClassicCard()
-        Spacer(Modifier.height(16.dp))
-        Y2KCard()
-        Spacer(Modifier.height(16.dp))
-        SpiderCard()
-        Spacer(Modifier.height(16.dp))
-        StickerCard()
-        Spacer(Modifier.height(16.dp))
-        NebulaCard()
-        Spacer(Modifier.height(16.dp))
-        ChromeCard()
         Spacer(Modifier.height(16.dp))
         HomeLocalCard()
         Spacer(Modifier.height(16.dp))
@@ -321,66 +317,6 @@ private fun ClassicCard() {
         Text("Classic player mode", color = Milo.text, style = Ty.title)
         Text("Turns the whole app into a small click-wheel player: a plain menu, only the songs you've downloaded, the songs on your phone and what you search for. Turn the wheel with your finger to scroll. To come back, open Settings inside it and choose Back to milo.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
         ShareRow("Classic player mode", false) { v -> if (v) com.ubayanda.milonative.ui.theme.ClassicMode.setOn(ctx, true) }
-    }
-}
-
-@Composable
-private fun Y2KCard() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val on = com.ubayanda.milonative.ui.theme.Y2K.on
-    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Y2K mode", color = Milo.text, style = Ty.title)
-        Text("Aqua gel and chrome, a deep-blue panel, a spinning CD for the cover and an LCD read-out on Now Playing. Your accent colour is replaced by aqua while it is on.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Y2K theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "y2k" else null) }
-    }
-}
-
-@Composable
-private fun SpiderCard() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val on = com.ubayanda.milonative.ui.theme.Spider.on
-    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Spider mode", color = Milo.text, style = Ty.title)
-        Text("Pitch black with blood-red accents, webs in the corners of every screen and panel, a spider hanging over the cover on Now Playing and a spider riding the sliders. Turns Y2K mode off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Spider theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "spider" else null) }
-    }
-}
-
-@Composable
-private fun StickerCard() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val on = com.ubayanda.milonative.ui.theme.Sticker.on
-    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Sticker mode", color = Milo.text, style = Ty.title)
-        Text("Black and white like a sticker sheet: heavy white outlines, sparkles and orbit rings, a chequered strip, black-and-white cover art and a doodle buddy on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Sticker theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "sticker" else null) }
-    }
-}
-
-@Composable
-private fun NebulaCard() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val on = com.ubayanda.milonative.ui.theme.Nebula.on
-    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Nebula mode", color = Milo.text, style = Ty.title)
-        Text("Deep violet with a purple-and-teal marble that flows while music plays, twinkling glitter, curly clouds, neon cyan and magenta outlines, glowing sliders and an astronaut on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Nebula theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "nebula" else null) }
-    }
-}
-
-@Composable
-private fun ChromeCard() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val on = com.ubayanda.milonative.ui.theme.ChromeStyle.on
-    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Chrome mode", color = Milo.text, style = Ty.title)
-        Text("Liquid silver on black: polished-metal panel rims, chrome sparkles, orbit rings, a heart and a planet around the screen, glossy ball sliders and a floating chrome planet on Now Playing. Turns the other themes off.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
-        ShareRow("Chrome theme", on) { v -> com.ubayanda.milonative.ui.theme.Themes.apply(ctx, if (v) "chrome" else null) }
     }
 }
 
@@ -687,6 +623,56 @@ private fun BluetoothCard() {
 }
 
 
+private class ThemeOpt(val key: String, val label: String, val a: Color, val b: Color, val blurb: String)
+
+@Composable
+private fun AppearanceCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    val T = com.ubayanda.milonative.ui.theme.Themes
+    val active = when {
+        com.ubayanda.milonative.ui.theme.Y2K.on -> "y2k"
+        com.ubayanda.milonative.ui.theme.Spider.on -> "spider"
+        com.ubayanda.milonative.ui.theme.Sticker.on -> "sticker"
+        com.ubayanda.milonative.ui.theme.Nebula.on -> "nebula"
+        com.ubayanda.milonative.ui.theme.ChromeStyle.on -> "chrome"
+        else -> "default"
+    }
+    val opts = remember {
+        listOf(
+            ThemeOpt("default", "Default", Color(0xFFD9A441), Color(0xFF3A3A3A), "The standard milo. look, with your accent colour."),
+            ThemeOpt("y2k", "Y2K", Color(0xFF35E0FF), Color.White, "Aqua gel and chrome, a spinning CD for the cover and an LCD read-out."),
+            ThemeOpt("spider", "Spider", Color(0xFFE0112B), Color.Black, "Pitch black and blood red, webs in the corners and a spider on a thread."),
+            ThemeOpt("sticker", "Sticker", Color.White, Color.Black, "Black and white sticker sheet: heavy outlines, sparkles and a doodle buddy."),
+            ThemeOpt("nebula", "Nebula", Color(0xFF7A2DFF), Color(0xFF35F0FF), "Purple-teal marble that flows with the music, glitter and an astronaut."),
+            ThemeOpt("chrome", "Chrome", Color(0xFFE6E9ED), Color(0xFF30343B), "Liquid silver on black: chrome sparkles, rings and glossy ball sliders."),
+        )
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Appearance", color = Milo.text, style = Ty.title)
+        Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            opts.forEach { o ->
+                val on = o.key == active
+                val chip = RoundedCornerShape(24.dp)
+                Row(
+                    Modifier.height(48.dp).clip(chip)
+                        .background(if (on) Milo.text.copy(alpha = 0.14f) else Color.Transparent)
+                        .border(if (on) 2.dp else 1.dp, if (on) Milo.text else Milo.line, chip)
+                        .clickable { T.apply(ctx, if (o.key == "default") null else o.key) }
+                        .padding(horizontal = 14.dp)
+                        .semantics { contentDescription = o.label + " theme" + if (on) ", selected" else "" },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(18.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Brush.linearGradient(listOf(o.a, o.b))))
+                    Spacer(Modifier.width(8.dp))
+                    Text(o.label, color = Milo.text, fontSize = 15.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium)
+                }
+            }
+        }
+        Text(opts.first { it.key == active }.blurb, color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 10.dp))
+    }
+}
+
 @Composable
 private fun AccentCard() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -697,7 +683,7 @@ private fun AccentCard() {
             com.ubayanda.milonative.ui.theme.Accent.choices.forEach { c ->
                 val on = Milo.amber == c
                 Box(
-                    Modifier.size(38.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)
+                    Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)
                         .border(if (on) 3.dp else 1.dp, if (on) Milo.text else Milo.line, androidx.compose.foundation.shape.CircleShape)
                         .clickable { com.ubayanda.milonative.ui.theme.Accent.set(ctx, c) }
                         .semantics { contentDescription = "Accent colour" + if (on) ", selected" else "" },

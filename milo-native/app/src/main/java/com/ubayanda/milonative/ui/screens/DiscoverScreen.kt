@@ -303,7 +303,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     )
                     if (mode == 3 && t.uri.startsWith("yt:")) androidx.compose.material3.Icon(
                         Icons.Rounded.Download, "Download for offline", tint = Milo.dim,
-                        modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { vm.downloadTracks(listOf(t)) }.padding(9.dp),
+                        modifier = Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { vm.downloadTracks(listOf(t)) }.padding(13.dp),
                     )
                 }
             }

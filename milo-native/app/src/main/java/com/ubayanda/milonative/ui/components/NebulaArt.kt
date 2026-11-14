@@ -81,7 +81,8 @@ fun DrawScope.drawHelmet(c: Offset, r: Float, glitter: Float = 0f) {
 @Composable
 fun NebulaBackdrop(playing: Boolean, modifier: Modifier = Modifier) {
     var t by remember { mutableFloatStateOf(0f) }
-    val on by rememberUpdatedState(playing)
+    val calm = rememberCalm()
+    val on by rememberUpdatedState(playing && !calm)
     LaunchedEffect(Unit) {
         while (true) {
             if (!on) snapshotFlow { on }.first { it }
@@ -130,7 +131,8 @@ fun NebulaBackdrop(playing: Boolean, modifier: Modifier = Modifier) {
 @Composable
 fun HelmetSticker(playing: Boolean, modifier: Modifier = Modifier) {
     var t by remember { mutableFloatStateOf(0f) }
-    val on by rememberUpdatedState(playing)
+    val calm = rememberCalm()
+    val on by rememberUpdatedState(playing && !calm)
     LaunchedEffect(Unit) {
         var last = 0L
         while (true) {

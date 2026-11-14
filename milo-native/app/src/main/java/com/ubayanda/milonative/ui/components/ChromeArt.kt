@@ -125,7 +125,8 @@ fun Modifier.chromeCorner(): Modifier = this.drawBehind {
 @Composable
 fun ChromeFloat(playing: Boolean, modifier: Modifier = Modifier) {
     var t by remember { mutableFloatStateOf(0f) }
-    val on by rememberUpdatedState(playing)
+    val calm = rememberCalm()
+    val on by rememberUpdatedState(playing && !calm)
     LaunchedEffect(Unit) {
         var last = 0L
         while (true) {

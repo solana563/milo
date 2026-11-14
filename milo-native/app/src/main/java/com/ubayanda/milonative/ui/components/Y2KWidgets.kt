@@ -43,7 +43,8 @@ import kotlin.math.exp
 @Composable
 fun SpinningCd(art: ImageBitmap?, playing: Boolean, modifier: Modifier = Modifier) {
     var angle by remember { mutableFloatStateOf(0f) }
-    val spin by rememberUpdatedState(playing)
+    val calm = rememberCalm()
+    val spin by rememberUpdatedState(playing && !calm)
     LaunchedEffect(Unit) {
         var last = 0L
         var speed = 0f // degrees per second; eases up and down like a real disc
