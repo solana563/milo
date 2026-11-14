@@ -327,3 +327,7 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 ### Round 73 — fluid player + downloads kept by source
 - Full player: wavy progress bar (ripples while playing, flattens with a spring when paused or when "Remove animations" is on); light haptic tick every 2 % while scrubbing; slowly moving colour aura behind the player built from the cover's dominant colour (existing extractor, no Palette library); dragging the player down shrinks it toward the mini player and rounds its corners. SharedTransitionLayout was NOT used (see notes).
 - Downloads remember where they came from (playlist / album / artist / single). Downloads screen shows them grouped, each with Play and Remove all. Older downloads appear under "Singles".
+
+### Round 74 — crossfade title follows the new song; progress bar redone
+- Crossfade: the title, cover, queue position and progress now switch to the incoming song at the START of the fade (`XFadeLive` in XFade.kt, set by PlaybackService, read by PlayerHolder). The phone's notification / lock screen still switch at the hand-over (the media session follows the main player).
+- Progress bar redrawn after Android 16's wavy media control: 4 dp line, ~40 dp wavelength, 3 dp amplitude eased in/out (flat at the start and before the handle), travelling wave, gap around a vertical pill handle that narrows when held, stop dot at the end; flattens with a spring when paused. Themes keep their own handles.

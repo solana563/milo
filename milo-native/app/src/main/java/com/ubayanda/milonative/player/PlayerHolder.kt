@@ -18,6 +18,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** The UI's remote control for [PlaybackService]. Everything the screens show about playback comes from [state]. */
@@ -49,6 +51,8 @@ class PlayerHolder(context: Context) {
             })
             refresh()
             startTicker()
+            // the song changes on screen the moment a crossfade starts
+            scope.launch { XFadeLive.info.map { it?.index }.distinctUntilChanged().collect { refresh() } }
             pending?.invoke()
             pending = null
         }, ContextCompat.getMainExecutor(app))
@@ -196,16 +200,18 @@ class PlayerHolder(context: Context) {
         val c = controller ?: return
         val ids = ArrayList<Long>(c.mediaItemCount)
         for (i in 0 until c.mediaItemCount) c.getMediaItemAt(i).mediaId.toLongOrNull()?.let { ids.add(it) }
+        // during a crossfade the screens already show the song that is coming in
+        val xf = XFadeLive.info.value?.takeIf { it.index in 0 until c.mediaItemCount }
         _state.value = _state.value.copy(
-            currentId = c.currentMediaItem?.mediaId?.toLongOrNull(),
+            currentId = if (xf != null) c.getMediaItemAt(xf.index).mediaId.toLongOrNull() else c.currentMediaItem?.mediaId?.toLongOrNull(),
             isPlaying = c.isPlaying,
-            positionMs = c.currentPosition.coerceAtLeast(0L),
-            durationMs = if (c.duration > 0) c.duration else 0L,
+            positionMs = xf?.posMs ?: c.currentPosition.coerceAtLeast(0L),
+            durationMs = if (xf != null && xf.durMs > 0L) xf.durMs else if (c.duration > 0) c.duration else 0L,
             shuffle = c.shuffleModeEnabled,
             repeat = c.repeatMode,
             speed = c.playbackParameters.speed,
             queueIds = ids,
-            queueIndex = c.currentMediaItemIndex.coerceAtLeast(0),
+            queueIndex = xf?.index ?: c.currentMediaItemIndex.coerceAtLeast(0),
             quality = qualityOf(c),
         )
     }
@@ -216,7 +222,9 @@ class PlayerHolder(context: Context) {
             while (true) {
                 val c = controller
                 if (c != null && c.isPlaying) {
-                    _state.value = _state.value.copy(positionMs = c.currentPosition.coerceAtLeast(0L), durationMs = if (c.duration > 0) c.duration else _state.value.durationMs)
+                    val xf = XFadeLive.info.value
+                    _state.value = if (xf != null) _state.value.copy(positionMs = xf.posMs, durationMs = if (xf.durMs > 0L) xf.durMs else _state.value.durationMs)
+                    else _state.value.copy(positionMs = c.currentPosition.coerceAtLeast(0L), durationMs = if (c.duration > 0) c.duration else _state.value.durationMs)
                 }
                 delay(250)
             }

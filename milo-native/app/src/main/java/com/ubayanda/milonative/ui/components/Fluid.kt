@@ -26,17 +26,28 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-/** A line that ripples like a wave from the left edge to [endX]. [amp] = 0 gives a plain round-capped line (what a paused song shows). */
-fun DrawScope.wavyLine(brush: Brush, endX: Float, cy: Float, thick: Float, amp: Float, wavelength: Float, phase: Float) {
-    if (endX <= 0f) return
+/**
+ * The played part of the progress bar, drawn the way Android 16's media controls draw it: a 4 dp round-capped line that travels
+ * as a smooth wave (about 40 dp from crest to crest), flat where it starts and again just before the handle so it eases in and out.
+ * [amp] 0 gives a plain straight line (what a paused song shows). [phase] is the travelling angle in radians.
+ */
+fun DrawScope.wavyActive(brush: Brush, x0: Float, x1: Float, cy: Float, thick: Float, amp: Float, wavelength: Float, phase: Float, ease: Float) {
+    if (x1 <= x0) return
     val p = Path()
     if (amp < 0.05f) {
-        p.moveTo(0f, cy); p.lineTo(endX, cy)
+        p.moveTo(x0, cy); p.lineTo(x1, cy)
     } else {
         val k = (2.0 * PI / wavelength).toFloat()
-        p.moveTo(0f, cy + amp * sin(phase))
-        var x = 0f
-        while (x < endX) { x = min(x + 3f, endX); p.lineTo(x, cy + amp * sin(x * k + phase)) }
+        val len = x1 - x0
+        val e = min(ease, len / 2f).coerceAtLeast(1f)
+        p.moveTo(x0, cy)
+        var x = x0
+        while (x < x1) {
+            x = min(x + 2f, x1)
+            val t = min((x - x0) / e, (x1 - x) / e).coerceIn(0f, 1f)
+            val env = t * t * (3f - 2f * t)   // smooth ease in / out
+            p.lineTo(x, cy + amp * env * sin(x * k - phase))
+        }
     }
     drawPath(p, brush, style = Stroke(thick, cap = StrokeCap.Round, join = StrokeJoin.Round))
 }

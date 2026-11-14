@@ -100,7 +100,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.SolidColor
-import com.ubayanda.milonative.ui.components.wavyLine
+import com.ubayanda.milonative.ui.components.wavyActive
 import androidx.compose.ui.zIndex
 import com.ubayanda.milonative.ui.components.ReorderState
 import androidx.compose.runtime.mutableFloatStateOf
@@ -111,6 +111,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -893,9 +894,11 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
     val waveK by androidx.compose.animation.core.animateFloatAsState(if (ui.isPlaying && !calm) 1f else 0f, com.ubayanda.milonative.ui.components.Bounce.scale(), label = "wave")
     var wavePhase by remember { mutableFloatStateOf(0f) }
     val run = ui.isPlaying && !calm
-    LaunchedEffect(run) { if (run) while (true) androidx.compose.runtime.withFrameNanos { n -> wavePhase = ((n / 1_000_000L) % 1600L) / 1600f * 6.2831855f } }
+    // the wave travels about 32 dp a second; the angle is accumulated from real frame times so it never jumps when playback stops and starts
+    LaunchedEffect(run) { if (run) { var last = 0L; while (true) androidx.compose.runtime.withFrameNanos { n -> if (last != 0L) wavePhase = (wavePhase + (n - last) / 1e9f * 5.0265f) % 6.2831855f; last = n } } }
+    val pressK by androidx.compose.animation.core.animateFloatAsState(if (dragging) 1f else 0f, com.ubayanda.milonative.ui.components.Bounce.scale(), label = "handle")
     Box(
-        modifier.fillMaxWidth().height(40.dp)
+        modifier.fillMaxWidth().height(44.dp)
             .pointerInput(dur) { detectTapGestures { off -> if (dur > 0) onSeek((off.x / size.width * dur).toLong()) } }
             .pointerInput(dur) {
                 detectHorizontalDragGestures(
@@ -913,28 +916,41 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
     ) {
         Canvas(Modifier.matchParentSize()) {
             val cy = size.height / 2
-            val th = 3.dp.toPx()
-            val r = 9.dp.toPx()
+            val w = size.width
+            val th = 4.dp.toPx()
+            val wl = 40.dp.toPx()
             val amp = 3.dp.toPx() * waveK
-            val wl = 26.dp.toPx()
-            drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
-            val px = (size.width * shown).coerceIn(r, size.width - r)
+            val r = 9.dp.toPx()
+            val themed = ChromeStyle.on || Nebula.on || Sticker.on || Spider.on
+            val gapHalf = (if (ChromeStyle.on) 14.dp else if (themed) 13.dp else 8.dp).toPx()
+            val tx = (w * shown).coerceIn(r, w - r)
+            val accent = if (Nebula.on) Nebula.cyan else if (Spider.on) Spider.red else Color.White
+            // the part still to play: a straight line with a gap around the handle and a small stop dot at the end
+            val tStart = tx + gapHalf
+            if (tStart < w - th) {
+                drawLine(Color.White.copy(alpha = 0.28f), Offset(tStart, cy), Offset(w - th / 2, cy), th, StrokeCap.Round)
+            }
+            if (tStart < w - 14.dp.toPx()) drawCircle(accent, 2.dp.toPx(), Offset(w - 4.dp.toPx(), cy))
+            // the part already played
+            val brush: Brush = when {
+                ChromeStyle.on -> Brush.verticalGradient(0f to Color.White, 0.35f to Color(0xFF8E959E), 0.55f to Color(0xFF30343B), 0.8f to Color(0xFFD3D7DD), 1f to Color(0xFF8E959E), startY = cy - th / 2, endY = cy + th / 2)
+                Nebula.on -> Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, w)
+                else -> SolidColor(if (Spider.on) Spider.red else Color.White)
+            }
+            wavyActive(brush, th / 2, tx - gapHalf, cy, th, if (ChromeStyle.on) 0f else amp, wl, wavePhase, 18.dp.toPx())
+            // the handle
             if (ChromeStyle.on) {
-                drawRoundRect(Brush.verticalGradient(0f to Color.White, 0.35f to Color(0xFF8E959E), 0.55f to Color(0xFF30343B), 0.8f to Color(0xFFD3D7DD), 1f to Color(0xFF8E959E), startY = cy - th / 2, endY = cy + th / 2), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
-                drawChromeBall(Offset(px, cy), 13.dp.toPx())
+                drawChromeBall(Offset(tx, cy), 13.dp.toPx())
             } else if (Nebula.on) {
-                wavyLine(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, size.width), px, cy, th, amp, wl, wavePhase)
-                drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(px, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(px, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(px, cy))
+                drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(tx, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(tx, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(tx, cy))
             } else if (Sticker.on) {
-                wavyLine(SolidColor(Color.White), px, cy, th, amp, wl, wavePhase)
-                drawSparkle(Offset(px, cy), 16.dp.toPx(), Color.White)
+                drawSparkle(Offset(tx, cy), 16.dp.toPx(), Color.White)
             } else if (Spider.on) {
-                wavyLine(SolidColor(Spider.red), px, cy, th, amp, wl, wavePhase)
-                drawSpider(Offset(px, cy), 12.dp.toPx(), phase = shown * 40f)
+                drawSpider(Offset(tx, cy), 12.dp.toPx(), phase = shown * 40f)
             } else {
-                wavyLine(SolidColor(Color.White), px, cy, th, amp, wl, wavePhase)
-                drawCircle(Color.White, r, Offset(px, cy))
-                drawCircle(ring, 3.dp.toPx(), Offset(px, cy), style = Stroke(1.5.dp.toPx()))
+                // a vertical pill that narrows while it is held, like Android 16's slider handle
+                val hw = (4f - 2f * pressK).dp.toPx()
+                drawRoundRect(Color.White, Offset(tx - hw / 2, cy - 15.dp.toPx()), Size(hw, 30.dp.toPx()), CornerRadius(hw / 2))
             }
         }
     }

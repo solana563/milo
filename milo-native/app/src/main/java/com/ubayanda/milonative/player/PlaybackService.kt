@@ -170,6 +170,7 @@ class PlaybackService : MediaLibraryService() {
 
     private fun endGhost() {
         xfPhase = 0
+        XFadeLive.info.value = null
         xfLen = 0L
         xfWarm = false
         xfAudibleAt = 0L
@@ -328,6 +329,9 @@ class PlaybackService : MediaLibraryService() {
                 if (f >= 1f) endGhost()
             }
         }
+        // tell the screens which song is coming in, from the first moment of the fade
+        if (xfPhase != 0 && g != null && xfNextIdx >= 0) XFadeLive.info.value = XFadeLive.Info(xfNextIdx, g.currentPosition.coerceAtLeast(0L), if (g.duration > 0L) g.duration else 0L)
+        else if (XFadeLive.info.value != null) XFadeLive.info.value = null
         // sleep timer: ease the volume down over the last 30 seconds
         val se = fxPrefs.getLong("sleep_end", 0L)
         if (se > 0L) {

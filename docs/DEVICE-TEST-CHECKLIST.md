@@ -169,3 +169,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] Round 72 feel: buttons/cards dip on touch and wobble back; Home cards round their corners while pressed; swipe a song row and let go: it bounces back; drag Now Playing down a little: springs back, a lot: closes; Queue/Sound sheets spring up, drag by the handle, tap outside; pull to refresh on Home and Discover: bubble drops, ticks at the line, bounces; milo. logo only on Home (folds away on other screens and detail pages, content starts higher).
 
 - [ ] R73: wave moves while playing and flattens on pause; ticks while dragging the bar; aura colour changes per song; drag player down = it shrinks and rounds; download a playlist, an album and one song, then check Downloads shows 3 groups
+
+- [ ] R74: start a crossfade, check the title/cover change as the fade begins, scrubber follows the new song; check wave looks like the Android 16 media bar, flat when paused, handle narrows when held

@@ -1,5 +1,14 @@
 package com.ubayanda.milonative.player
 
+/**
+ * What the screens should show while a crossfade is running: the song that is coming in (title, cover, queue position, progress),
+ * not the one that is still fading out on the main player. The service sets it from the start of the fade; it is cleared when the fade is over.
+ */
+object XFadeLive {
+    data class Info(val index: Int, val posMs: Long, val durMs: Long)
+    val info = kotlinx.coroutines.flow.MutableStateFlow<Info?>(null)
+}
+
 /** Crossfade curves. [gains] returns (old song, new song) volume at progress f (0..1). */
 object XFade {
     const val EQUAL_POWER = 0
