@@ -297,3 +297,10 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - What changes for the person: the title/cover/queue position switch to the new song at the hand-over (the end of the fade) instead of the start of it, because the main player is still on the old song while it fades.
 - Log lines: "fade starts", "f=... old@... new@...", "hand-over", "main player ready, Nms behind", plus second-player underruns. Please send one Diagnostics report after a crossfade.
 - Not compiled and not heard on a device here. The old version is kept as a backup at /tmp only; the previous round zip (round62) has it.
+
+## Round 70 — crossfade fixes from the first two-player report
+- Bug 1 (found in the log): the learned "start lead" measured the wrong thing (time until the fade was due, not time until the new song made sound), so it grew to its 1.5 s cap on every fade. The new song was running silently for ~1.3 s before the fade began, so its first 1-2 s were lost. Now the lead is learned from the moment the second player is really playing (position moving), stored under a new key (xflead2, default 600 ms), and the fade only starts once that has happened.
+- Bug 2: the final 350 ms blend between the two identical copies of the new song used equal-power gains, which add up to +3 dB in the middle for identical audio (a small swell). It now uses a straight (linear) blend.
+- The report showed the hand-over itself is accurate (the main player ends up 20/-63/-32 ms from the new song and is ready within the same second); the "main player ready" log line now also says how long that took.
+- The report showed normal playback rates (old and new positions advance in step with the clock) and no underruns during the fades, so the remaining speed-up was not visible in this data: needs the moment it happens (see the chat).
+- Not compiled or heard on a device here.

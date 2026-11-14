@@ -58,6 +58,7 @@ class PlaybackService : MediaLibraryService() {
     private var xfNextIdx = -1     // queue index of the song being faded in
     private var xfRgNew = 1f       // loudness scale of the song being faded in
     private var xfWarmAt = 0L
+    private var xfAudibleAt = 0L   // when the second player was first really making sound after it was set running
     private var xfHStart = 0L
     private var xfH2 = 0L
     private var xfTrace = 0L
@@ -171,6 +172,7 @@ class PlaybackService : MediaLibraryService() {
         xfPhase = 0
         xfLen = 0L
         xfWarm = false
+        xfAudibleAt = 0L
         primedKey = null
         ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
     }
@@ -225,13 +227,23 @@ class PlaybackService : MediaLibraryService() {
                         primedKey = key
                         xfNextIdx = ni
                         xfWarm = false
+                        xfAudibleAt = 0L
                     }
                     // The second player needs a few hundred ms before it makes sound, so it is set running (silent) a little before the fade.
                     // The lead is learned: each fade measures how long it really took and adjusts the next one.
-                    val lead = fxPrefs.getInt("xflead", 700).toLong()
+                    val lead = fxPrefs.getInt("xflead2", 600).toLong()
                     if (primedKey == key && !xfWarm && toEnd <= x + lead && toEnd > 0L) {
                         val gp = ghostPlayer()
-                        if (gp.playbackState == Player.STATE_READY) { gp.volume = 0f; gp.playWhenReady = true; xfWarm = true; xfWarmAt = now }
+                        if (gp.playbackState == Player.STATE_READY) { gp.volume = 0f; gp.playWhenReady = true; xfWarm = true; xfWarmAt = now; xfAudibleAt = 0L }
+                    }
+                    if (xfWarm && xfAudibleAt == 0L) {
+                        // measure how long the second player really takes to make sound, and learn the lead from that
+                        val gp = ghostPlayer()
+                        if (gp.isPlaying && gp.currentPosition > 60L) {
+                            xfAudibleAt = now
+                            val lat = now - xfWarmAt
+                            fxPrefs.edit().putInt("xflead2", ((lead + lat + 150L) / 2).toInt().coerceIn(250, 1500)).apply()
+                        }
                     }
                     if (xfWarm && toEnd > x + lead + 1500L) {
                         // the person scrubbed back: stop and set the next song up again later
@@ -239,9 +251,8 @@ class PlaybackService : MediaLibraryService() {
                     }
                     if (primedKey == key && xfWarm && toEnd <= x) {
                         val gp = ghostPlayer()
-                        if (gp.isPlaying && gp.currentPosition > 60L) {
-                            val took = now - xfWarmAt
-                            fxPrefs.edit().putInt("xflead", ((lead + (took + 150L)) / 2).toInt().coerceIn(300, 1500)).apply()
+                        if (xfAudibleAt != 0L && gp.isPlaying) {
+                            val took = xfAudibleAt - xfWarmAt
                             xfPhase = 1
                             xfT0 = now
                             xfP0 = p.currentPosition
@@ -297,7 +308,7 @@ class PlaybackService : MediaLibraryService() {
                     val d = g.currentPosition - p.currentPosition   // positive: the main player is behind
                     val lat = fxPrefs.getInt("xflat", 300)
                     if (Math.abs(d) < 1500L) fxPrefs.edit().putInt("xflat", (lat + d * 0.7).toInt().coerceIn(50, 1200)).apply()
-                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "main player ready, ${d}ms behind the new song")
+                    com.ubayanda.milonative.util.ErrorLog.add("xfade", "main player ready after ${now - xfHStart}ms, ${d}ms behind the new song")
                     xfPhase = 3
                     xfH2 = now
                 } else if (now - xfHStart > 7000L) {
@@ -310,7 +321,8 @@ class PlaybackService : MediaLibraryService() {
             if (g == null) { endGhost() } else {
                 val f = ((now - xfH2) / 350f).coerceIn(0f, 1f)
                 g.playWhenReady = p.playWhenReady
-                val gn = XFade.gains(f, XFade.EQUAL_POWER)
+                // the two copies of the new song are the same sound, so they add up: a straight blend (not equal power) keeps the volume level
+                val gn = XFade.gains(f, XFade.LINEAR)
                 v = gn.second
                 g.volume = (gn.first * xfRgNew).coerceIn(0f, 1f)
                 if (f >= 1f) endGhost()
