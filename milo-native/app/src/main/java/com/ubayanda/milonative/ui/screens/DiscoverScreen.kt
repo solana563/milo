@@ -261,7 +261,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             err.isNotEmpty() -> Text(err, color = Color(0xFFFF8A80), fontSize = 15.sp, modifier = Modifier.padding(20.dp))
             items.isEmpty() && !(mode == 2 && !vm.server.configured) -> Text("Nothing found. Try another search.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(20.dp))
         }
-        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = refreshing, onRefresh = { refreshing = true; tick++ }, modifier = Modifier.fillMaxSize()) {
+        com.ubayanda.milonative.ui.components.BouncyRefresh(refreshing = refreshing, onRefresh = { refreshing = true; tick++ }, modifier = Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize(), state = discState, contentPadding = PaddingValues(bottom = bottomPad)) {
             if (mode == 3 && yArtists.isNotEmpty()) item(key = "yar") { YtShelf(if (query.isBlank()) "Trending artists" else "Artists", yArtists, vm) { onYtPage(it.id) } }
             if (mode == 3 && yAlbums.isNotEmpty()) item(key = "yal") { YtShelf(if (chartMode) "Top albums" else if (query.isBlank()) "New releases" else "Albums", yAlbums, vm) { onYtPage(it.id) } }

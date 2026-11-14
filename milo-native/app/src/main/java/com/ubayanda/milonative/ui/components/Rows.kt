@@ -8,6 +8,10 @@ import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -104,6 +108,10 @@ fun TrackRow(
     val saved = isYt && savedItems.any { it.id == t.uri.removePrefix("yt:") }
     val dlNow = com.ubayanda.milonative.data.OfflineStore.progress.collectAsState().value[t.uri.removePrefix("yt:")]
     var dx by remember { mutableFloatStateOf(0f) }
+    val rowScope = androidx.compose.runtime.rememberCoroutineScope()
+    fun springBack() { val from = dx; rowScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, Bounce.px()) { dx = value } } }
+    var rowDown by remember { mutableStateOf(false) }
+    val rowScale by androidx.compose.animation.core.animateFloatAsState(if (rowDown && !selecting) 0.975f else 1f, if (rowDown) Bounce.snappy() else Bounce.scale(), label = "rowPress")
     val limit = with(LocalDensity.current) { 96.dp.toPx() }
     val swipeOn = handle == null && !selecting
     Box(Modifier.fillMaxWidth().clipToBounds()) {
@@ -115,7 +123,7 @@ fun TrackRow(
             .background(if (current) androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(accent.copy(alpha = 0.26f), accent.copy(alpha = 0.08f))) else androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Milo.card, Milo.card)), hotShape)
             .border(1.dp, if (current) accent.copy(alpha = 0.55f) else Milo.line, hotShape)
         Row(
-            Modifier.graphicsLayer { translationX = dx * 0.55f }
+            Modifier.graphicsLayer { translationX = dx * 0.55f; scaleX = rowScale; scaleY = rowScale }
                 .then(if (current || picked) hot else Modifier).fillMaxWidth()
                 .then(
                     if (swipeOn) Modifier.pointerInput(t.id) {
@@ -123,9 +131,9 @@ fun TrackRow(
                             onDragEnd = {
                                 if (dx > limit) { vm.player.playNext(t); haptic.performHapticFeedback(HapticFeedbackType.LongPress); Toast.makeText(ctx, "Playing next", Toast.LENGTH_SHORT).show() }
                                 else if (dx < -limit) { vm.toggleFav(t.id); haptic.performHapticFeedback(HapticFeedbackType.LongPress); Toast.makeText(ctx, if (liked) "Removed from Liked songs" else "Added to Liked songs", Toast.LENGTH_SHORT).show() }
-                                dx = 0f
+                                springBack()
                             },
-                            onDragCancel = { dx = 0f },
+                            onDragCancel = { springBack() },
                             onHorizontalDrag = { change, d -> change.consume(); dx = (dx + d).coerceIn(-limit * 1.3f, limit * 1.3f) },
                         )
                     } else Modifier
@@ -137,6 +145,7 @@ fun TrackRow(
                         if (selecting) vm.toggleSelect(t.id) else menu = true
                     },
                 )
+                .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); rowDown = true; waitForUpOrCancellation(); rowDown = false } }
                 .padding(start = if (current || picked) Sp.x3 else Sp.gutter, end = Sp.x1, top = Sp.x2, bottom = Sp.x2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -230,7 +239,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 fun ScreenTitle(text: String) {
     Text(
         text, color = Milo.text, style = Ty.display,
-        modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x6, bottom = Sp.x4),
+        modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x3, bottom = Sp.x4),
     )
 }
 

@@ -310,3 +310,13 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - Reduced motion: when the phone's "Remove animations" setting is on, the moving theme decorations (Nebula backdrop, hanging spider, doodle buddy, chrome planet, Y2K spinning CD) stay still.
 - Touch targets: the per-song download button, the selection-bar close button and the accent colour swatches are now at least 44-48 dp.
 - Nothing else about the layout changed. Not compiled or seen on a device here.
+
+## Round 72 — bouncy, tactile feel + more room on every screen but Home
+- The app is native Kotlin/Compose, so React Native / Flutter code was not touched. The requested spring (damping 12, stiffness 200, mass 1) is converted to Compose's damping ratio: 12 / (2 * sqrt(200)) = 0.424, stiffness 200. It lives in one place, `ui/components/Bounce.kt` (`Bounce.scale()`, `px()`, `dp()`, `offset()`), so it can be tuned once.
+- Presses: `pressable` buttons go down with a stiff, instant spring and come back with the bouncy one. New `Modifier.tactile(radius)`: the card dips AND its corners round off on touch-down (radius x1.7), then both spring back; used on Home's mix and recent cards and tiles (tiles scale only, so their shadow is not cut). Track rows dip to 97.5% on touch.
+- Card drags: swiping a song row sideways now springs back with the bounce instead of snapping.
+- Sheets: Now Playing dragged down springs back if released early, or is thrown down the screen on the same spring and closes; its slide-out uses the bouncy spring. The Queue / Sound sheets spring up from the bottom, can be dragged down by the handle, and spring out when dismissed or when the dim area is tapped.
+- Pull to refresh (Home and Discover): replaced the stock indicator with `BouncyRefresh`: rubber-band pull that follows the finger (harder the further), a bubble that drops in, scales up, pops with a tick when the pull is far enough, springs to a hold position while refreshing and bounces back up when done.
+- The milo. logo now shows on the Home screen only; on every other screen (tabs and detail pages) it folds away on a spring, which gives about 89 dp more room. Screen titles lost 12 dp of top padding.
+- Haptics: a tick on touch-down for tactile cards, a firmer one when a pull reaches the refresh line.
+- Not compiled or tried on a device here. Springs this loose overshoot on purpose; if anything feels too wobbly, change DAMPING_RATIO in Bounce.kt (0.6 is calmer).

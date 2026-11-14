@@ -157,6 +157,17 @@ private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
+    val dragScope = androidx.compose.runtime.rememberCoroutineScope()
+    val screenH = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    var shut by remember { mutableStateOf(false) }
+    // let go before the line: it springs back with a bounce; past it: it is thrown down the screen on the same spring, then closes
+    fun springBackPlayer() { val from = drag; dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { drag = value } } }
+    fun dismissPlayer() {
+        if (shut) return
+        shut = true
+        val from = drag
+        dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(screenH, com.ubayanda.milonative.ui.components.Bounce.px()) { drag = value; if (value >= screenH) onClose() } }
+    }
     var castOpen by remember { mutableStateOf(false) }
     if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
     // the cover for THIS song only (never the previous song's picture while the new one loads)
@@ -230,9 +241,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     )
                 }.pointerInput(Unit) {
                     detectVerticalDragGestures(
-                        onVerticalDrag = { _, dy -> drag += dy },
-                        onDragEnd = { if (drag > 220f) onClose(); drag = 0f },
-                        onDragCancel = { drag = 0f },
+                        onVerticalDrag = { _, dy -> if (!shut) drag = (drag + dy).coerceAtLeast(0f) },
+                        onDragEnd = { if (drag > 220f) dismissPlayer() else springBackPlayer() },
+                        onDragCancel = { springBackPlayer() },
                     )
                 }
             ) {
@@ -421,14 +432,37 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
 @Composable
 private fun Sheet(frac: Float, backdrop: Bitmap?, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(onClick = onClose)) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val full = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() } * frac
+    var y by remember { mutableFloatStateOf(full) }   // starts below the screen and springs up
+    var closing by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { androidx.compose.animation.core.Animatable(full).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { if (!closing) y = value } }
+    fun springBack() { val from = y; scope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { y = value } } }
+    fun close() {
+        if (closing) return
+        closing = true
+        val from = y
+        scope.launch { androidx.compose.animation.core.Animatable(from).animateTo(full, com.ubayanda.milonative.ui.components.Bounce.px()) { y = value; if (value >= full) onClose() } }
+    }
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f * (1f - (y / full).coerceIn(0f, 1f)))).clickable(onClick = ::close)) {
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(frac)
+                .offset { IntOffset(0, y.roundToInt().coerceAtLeast(0)) }
                 .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)).frosted(backdrop, 0.6f)
                 .border(1.dp, glassStroke(1.2f), RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                 .clickable(enabled = false) {}.navigationBarsPadding(),
         ) {
-            Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp).width(40.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)))
+            // the handle area: drag it down to dismiss; let go early and the sheet springs back
+            Box(
+                Modifier.fillMaxWidth().height(36.dp).pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { _, dy -> if (!closing) y = (y + dy).coerceAtLeast(0f) },
+                        onDragEnd = { if (y > 140f) close() else springBack() },
+                        onDragCancel = { springBack() },
+                    )
+                },
+                contentAlignment = Alignment.TopCenter,
+            ) { Box(Modifier.padding(top = 10.dp).width(40.dp).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f))) }
             content()
         }
     }

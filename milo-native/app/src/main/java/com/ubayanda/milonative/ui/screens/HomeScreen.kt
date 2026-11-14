@@ -3,6 +3,8 @@ package com.ubayanda.milonative.ui.screens
 import com.ubayanda.milonative.ui.components.glass
 import com.ubayanda.milonative.ui.components.lift
 import com.ubayanda.milonative.ui.components.pressable
+import com.ubayanda.milonative.ui.components.tactile
+import com.ubayanda.milonative.ui.components.BouncyRefresh
 import com.ubayanda.milonative.ui.components.glassStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -113,7 +115,7 @@ fun HomeScreen(
 
     val card = RoundedCornerShape(38.dp)
     // like the web mockup: separate rounded cards on the black canvas, with a small gap between them
-    androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = ytLoading, onRefresh = { vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
+    BouncyRefresh(refreshing = ytLoading, onRefresh = { vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize(), state = homeState, contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
             Column(Modifier.fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
@@ -187,7 +189,7 @@ fun HomeScreen(
                     LazyRow(state = vm.mem.list("home-mixes"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(shownMixes.size, key = { "mx$it" + shownMixes[it].title }) { i ->
                             val m = shownMixes[i]
-                            Column(Modifier.width(148.dp).clip(RoundedCornerShape(14.dp)).clickable { vm.player.playQueue(m.tracks, 0) }) {
+                            Column(Modifier.width(148.dp).tactile(14.dp) { vm.player.playQueue(m.tracks, 0) }) {
                                 Box {
                                     Cover(vm, m.tracks.first(), 148.dp, 14.dp, px = 400)
                                     if (m.remote) Text("LIVE", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(8.dp).clip(RoundedCornerShape(6.dp)).background(Milo.amber).padding(horizontal = 6.dp, vertical = 2.dp))
@@ -230,7 +232,7 @@ fun HomeScreen(
                     SectionTitle("Recently played")
                     LazyRow(state = vm.mem.list("home-played"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(played, key = { "rp" + it.id }) { t ->
-                            Column(Modifier.width(120.dp).clickable {
+                            Column(Modifier.width(120.dp).tactile(14.dp) {
                                 if (played.any { it.id < 0 }) vm.playRemote(played, played.indexOf(t)) else vm.player.playQueue(played, played.indexOf(t))
                             }) {
                                 Cover(vm, t, 120.dp, 14.dp, px = 360)
@@ -261,7 +263,7 @@ fun HomeScreen(
 private fun Tile(vm: MainViewModel, t: TileData, modifier: Modifier) {
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Row(
-        modifier.height(60.dp).lift(shape, 14f).glass(shape).clickable(onClick = t.onClick),
+        modifier.height(60.dp).tactile(36.dp, clip = false, onClick = t.onClick).lift(shape, 14f).glass(shape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (t.collage.size >= 2) {

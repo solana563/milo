@@ -209,9 +209,14 @@ fun MiloApp(vm: MainViewModel) {
                 }
             }
             Column(Modifier.fillMaxSize().backdropSource(backdrop)) {
-                // header: the milo. logo, centred, like the web app
-                Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 20.dp, bottom = 37.dp), contentAlignment = Alignment.Center) {
-                    Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(42.dp))
+                // header: the milo. logo, centred, like the web app, on the Home screen only. Everywhere else it folds away (with a spring)
+                // so the content gets the room.
+                val showLogo = tab == Tab.Home && detail == null && ytPages.isEmpty() && yt == null
+                val logoH by androidx.compose.animation.core.animateDpAsState(if (showLogo) 42.dp else 0.dp, androidx.compose.animation.core.spring(0.75f, 400f), label = "logoH")
+                val logoTop by androidx.compose.animation.core.animateDpAsState(if (showLogo) 20.dp else 8.dp, androidx.compose.animation.core.spring(0.75f, 400f), label = "logoTop")
+                val logoBottom by androidx.compose.animation.core.animateDpAsState(if (showLogo) 37.dp else 4.dp, androidx.compose.animation.core.spring(0.75f, 400f), label = "logoBottom")
+                Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = logoTop.coerceAtLeast(0.dp), bottom = logoBottom.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
+                    if (logoH > 2.dp) Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(logoH).graphicsLayer { alpha = (logoH.value / 42f).coerceIn(0f, 1f) })
                 }
                 // like the web: solid cards, edge to edge. Other screens are one card with big top curves; Home draws its own two cards
                 val panelShape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)
@@ -355,7 +360,8 @@ fun MiloApp(vm: MainViewModel) {
 
             AnimatedVisibility(
                 visible = playerOpen && current != null,
-                enter = slideInVertically { it }, exit = slideOutVertically { it },
+                enter = slideInVertically(androidx.compose.animation.core.spring(0.8f, 350f, androidx.compose.ui.unit.IntOffset.VisibilityThreshold)) { it },
+                exit = slideOutVertically(com.ubayanda.milonative.ui.components.Bounce.offset()) { it },
             ) {
                 if (current != null) {
                     NowPlayingScreen(vm, current, ui, favs.contains(current.id)) { playerOpen = false }
