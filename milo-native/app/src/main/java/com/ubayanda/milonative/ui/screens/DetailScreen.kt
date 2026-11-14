@@ -72,6 +72,8 @@ fun DetailScreen(
     /** Draw this picture as the cover instead of the first song's (an online playlist's own cover, say). */
     coverTrack: Track? = null,
     headerAction2: Pair<String, () -> Unit>? = null,
+    /** Which playlist / album / artist a Download from this page belongs to, so the Downloads screen can keep them together. */
+    downloadGroup: com.ubayanda.milonative.data.OfflineStore.Group? = null,
 ) {
     val lead = coverTrack ?: tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
@@ -136,7 +138,7 @@ fun DetailScreen(
                                 contentAlignment = Alignment.Center,
                             ) { Icon(Icons.Rounded.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(42.dp)) }
                             if (ytTracks.isNotEmpty()) HeroBtn(
-                                if (allSaved) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", { vm.downloadTracks(ytTracks) }, 52.dp,
+                                if (allSaved) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", { vm.downloadTracks(ytTracks, downloadGroup) }, 52.dp,
                             ) else Spacer(Modifier.size(52.dp))
                         }
                     }

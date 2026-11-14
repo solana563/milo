@@ -25,7 +25,11 @@ import java.util.concurrent.TimeUnit
  * A saved song keeps its normal "yt:<id>" address; the player swaps in the saved file when there is one.
  */
 object OfflineStore {
-    data class Item(val id: String, val title: String, val artist: String, val album: String, val art: String, val durationMs: Long, val file: String, val bytes: Long, val at: Long)
+    data class Item(val id: String, val title: String, val artist: String, val album: String, val art: String, val durationMs: Long, val file: String, val bytes: Long, val at: Long,
+        /** Where it was downloaded from: "playlist", "album", "artist" or "" for a song saved on its own. */
+        val gKind: String = "", val gName: String = "")
+    /** A playlist, album or artist page the songs were downloaded from. */
+    data class Group(val kind: String, val name: String)
 
     private var dir: File? = null
     private var appCtx: Context? = null
@@ -48,7 +52,7 @@ object OfflineStore {
     enum class State { QUEUED, ACTIVE, PAUSED, FAILED }
     data class Job(
         val id: String, val track: Track, val state: State, val error: String = "", val attempts: Int = 0,
-        val doneBytes: Long = 0L, val totalBytes: Long = 0L, val notBefore: Long = 0L, val source: String = "YouTube Music",
+        val doneBytes: Long = 0L, val totalBytes: Long = 0L, val notBefore: Long = 0L, val source: String = "YouTube Music", val group: Group? = null,
     ) {
         /** Rough size until the real one is known: about 20 KB per second of music (about 6 with the data saver). */
         fun estimate(saver: Boolean): Long = if (totalBytes > 0) totalBytes else (track.durationMs / 1000L) * (if (saver) 6_000L else 20_000L)
@@ -79,13 +83,13 @@ object OfflineStore {
     }
 
     /** Queue songs to download in the background (two at a time). [done] gets how many were saved and the first failure message. */
-    @Synchronized fun enqueue(list: List<Track>, done: (Int, String?) -> Unit = { _, _ -> }) {
+    @Synchronized fun enqueue(list: List<Track>, group: Group? = null, done: (Int, String?) -> Unit = { _, _ -> }) {
         val known = _jobs.value.map { it.id }.toSet()
         val todo = list.filter { it.uri.startsWith("yt:") && !has(it.uri.removePrefix("yt:")) && it.uri.removePrefix("yt:") !in known }
         if (todo.isEmpty()) { done(0, null); return }
         val b = Batch(done).also { it.left = todo.size }
         todo.forEach { batches[it.uri.removePrefix("yt:")] = b }
-        _jobs.update { l -> l + todo.map { Job(it.uri.removePrefix("yt:"), it, State.QUEUED) } }
+        _jobs.update { l -> l + todo.map { Job(it.uri.removePrefix("yt:"), it, State.QUEUED, group = group) } }
         saveQueue(); refreshPending(); pump()
     }
 
@@ -198,7 +202,7 @@ object OfflineStore {
     private fun saveQueue() {
         val d = dir ?: return
         val a = JSONArray()
-        _jobs.value.forEach { a.put(JSONObject().put("t", SavedStore.toJson(it.track)).put("s", it.state.name).put("e", it.error)) }
+        _jobs.value.forEach { a.put(JSONObject().put("t", SavedStore.toJson(it.track)).put("s", it.state.name).put("e", it.error).put("gk", it.group?.kind ?: "").put("gn", it.group?.name ?: "")) }
         try { File(d, "queue.json").writeText(a.toString()) } catch (_: Exception) {}
     }
 
@@ -213,7 +217,7 @@ object OfflineStore {
                 val t = SavedStore.fromJson(o.getJSONObject("t")); val id = t.uri.removePrefix("yt:")
                 if (id.isEmpty() || has(id)) continue
                 val failed = o.optString("s") == State.FAILED.name
-                out.add(Job(id, t, if (failed) State.FAILED else State.PAUSED, if (failed) o.optString("e") else ""))
+                out.add(Job(id, t, if (failed) State.FAILED else State.PAUSED, if (failed) o.optString("e") else "", group = o.optString("gk").takeIf { it.isNotEmpty() }?.let { Group(it, o.optString("gn")) }))
             }
             _jobs.value = out
         } catch (_: Exception) {}
@@ -254,7 +258,7 @@ object OfflineStore {
             for (i in 0 until a.length()) {
                 val o = a.getJSONObject(i)
                 val f = File(d, o.getString("file"))
-                if (f.exists()) out.add(Item(o.getString("id"), o.getString("title"), o.optString("artist"), o.optString("album"), o.optString("art"), o.optLong("d"), o.getString("file"), f.length(), o.optLong("at")))
+                if (f.exists()) out.add(Item(o.getString("id"), o.getString("title"), o.optString("artist"), o.optString("album"), o.optString("art"), o.optLong("d"), o.getString("file"), f.length(), o.optLong("at"), o.optString("gk"), o.optString("gn")))
             }
             _items.value = out
         } catch (_: Exception) {}
@@ -264,7 +268,7 @@ object OfflineStore {
     private fun save() {
         val d = dir ?: return
         val a = JSONArray()
-        _items.value.forEach { a.put(JSONObject().put("id", it.id).put("title", it.title).put("artist", it.artist).put("album", it.album).put("art", it.art).put("d", it.durationMs).put("file", it.file).put("at", it.at)) }
+        _items.value.forEach { a.put(JSONObject().put("id", it.id).put("title", it.title).put("artist", it.artist).put("album", it.album).put("art", it.art).put("d", it.durationMs).put("file", it.file).put("at", it.at).put("gk", it.gKind).put("gn", it.gName)) }
         try { File(d, "index.json").writeText(a.toString()) } catch (_: Exception) {}
     }
 
@@ -273,12 +277,16 @@ object OfflineStore {
     fun totalBytes() = _items.value.sumOf { it.bytes }
 
     /** The saved songs as normal tracks, newest first. */
-    fun tracks(): List<Track> = _items.value.sortedByDescending { it.at }.map {
-        Track(
-            id = YtMusic.trackId(it.id), uri = "yt:" + it.id, title = it.title, artist = it.artist, album = it.album.ifEmpty { "Downloaded" },
-            albumId = 4_000_000_000_000L + (it.album.hashCode().toLong() and 0x7fffffffL), durationMs = it.durationMs, trackNo = 0, year = 0, addedSec = it.at / 1000, artUrl = it.art,
-        )
-    }
+    fun tracks(): List<Track> = _items.value.sortedByDescending { it.at }.map { asTrack(it) }
+
+    private fun asTrack(it: Item) = Track(
+        id = YtMusic.trackId(it.id), uri = "yt:" + it.id, title = it.title, artist = it.artist, album = it.album.ifEmpty { "Downloaded" },
+        albumId = 4_000_000_000_000L + (it.album.hashCode().toLong() and 0x7fffffffL), durationMs = it.durationMs, trackNo = 0, year = 0, addedSec = it.at / 1000, artUrl = it.art,
+    )
+
+    /** The saved songs of one playlist / album / artist (or the singles when [kind] is empty), in the order they were saved. */
+    fun tracksOf(kind: String, name: String): List<Track> =
+        _items.value.filter { it.gKind == kind && it.gName == name }.sortedBy { it.at }.map { asTrack(it) }
 
     fun remove(videoId: String) {
         val it = _items.value.firstOrNull { x -> x.id == videoId } ?: return
@@ -358,7 +366,8 @@ object OfflineStore {
                     }
                 }
             } catch (_: Exception) {}
-            _items.value = _items.value.filter { it.id != id } + Item(id, t.title, t.artist, if (t.album == "YouTube Music" || t.album == "YouTube") "" else t.album, art, t.durationMs, name, f.length(), System.currentTimeMillis())
+            val grp = _jobs.value.firstOrNull { it.id == id }?.group
+            _items.value = _items.value.filter { it.id != id } + Item(id, t.title, t.artist, if (t.album == "YouTube Music" || t.album == "YouTube") "" else t.album, art, t.durationMs, name, f.length(), System.currentTimeMillis(), grp?.kind ?: "", grp?.name ?: "")
             save()
             if (limit > 0 && st.autoClean && totalBytes() > limit) evictTo(limit, keep = id)
             try { appCtx?.let { com.ubayanda.milonative.data.LyricsRepo(it).fetchTo(File(d, "$id.lrc"), t) } } catch (_: Exception) {}

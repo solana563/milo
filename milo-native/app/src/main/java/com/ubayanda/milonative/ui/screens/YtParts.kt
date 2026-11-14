@@ -148,7 +148,8 @@ fun YtPageScreen(vm: MainViewModel, id: String, ui: PlayerUi, bottomPad: Dp, onO
                     if (p.isCollage || p.cover.isEmpty()) tracks.firstOrNull()
                     else YtMusic.cardTrack(YtMusic.Card(p.kind, p.id, p.title, "", p.cover), 480)
                 }
-                DetailScreen(vm, p.title, p.subtitle, tracks, ui, bottomPad, onBack, coverTrack = cover)
+                DetailScreen(vm, p.title, p.subtitle, tracks, ui, bottomPad, onBack, coverTrack = cover,
+                    downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group(if (p.kind.contains("album", true)) "album" else "playlist", p.title))
             }
         }
     }
@@ -181,7 +182,7 @@ private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, botto
                 Pill("Download", Icons.Rounded.Download, false, tracks.isNotEmpty(), compact = true) {
                     vm.rememberRemote(tracks)
                     Toast.makeText(ctx, "Downloading ${tracks.size} songs…", Toast.LENGTH_SHORT).show()
-                    com.ubayanda.milonative.data.OfflineStore.enqueue(tracks) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Nothing new to save", Toast.LENGTH_SHORT).show() }
+                    com.ubayanda.milonative.data.OfflineStore.enqueue(tracks, com.ubayanda.milonative.data.OfflineStore.Group("artist", p.title)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Nothing new to save", Toast.LENGTH_SHORT).show() }
                 }
                 if (p.radioId.isNotEmpty()) Pill("Radio", Icons.Rounded.Radio, false, compact = true) {
                     scope.launch {

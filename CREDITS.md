@@ -320,3 +320,10 @@ Round 47: milo-push now requires a WEBHOOK_SECRET header, so only your own datab
 - The milo. logo now shows on the Home screen only; on every other screen (tabs and detail pages) it folds away on a spring, which gives about 89 dp more room. Screen titles lost 12 dp of top padding.
 - Haptics: a tick on touch-down for tactile cards, a firmer one when a pull reaches the refresh line.
 - Not compiled or tried on a device here. Springs this loose overshoot on purpose; if anything feels too wobbly, change DAMPING_RATIO in Bounce.kt (0.6 is calmer).
+
+### Round 72 fix 1
+CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an extension property, so it needs `import androidx.compose.animation.core.VisibilityThreshold`. Added to both files.
+
+### Round 73 — fluid player + downloads kept by source
+- Full player: wavy progress bar (ripples while playing, flattens with a spring when paused or when "Remove animations" is on); light haptic tick every 2 % while scrubbing; slowly moving colour aura behind the player built from the cover's dominant colour (existing extractor, no Palette library); dragging the player down shrinks it toward the mini player and rounds its corners. SharedTransitionLayout was NOT used (see notes).
+- Downloads remember where they came from (playlist / album / artist / single). Downloads screen shows them grouped, each with Play and Remove all. Older downloads appear under "Singles".

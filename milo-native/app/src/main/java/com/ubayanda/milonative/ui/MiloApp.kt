@@ -255,9 +255,9 @@ fun MiloApp(vm: MainViewModel) {
                         }
                     } else
                     when (val d = sc.detail) {
-                        is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null })
-                        is Detail.ArtistD -> DetailScreen(vm, d.artist.name, "Artist", d.artist.tracks, ui, bottomPad, { detail = null })
-                        is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, rowExtra = { t ->
+                        is Detail.AlbumD -> DetailScreen(vm, d.album.title, d.album.artist, d.album.tracks, ui, bottomPad, { detail = null }, downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group("album", d.album.title))
+                        is Detail.ArtistD -> DetailScreen(vm, d.artist.name, "Artist", d.artist.tracks, ui, bottomPad, { detail = null }, downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group("artist", d.artist.name))
+                        is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group("playlist", "Liked songs"), rowExtra = { t ->
                             listOf(RowAction("Remove from Liked songs") { vm.toggleFav(t.id) })
                         })
                         is Detail.Smart -> {
@@ -289,6 +289,7 @@ fun MiloApp(vm: MainViewModel) {
                                 LaunchedEffect(exporting) { if (exporting) { exporting = false; saver.launch(p.name.replace(Regex("[^A-Za-z0-9 _-]"), "") + ".m3u") } }
                                 DetailScreen(
                                     vm, p.name, "Playlist", list, ui, bottomPad, { detail = null },
+                                    downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group("playlist", p.name),
                                     headerAction = "Rename" to { renaming = true },
                                     headerAction2 = "Export" to { exporting = true },
                                     onMove = { f, t -> vm.movePlaylistItem(p.id, f, t) },
@@ -373,7 +374,7 @@ fun MiloApp(vm: MainViewModel) {
                 com.ubayanda.milonative.ui.screens.CarScreen(vm, current, ui, current != null && favs.contains(current.id)) { car = false }
             }
             AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
-                com.ubayanda.milonative.ui.screens.DownloadManagerScreen { vm.showDownloads = false }
+                com.ubayanda.milonative.ui.screens.DownloadManagerScreen(vm) { vm.showDownloads = false }
             }
             AnimatedVisibility(visible = vm.showTaste, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.TasteProfileScreen(vm) { vm.showTaste = false }

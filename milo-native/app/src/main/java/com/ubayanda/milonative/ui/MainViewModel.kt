@@ -1577,13 +1577,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Saves online songs on the phone (two at a time). Songs from the phone's own storage are skipped. */
-    fun downloadTracks(list: List<Track>) {
+    fun downloadTracks(list: List<Track>, group: com.ubayanda.milonative.data.OfflineStore.Group? = null) {
         val app = getApplication<Application>()
         val yt = list.filter { it.uri.startsWith("yt:") }
         if (yt.isEmpty()) { android.widget.Toast.makeText(app, "These songs are already on your phone.", android.widget.Toast.LENGTH_SHORT).show(); return }
         rememberRemote(yt)
         android.widget.Toast.makeText(app, if (yt.size == 1) "Downloading…" else "Downloading ${yt.size} songs…", android.widget.Toast.LENGTH_SHORT).show()
-        com.ubayanda.milonative.data.OfflineStore.enqueue(yt) { n, e ->
+        com.ubayanda.milonative.data.OfflineStore.enqueue(yt, group) { n, e ->
             android.widget.Toast.makeText(app, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Already saved on this phone", android.widget.Toast.LENGTH_SHORT).show()
         }
     }

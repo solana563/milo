@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +41,7 @@ private fun mb(b: Long): String = if (b >= 1_073_741_824L) "%.1f GB".format(b / 
 
 /** Everything about saved and queued songs in one place: what is downloading, waiting, paused or failed, what is saved, and the limits. */
 @Composable
-fun DownloadManagerScreen(onClose: () -> Unit) {
+fun DownloadManagerScreen(vm: com.ubayanda.milonative.ui.MainViewModel, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val jobs by OfflineStore.jobs.collectAsState()
     val items by OfflineStore.items.collectAsState()
@@ -138,13 +139,35 @@ fun DownloadManagerScreen(onClose: () -> Unit) {
         }
         item { Text("Saved on this phone · " + items.size, color = Milo.dim, style = Ty.label, modifier = Modifier.padding(top = 4.dp)) }
         if (items.isEmpty()) item { Text("Nothing saved yet. Open a YouTube song's menu and choose Download, or use Download on an album or playlist.", color = Milo.dim, style = Ty.caption) }
-        items(items.sortedByDescending { it.at }, key = { "s-" + it.id }) { it ->
-            Row(Modifier.fillMaxWidth().clip(card).background(Milo.card).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(it.title, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(it.artist + " · " + mb(it.bytes), color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // kept the way they were downloaded: each playlist, album and artist together, then songs saved one by one
+        val groups = items.groupBy { it.gKind to it.gName }.entries.sortedWith(
+            compareBy({ when (it.key.first) { "playlist" -> 0; "album" -> 1; "artist" -> 2; else -> 3 } }, { -(it.value.maxOfOrNull { x -> x.at } ?: 0L) })
+        )
+        groups.forEach { g ->
+            val kind = g.key.first; val gname = g.key.second; val list = g.value.sortedBy { it.at }
+            item(key = "g-$kind-$gname") {
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(if (kind.isEmpty()) "Singles" else gname, color = Milo.text, style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            (when (kind) { "playlist" -> "Playlist"; "album" -> "Album"; "artist" -> "Artist"; else -> "Saved one by one" }) +
+                                " · " + list.size + (if (list.size == 1) " song · " else " songs · ") + mb(list.sumOf { it.bytes }),
+                            color = Milo.dim, style = Ty.caption,
+                        )
+                    }
+                    Pill("Play", null, true, compact = true) { val tr = OfflineStore.tracksOf(kind, gname); vm.rememberRemote(tr); vm.player.playQueue(tr, 0) }
+                    Spacer(Modifier.width(8.dp))
+                    Pill("Remove all", null, false, compact = true) { list.forEach { OfflineStore.remove(it.id) } }
                 }
-                Pill("Remove", null, false, compact = true) { OfflineStore.remove(it.id) }
+            }
+            items(list, key = { "s-" + it.id }) { it ->
+                Row(Modifier.fillMaxWidth().clip(card).background(Milo.card).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(it.title, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(it.artist + " · " + mb(it.bytes), color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Pill("Remove", null, false, compact = true) { OfflineStore.remove(it.id) }
+                }
             }
         }
         item {

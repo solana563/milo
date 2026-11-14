@@ -99,6 +99,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.SolidColor
+import com.ubayanda.milonative.ui.components.wavyLine
 import androidx.compose.ui.zIndex
 import com.ubayanda.milonative.ui.components.ReorderState
 import androidx.compose.runtime.mutableFloatStateOf
@@ -207,10 +209,19 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
     BackHandler { if (panel != Panel.None) panel = Panel.None else onClose() }
 
-    Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.background(Milo.bg)) {
+    Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.graphicsLayer {
+        // dragging down shrinks the player toward the mini player at the bottom and rounds its corners, so it reads as folding into it
+        val p = (drag / 700f).coerceIn(0f, 1f)
+        val sc = 1f - 0.12f * p
+        scaleX = sc; scaleY = sc
+        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+        shape = RoundedCornerShape(androidx.compose.foundation.shape.CornerSize(36f * p * density))
+        clip = p > 0f
+    }.background(Milo.bg)) {
         // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
         Box(Modifier.fillMaxSize().backdropSource(npBackdrop)) {
-            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.5f) }
+            com.ubayanda.milonative.ui.components.AuraBackdrop(vm.tint.collectAsState().value, ui.isPlaying, Modifier.fillMaxSize())
+            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.3f) }
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
         Column(Modifier.fillMaxSize().blur(behindBlur)) {
@@ -875,13 +886,26 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
     val shown = if (dragging) dragFrac else frac
     val dur = ui.durationMs
     val ring = Milo.panel
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val tickAt = remember { intArrayOf(-1) }
+    // the played part ripples while music plays and settles flat (with a bounce) when paused
+    val calm = com.ubayanda.milonative.ui.components.rememberCalm()
+    val waveK by androidx.compose.animation.core.animateFloatAsState(if (ui.isPlaying && !calm) 1f else 0f, com.ubayanda.milonative.ui.components.Bounce.scale(), label = "wave")
+    var wavePhase by remember { mutableFloatStateOf(0f) }
+    val run = ui.isPlaying && !calm
+    LaunchedEffect(run) { if (run) while (true) androidx.compose.runtime.withFrameNanos { n -> wavePhase = ((n / 1_000_000L) % 1600L) / 1600f * 6.2831855f } }
     Box(
         modifier.fillMaxWidth().height(40.dp)
             .pointerInput(dur) { detectTapGestures { off -> if (dur > 0) onSeek((off.x / size.width * dur).toLong()) } }
             .pointerInput(dur) {
                 detectHorizontalDragGestures(
-                    onDragStart = { off -> dragging = true; dragFrac = (off.x / size.width).coerceIn(0f, 1f) },
-                    onHorizontalDrag = { change, _ -> dragFrac = (change.position.x / size.width).coerceIn(0f, 1f) },
+                    onDragStart = { off -> dragging = true; dragFrac = (off.x / size.width).coerceIn(0f, 1f); tickAt[0] = (dragFrac * 50).toInt(); haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) },
+                    onHorizontalDrag = { change, _ ->
+                        dragFrac = (change.position.x / size.width).coerceIn(0f, 1f)
+                        // a light tick every 2 % of the song while scrubbing
+                        val k = (dragFrac * 50).toInt()
+                        if (k != tickAt[0]) { tickAt[0] = k; haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) }
+                    },
                     onDragEnd = { if (dur > 0) onSeek((dragFrac * dur).toLong()); dragging = false },
                     onDragCancel = { dragging = false },
                 )
@@ -891,22 +915,24 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
             val cy = size.height / 2
             val th = 3.dp.toPx()
             val r = 9.dp.toPx()
+            val amp = 3.dp.toPx() * waveK
+            val wl = 26.dp.toPx()
             drawRoundRect(Color.White.copy(alpha = 0.28f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
             val px = (size.width * shown).coerceIn(r, size.width - r)
             if (ChromeStyle.on) {
                 drawRoundRect(Brush.verticalGradient(0f to Color.White, 0.35f to Color(0xFF8E959E), 0.55f to Color(0xFF30343B), 0.8f to Color(0xFFD3D7DD), 1f to Color(0xFF8E959E), startY = cy - th / 2, endY = cy + th / 2), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
                 drawChromeBall(Offset(px, cy), 13.dp.toPx())
             } else if (Nebula.on) {
-                drawRoundRect(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, size.width), Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                wavyLine(Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, size.width), px, cy, th, amp, wl, wavePhase)
                 drawCircle(Nebula.cyan.copy(alpha = 0.22f), 18.dp.toPx(), Offset(px, cy)); drawCircle(Nebula.cyan.copy(alpha = 0.5f), 12.dp.toPx(), Offset(px, cy)); drawCircle(Color.White, 7.dp.toPx(), Offset(px, cy))
             } else if (Sticker.on) {
-                drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                wavyLine(SolidColor(Color.White), px, cy, th, amp, wl, wavePhase)
                 drawSparkle(Offset(px, cy), 16.dp.toPx(), Color.White)
             } else if (Spider.on) {
-                drawRoundRect(Spider.red, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                wavyLine(SolidColor(Spider.red), px, cy, th, amp, wl, wavePhase)
                 drawSpider(Offset(px, cy), 12.dp.toPx(), phase = shown * 40f)
             } else {
-                drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(px, th), CornerRadius(th / 2))
+                wavyLine(SolidColor(Color.White), px, cy, th, amp, wl, wavePhase)
                 drawCircle(Color.White, r, Offset(px, cy))
                 drawCircle(ring, 3.dp.toPx(), Offset(px, cy), style = Stroke(1.5.dp.toPx()))
             }
