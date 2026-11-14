@@ -317,6 +317,7 @@ fun MiloApp(vm: MainViewModel) {
                                 vm, tracks, albums, artists, playlists, likedTracks.size, ui, section, { section = it }, bottomPad,
                                 { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, { detail = Detail.PlaylistD(it.id) }, { detail = Detail.Liked },
                                 onSmart = { detail = Detail.Smart(it) },
+                                onPlayLiked = { sh -> if (sh) vm.player.playShuffled(likedTracks) else vm.player.playQueue(likedTracks, 0) },
                             )
                             Tab.Discover -> DiscoverScreen(vm, ui, bottomPad, { l, i -> yt = l to i }, { ytPages = ytPages + it })
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, onOpenPlaylist = { detail = Detail.PlaylistD(it.id) }, onOpenFriend = { chatWith = it; friendsOpen = true })

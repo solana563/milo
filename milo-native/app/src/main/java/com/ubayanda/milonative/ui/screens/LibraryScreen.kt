@@ -29,6 +29,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,10 +74,13 @@ fun LibraryScreen(
     vm: MainViewModel, tracks: List<Track>, albums: List<Album>, artists: List<Artist>, playlists: List<Playlist>,
     likedCount: Int, ui: PlayerUi, section: Int, onSection: (Int) -> Unit, bottomPad: Dp,
     onOpenAlbum: (Album) -> Unit, onOpenArtist: (Artist) -> Unit, onOpenPlaylist: (Playlist) -> Unit, onLiked: () -> Unit, onSmart: (String) -> Unit = {},
+    /** true = shuffle, false = play in order. */
+    onPlayLiked: (Boolean) -> Unit = {},
 ) {
     val savedCount = vm.offline.collectAsState().value.size
     Column(Modifier.fillMaxSize()) {
         ScreenTitle("Your library")
+        if (likedCount > 0 && section != 3) LikedBanner(likedCount, onLiked, { onPlayLiked(false) }, { onPlayLiked(true) })
         com.ubayanda.milonative.ui.components.GlassSegmented(listOf("Songs", "Albums", "Artists", "Playlists"), section, onSection, Modifier.padding(horizontal = 18.dp))
         Spacer(Modifier.padding(top = 10.dp))
         if (savedCount > 0) IconRow(Icons.Rounded.Download, true, "Downloads", plural(savedCount, "song") + " · play with no connection", { onSmart("downloads") })
@@ -99,6 +104,34 @@ fun LibraryScreen(
                     GridCard(vm, a.tracks.first(), a.name, plural(a.tracks.size, "song"), true) { onOpenArtist(a) }
                 }
             }
+        }
+    }
+}
+
+/** Your favourites up front: one tap to play or shuffle them, or open the list. */
+@Composable
+private fun LikedBanner(count: Int, onOpen: () -> Unit, onPlay: () -> Unit, onShuffle: () -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp).clip(shape)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF6B4300).copy(alpha = 0.55f), Milo.card)))
+            .clickable(onClick = onOpen).padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Brush.verticalGradient(listOf(Color(0xFFE39000), Color(0xFF6B4300)))), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(26.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text("YOUR FAVOURITES", color = Milo.dim, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+            Text("Liked songs", color = Milo.text, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(plural(count, "song"), color = Milo.dim, fontSize = 13.sp, maxLines = 1)
+        }
+        Box(Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onShuffle), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Shuffle, "Shuffle liked songs", tint = Milo.text, modifier = Modifier.size(24.dp))
+        }
+        Box(Modifier.size(52.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Milo.cream).clickable(onClick = onPlay), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.PlayArrow, "Play liked songs", tint = Color.Black, modifier = Modifier.size(30.dp))
         }
     }
 }

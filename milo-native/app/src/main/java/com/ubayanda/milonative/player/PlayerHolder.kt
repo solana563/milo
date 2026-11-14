@@ -161,11 +161,15 @@ class PlayerHolder(context: Context) {
     fun playQueueIndex(i: Int) = withController { c -> c.seekToDefaultPosition(i); c.play() }
 
     /** Pause after [minutes] (0 cancels). */
-    fun sleepIn(minutes: Int) {
+    fun sleepIn(minutes: Int) = sleepInMs(minutes * 60_000L)
+
+    /** Same, in milliseconds (0 cancels): used for "end of this song". */
+    fun sleepInMs(ms: Long) {
+        val minutes = if (ms <= 0L) 0 else 1
         sleepJob?.cancel()
         val fx = app.getSharedPreferences("milo_fx", Context.MODE_PRIVATE)
         if (minutes <= 0) { fx.edit().putLong("sleep_end", 0L).apply(); _state.value = _state.value.copy(sleepLeftMs = 0L); return }
-        val end = System.currentTimeMillis() + minutes * 60_000L
+        val end = System.currentTimeMillis() + ms
         fx.edit().putLong("sleep_end", end).apply()
         sleepJob = scope.launch {
             while (true) {

@@ -171,3 +171,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R73: wave moves while playing and flattens on pause; ticks while dragging the bar; aura colour changes per song; drag player down = it shrinks and rounds; download a playlist, an album and one song, then check Downloads shows 3 groups
 
 - [ ] R74: start a crossfade, check the title/cover change as the fade begins, scrubber follows the new song; check wave looks like the Android 16 media bar, flat when paused, handle narrows when held
+
+- [ ] R75: progress bar looks like the Android 16 media bar (waves move, flat when paused); Queue/Output/Sound/Timer row works; Timer sheet incl. End of this song; Library Liked banner play/shuffle

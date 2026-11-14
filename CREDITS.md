@@ -331,3 +331,10 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 ### Round 74 — crossfade title follows the new song; progress bar redone
 - Crossfade: the title, cover, queue position and progress now switch to the incoming song at the START of the fade (`XFadeLive` in XFade.kt, set by PlaybackService, read by PlayerHolder). The phone's notification / lock screen still switch at the hand-over (the media session follows the main player).
 - Progress bar redrawn after Android 16's wavy media control: 4 dp line, ~40 dp wavelength, 3 dp amplitude eased in/out (flat at the start and before the handle), travelling wave, gap around a vertical pill handle that narrows when held, stop dot at the end; flattens with a spring when paused. Themes keep their own handles.
+
+### Round 75 — Android 16 media bar, Now Playing action row, Timer sheet, Liked banner
+- Progress bar (default theme) redrawn after Android 16's media control: thick rounded bar in the cover's colour (softened), big round handle (grows when held), two soft see-through waves rolling over the played part that flatten when paused. Themed looks keep their own thin wave + handles.
+- Now Playing: labelled action row under the lyrics handle: Queue, Output, Sound, Timer (Queue/Sound/Cast moved out of the top-right button column; sleep items moved out of the ⋮ menu).
+- Timer sheet "When should we stop?": 5/10/15/30/45/60 min, "End of this song", countdown + Cancel. PlayerHolder.sleepInMs added.
+- Library: "Liked songs" banner card (play / shuffle / open) above the segmented control.
+- Not done: Library sort button and grid/list toggle; Explore mood hero; Profile personality card.

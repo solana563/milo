@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Cast
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headphones
@@ -152,7 +154,7 @@ import com.ubayanda.milonative.ui.components.lift
 /** The little bubble that confirms a double-tap on the art. [zone]: -1 back, 0 play/pause, 1 forward. */
 private data class TapFlash(val zone: Int, val count: Int, val token: Long, val playing: Boolean = false)
 
-private enum class Panel { None, Queue, Sound, Lyrics, Visual }
+private enum class Panel { None, Queue, Sound, Lyrics, Visual, Timer }
 
 private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 
@@ -334,15 +336,12 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 RoundBtn(Icons.Rounded.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
 
                 Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RoundBtn(Icons.Rounded.QueueMusic, "Queue") { panel = Panel.Queue }
                     RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White) { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
                         RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White) { vm.downloadTracks(listOf(t)) }
                     }
-                    RoundBtn(Icons.Rounded.Tune, "Sound") { panel = Panel.Sound }
                     if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
-                    RoundBtn(Icons.Rounded.Cast, "Cast") { castOpen = true }
                     MoreMenu(vm, t, ui)
                 }
 
@@ -385,7 +384,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
             ) {
                 if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
-                Scrubber(ui, Modifier.padding(horizontal = Sp.gutter)) { vm.player.seekTo(it) }
+                Scrubber(ui, Modifier.padding(horizontal = Sp.gutter), vm.tint.collectAsState().value) { vm.player.seekTo(it) }
                 Row(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(fmtTime(ui.positionMs), color = Milo.dim, style = Ty.caption)
                     Text(fmtTime(ui.durationMs), color = Milo.dim, style = Ty.caption)
@@ -429,6 +428,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
                     )
                 }
+                // the four things people reach for most, labelled, in one row
+                ActionRow(ui, { panel = Panel.Queue }, { castOpen = true }, { panel = Panel.Sound }, { panel = Panel.Timer })
             }
         }
 
@@ -437,6 +438,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             Panel.Sound -> Sheet(0.8f, soft, { panel = Panel.None }) { SoundContent(vm, ui) }
             Panel.Lyrics -> LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { panel = Panel.None }
             Panel.Visual -> VisualPage(vm, t, ui, soft) { panel = Panel.None }
+            Panel.Timer -> Sheet(0.52f, soft, { panel = Panel.None }) { TimerContent(vm, ui) }
             Panel.None -> {}
         }
     }
@@ -830,7 +832,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                     }
                 }
             }
-            Scrubber(ui, Modifier) { vm.player.seekTo(it) }
+            Scrubber(ui, Modifier, vm.tint.collectAsState().value) { vm.player.seekTo(it) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(fmtTime(ui.positionMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
                 Text(fmtTime(ui.durationMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
@@ -854,13 +856,55 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
                 dtapOn = !dtapOn; dtapCtx.getSharedPreferences("milo_fx", 0).edit().putBoolean("dtap", dtapOn).apply(); open = false
             })
             DropdownMenuItem(text = { Text("Car mode") }, onClick = { open = false; actions.carMode() })
-            if (ui.sleepLeftMs > 0) {
-                DropdownMenuItem(text = { Text("Sleep timer: ${fmtTime(ui.sleepLeftMs)} left. Cancel") }, onClick = { vm.player.sleepIn(0); open = false })
-            }
-            listOf(15, 30, 45, 60).forEach { m ->
-                DropdownMenuItem(text = { Text("Sleep in $m min") }, onClick = { vm.player.sleepIn(m); open = false })
+        }
+    }
+}
+
+/** Queue, Output, Sound and Timer as one labelled row under the controls. */
+@Composable
+private fun ActionRow(ui: PlayerUi, onQueue: () -> Unit, onOutput: () -> Unit, onSound: () -> Unit, onTimer: () -> Unit) {
+    val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+    val onDevice = outNow.kind != "speaker"
+    Row(Modifier.fillMaxWidth().padding(horizontal = Sp.x4).padding(top = 2.dp, bottom = Sp.x2), horizontalArrangement = Arrangement.SpaceEvenly) {
+        ActionItem(Icons.Rounded.QueueMusic, "Queue", false, onQueue)
+        ActionItem(if (onDevice && outNow.bt) Icons.Rounded.BluetoothAudio else if (onDevice) Icons.Rounded.Headphones else Icons.Rounded.Cast, "Output", onDevice, onOutput)
+        ActionItem(Icons.Rounded.Tune, "Sound", false, onSound)
+        ActionItem(Icons.Rounded.Bedtime, if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer", ui.sleepLeftMs > 0, onTimer)
+    }
+}
+
+@Composable
+private fun ActionItem(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
+    val c = if (active) Milo.amber else Milo.text
+    Column(
+        Modifier.defaultMinSize(minWidth = 64.dp, minHeight = 52.dp).clip(RoundedCornerShape(16.dp)).pressable { onClick() }.padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, label, tint = c, modifier = Modifier.size(24.dp))
+        Text(label, color = c.copy(alpha = if (active) 1f else 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
+/** "When should we stop?": pick how long, or stop at the end of this song. */
+@Composable
+private fun TimerContent(vm: MainViewModel, ui: PlayerUi) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter, vertical = Sp.x2), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("When should we stop?", color = Milo.text, style = Ty.title)
+        if (ui.sleepLeftMs > 0) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(fmtTime(ui.sleepLeftMs), color = Milo.amber, style = Ty.display)
+                    Text("left. The music fades out over the last 30 seconds.", color = Milo.dim, style = Ty.caption)
+                }
+                MiloChip("Cancel", false) { vm.player.sleepIn(0) }
             }
         }
+        listOf(listOf(5, 10, 15), listOf(30, 45, 60)).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { m -> MiloChip("$m min", false) { vm.player.sleepIn(m) } }
+            }
+        }
+        MiloChip("End of this song", false) { vm.player.sleepInMs((ui.durationMs - ui.positionMs).coerceAtLeast(1000L) + 500L) }
     }
 }
 
@@ -880,7 +924,7 @@ private fun IconTap(icon: ImageVector, desc: String, size: Dp, tint: Color, onCl
 }
 
 @Composable
-private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long) -> Unit) {
+private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0, onSeek: (Long) -> Unit) {
     var dragging by remember { mutableStateOf(false) }
     var dragFrac by remember { mutableFloatStateOf(0f) }
     val frac = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
@@ -895,8 +939,11 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
     var wavePhase by remember { mutableFloatStateOf(0f) }
     val run = ui.isPlaying && !calm
     // the wave travels about 32 dp a second; the angle is accumulated from real frame times so it never jumps when playback stops and starts
-    LaunchedEffect(run) { if (run) { var last = 0L; while (true) androidx.compose.runtime.withFrameNanos { n -> if (last != 0L) wavePhase = (wavePhase + (n - last) / 1e9f * 5.0265f) % 6.2831855f; last = n } } }
+    LaunchedEffect(run) { if (run) { var last = 0L; while (true) androidx.compose.runtime.withFrameNanos { n -> if (last != 0L) wavePhase = wavePhase + (n - last) / 1e9f * 5.0265f; last = n } } }
     val pressK by androidx.compose.animation.core.animateFloatAsState(if (dragging) 1f else 0f, com.ubayanda.milonative.ui.components.Bounce.scale(), label = "handle")
+    // the bar takes the cover's colour, softened toward white, and changes colour smoothly when the song changes
+    val baseC = if (tint == 0) Milo.amber else Color(0xFF000000.toInt() or tint)
+    val fillC by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(baseC, Color.White, 0.35f), androidx.compose.animation.core.tween(600), label = "barC")
     Box(
         modifier.fillMaxWidth().height(44.dp)
             .pointerInput(dur) { detectTapGestures { off -> if (dur > 0) onSeek((off.x / size.width * dur).toLong()) } }
@@ -922,6 +969,37 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, onSeek: (Long)
             val amp = 3.dp.toPx() * waveK
             val r = 9.dp.toPx()
             val themed = ChromeStyle.on || Nebula.on || Sticker.on || Spider.on
+            if (!themed) {
+                // Android 16's media bar: a thick rounded bar, a big round handle, and soft see-through waves rolling over the played part
+                val bar = 9.dp.toPx()
+                val tr = (8f + 2f * pressK).dp.toPx()
+                val tx2 = (w * shown).coerceIn(tr, w - tr)
+                val top = cy - bar / 2
+                drawRoundRect(fillC.copy(alpha = 0.28f), Offset(0f, top), Size(w, bar), CornerRadius(bar / 2))
+                drawRoundRect(fillC, Offset(0f, top), Size(tx2, bar), CornerRadius(bar / 2))
+                val lightC = androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.6f)
+                fun wave(wlen: Float, height: Float, ph: Float, alpha: Float) {
+                    if (height < 0.5f || tx2 < 8f) return
+                    val k = (2.0 * Math.PI / wlen).toFloat()
+                    val ease = minOf(36.dp.toPx(), tx2 / 2f).coerceAtLeast(1f)
+                    val path = androidx.compose.ui.graphics.Path()
+                    path.moveTo(0f, cy)
+                    var x = 0f
+                    while (x < tx2) {
+                        x = minOf(x + 3f, tx2)
+                        val t = minOf(x / ease, (tx2 - x) / ease).coerceIn(0f, 1f)
+                        val env = t * t * (3f - 2f * t)
+                        path.lineTo(x, top + 1f - height * env * (0.5f + 0.5f * kotlin.math.sin(x * k - ph)))
+                    }
+                    path.lineTo(tx2, cy)
+                    path.close()
+                    drawPath(path, lightC.copy(alpha = alpha))
+                }
+                wave(96.dp.toPx(), 9.dp.toPx() * waveK, wavePhase * 0.5f, 0.45f)
+                wave(64.dp.toPx(), 6.dp.toPx() * waveK, 1.5f - wavePhase * 0.4f, 0.30f)
+                drawCircle(androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.55f), tr, Offset(tx2, cy))
+                return@Canvas
+            }
             val gapHalf = (if (ChromeStyle.on) 14.dp else if (themed) 13.dp else 8.dp).toPx()
             val tx = (w * shown).coerceIn(r, w - r)
             val accent = if (Nebula.on) Nebula.cyan else if (Spider.on) Spider.red else Color.White
