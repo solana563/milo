@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import android.content.Context
 import android.media.AudioManager
 import android.view.HapticFeedbackConstants
@@ -228,7 +229,7 @@ fun ClassicApp(vm: MainViewModel) {
                 Spacer(Modifier.width(24.dp))
                 Text(titleOf(top.scr), color = Color(0xFF1F2329), fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                 Box(Modifier.width(24.dp), contentAlignment = Alignment.CenterEnd) {
-                    if (ui.currentId != null) Icon(if (ui.isPlaying) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, null, tint = Color(0xFF2F6FD1), modifier = Modifier.size(18.dp))
+                    if (ui.currentId != null) Icon(if (ui.isPlaying) MiloIcons.PlayArrow else MiloIcons.Pause, null, tint = Color(0xFF2F6FD1), modifier = Modifier.size(18.dp))
                 }
             }
             if (top.scr == Scr.Search) {
@@ -368,8 +369,8 @@ private fun ClickWheel(
             drawCircle(if (dark) Color(0xFF47474C) else Color(0xFFA9ADB4), r * 0.38f, style = Stroke(1.dp.toPx()))
         }
         Text("MENU", color = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 22.dp))
-        Icon(Icons.Rounded.SkipPrevious, "Previous", tint = label, modifier = Modifier.align(Alignment.CenterStart).padding(start = 18.dp).size(30.dp))
-        Icon(Icons.Rounded.SkipNext, "Next", tint = label, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 18.dp).size(30.dp))
-        Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = label, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).size(30.dp))
+        Icon(MiloIcons.SkipPrevious, "Previous", tint = label, modifier = Modifier.align(Alignment.CenterStart).padding(start = 18.dp).size(30.dp))
+        Icon(MiloIcons.SkipNext, "Next", tint = label, modifier = Modifier.align(Alignment.CenterEnd).padding(end = 18.dp).size(30.dp))
+        Icon(if (playing) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = label, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).size(30.dp))
     }
 }

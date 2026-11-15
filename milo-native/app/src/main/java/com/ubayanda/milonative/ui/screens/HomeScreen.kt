@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import com.ubayanda.milonative.ui.components.glass
 import com.ubayanda.milonative.ui.components.lift
 import com.ubayanda.milonative.ui.components.pressable
@@ -109,8 +110,8 @@ fun HomeScreen(
     val tiles = ArrayList<TileData>()
     val favSet = vm.favs.collectAsState().value
     val likedCovers = tracks.filter { it.id in favSet }.distinctBy { it.albumId }.take(4)
-    tiles.add(TileData("Liked songs", null, Icons.Rounded.Favorite, true, likedCovers, onLiked))
-    playlists.take(2).forEach { p -> tiles.add(TileData(p.name, p.trackIds.firstNotNullOfOrNull { byId[it] }, Icons.Rounded.QueueMusic, false, emptyList()) { onOpenPlaylist(p) }) }
+    tiles.add(TileData("Liked songs", null, MiloIcons.Favorite, true, likedCovers, onLiked))
+    playlists.take(2).forEach { p -> tiles.add(TileData(p.name, p.trackIds.firstNotNullOfOrNull { byId[it] }, MiloIcons.QueueMusic, false, emptyList()) { onOpenPlaylist(p) }) }
     albums.take(8 - tiles.size).forEach { a -> tiles.add(TileData(a.title, a.tracks.first(), null, false, emptyList()) { onOpenAlbum(a) }) }
 
     val card = RoundedCornerShape(38.dp)
@@ -128,12 +129,12 @@ fun HomeScreen(
                 Box(
                     Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onSearch),
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Outlined.Search, "Search", tint = Milo.text, modifier = Modifier.size(24.dp)) }
+                ) { Icon(MiloIcons.Search, "Search", tint = Milo.text, modifier = Modifier.size(24.dp)) }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onFriends),
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Outlined.People, "Friends", tint = Milo.text, modifier = Modifier.size(24.dp)) }
+                ) { Icon(MiloIcons.People, "Friends", tint = Milo.text, modifier = Modifier.size(24.dp)) }
                 Spacer(Modifier.width(8.dp))
                 val me by vm.account.collectAsState()
                 com.ubayanda.milonative.ui.components.UserAvatar(
@@ -311,7 +312,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(26.dp).clip(CircleShape).background(Milo.amber), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Check, null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                    Icon(MiloIcons.Check, null, tint = Color.Black, modifier = Modifier.size(16.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(if (lead != null) "Now playing" else "Your player", color = Milo.text.copy(alpha = 0.75f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
@@ -321,7 +322,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                 Text(lead.title, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 31.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(0.68f))
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.82f)) {
-                    Icon(Icons.Rounded.Headphones, null, tint = Milo.text.copy(alpha = 0.8f), modifier = Modifier.size(20.dp))
+                    Icon(MiloIcons.Headphones, null, tint = Milo.text.copy(alpha = 0.8f), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(
                         if (lead.album.isBlank() || lead.album == "Unknown album") lead.artist else lead.artist + " · " + lead.album,
@@ -333,14 +334,14 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                     Box(
                         Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(26.dp)) }
+                    ) { Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(26.dp)) }
                     val pill = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
                     Row(
                         Modifier.clip(pill).background(Color(0x55000000), pill).border(1.dp, Color.White.copy(alpha = 0.28f), pill)
                             .clickable { vm.toggleFav(lead.id) }.padding(horizontal = 16.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null, tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(20.dp))
+                        Icon(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, null, tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(if (liked) "Liked" else "Like", color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                     }
@@ -353,8 +354,8 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                 )
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Pill("Play", Icons.Rounded.PlayArrow, true, tracks.isNotEmpty()) { vm.player.playQueue(tracks, 0) }
-                    Pill("Shuffle all", Icons.Rounded.Shuffle, false, tracks.isNotEmpty()) { vm.player.playShuffled(tracks) }
+                    Pill("Play", MiloIcons.PlayArrow, true, tracks.isNotEmpty()) { vm.player.playQueue(tracks, 0) }
+                    Pill("Shuffle all", MiloIcons.Shuffle, false, tracks.isNotEmpty()) { vm.player.playShuffled(tracks) }
                 }
             }
         }
@@ -387,8 +388,8 @@ private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compo
         SectionTitle("Downloaded")
         Text("${list.size} song" + (if (list.size == 1) "" else "s") + " that play with no connection", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Pill("Play all", Icons.Rounded.PlayArrow, true, compact = true) { vm.rememberRemote(list); vm.player.playQueue(list, 0) }
-            Pill("Shuffle", Icons.Rounded.Shuffle, false, compact = true) { vm.rememberRemote(list); vm.player.playShuffled(list) }
+            Pill("Play all", MiloIcons.PlayArrow, true, compact = true) { vm.rememberRemote(list); vm.player.playQueue(list, 0) }
+            Pill("Shuffle", MiloIcons.Shuffle, false, compact = true) { vm.rememberRemote(list); vm.player.playShuffled(list) }
             Pill("See all", null, false, compact = true) { onAll() }
         }
         list.take(8).forEach { t -> TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.rememberRemote(list); vm.player.playQueue(list, list.indexOf(t)) } }

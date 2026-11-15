@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -81,7 +82,7 @@ fun YtPoster(vm: MainViewModel, c: YtMusic.Card, onClick: () -> Unit) {
             // press photos are shot with headroom, so the crop sits above centre
             Image(remember(b) { b.asImageBitmap() }, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, -0.45f))
         } else {
-            Icon(Icons.Rounded.Person, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(40.dp))
+            Icon(MiloIcons.Person, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(40.dp))
         }
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f)))))
         Column(Modifier.align(Alignment.BottomStart).padding(11.dp)) {
@@ -131,7 +132,7 @@ fun YtPageScreen(vm: MainViewModel, id: String, ui: PlayerUi, bottomPad: Dp, onO
     Box(Modifier.fillMaxSize()) {
         when {
             p == null -> Column(Modifier.fillMaxSize().statusBarsPadding()) {
-                IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBackIosNew, "Back", tint = Milo.text) }
+                IconButton(onClick = onBack) { Icon(MiloIcons.ArrowBackIosNew, "Back", tint = Milo.text) }
                 if (err.isEmpty()) { com.ubayanda.milonative.ui.components.SkeletonBox(300.dp, 200.dp, 18.dp, Modifier.padding(Sp.gutter)); com.ubayanda.milonative.ui.components.SkeletonRows(5) }
                 else {
                     Text("Couldn't open this", color = Milo.text, style = Ty.title, modifier = Modifier.padding(horizontal = Sp.gutter))
@@ -170,21 +171,21 @@ private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, botto
                 val b = banner
                 if (b != null) Image(remember(b) { b.asImageBitmap() }, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, -0.5f))
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0f to Color.Black.copy(alpha = 0.35f), 0.5f to Color.Transparent, 1f to Milo.bg))))
-                IconButton(onClick = onBack, modifier = Modifier.statusBarsPadding().padding(4.dp)) { Icon(Icons.Rounded.ArrowBackIosNew, "Back", tint = Color.White) }
+                IconButton(onClick = onBack, modifier = Modifier.statusBarsPadding().padding(4.dp)) { Icon(MiloIcons.ArrowBackIosNew, "Back", tint = Color.White) }
                 Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Sp.gutter)) {
                     Text(p.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     if (p.subtitle.isNotEmpty()) Text(p.subtitle, color = Color(0xFFD8D8D8), style = Ty.caption)
                 }
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = Sp.gutter, vertical = Sp.x3), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("Play", Icons.Rounded.PlayArrow, true, tracks.isNotEmpty(), compact = true) { vm.player.playQueue(tracks, 0) }
-                Pill("Shuffle", Icons.Rounded.Shuffle, false, tracks.isNotEmpty(), compact = true) { vm.player.playShuffled(tracks) }
-                Pill("Download", Icons.Rounded.Download, false, tracks.isNotEmpty(), compact = true) {
+                Pill("Play", MiloIcons.PlayArrow, true, tracks.isNotEmpty(), compact = true) { vm.player.playQueue(tracks, 0) }
+                Pill("Shuffle", MiloIcons.Shuffle, false, tracks.isNotEmpty(), compact = true) { vm.player.playShuffled(tracks) }
+                Pill("Download", MiloIcons.Download, false, tracks.isNotEmpty(), compact = true) {
                     vm.rememberRemote(tracks)
                     Toast.makeText(ctx, "Downloading ${tracks.size} songs…", Toast.LENGTH_SHORT).show()
                     com.ubayanda.milonative.data.OfflineStore.enqueue(tracks, com.ubayanda.milonative.data.OfflineStore.Group("artist", p.title)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved $n song" + (if (n == 1) "" else "s") + " for offline" else e ?: "Nothing new to save", Toast.LENGTH_SHORT).show() }
                 }
-                if (p.radioId.isNotEmpty()) Pill("Radio", Icons.Rounded.Radio, false, compact = true) {
+                if (p.radioId.isNotEmpty()) Pill("Radio", MiloIcons.Radio, false, compact = true) {
                     scope.launch {
                         try {
                             val r = vm.youtube.radio(p.radioId)

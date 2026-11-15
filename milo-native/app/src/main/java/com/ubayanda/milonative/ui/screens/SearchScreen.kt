@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -115,8 +116,8 @@ fun SearchScreen(
             value = q, onValueChange = { q = it }, singleLine = true,
             placeholder = { Text("Songs, artists, friends or a lyric you remember", color = Milo.dim, fontSize = 17.sp) },
             shape = RoundedCornerShape(50),
-            leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = Milo.dim) },
-            trailingIcon = { if (q.isNotEmpty()) Icon(Icons.Rounded.Close, "Clear search", tint = Milo.dim, modifier = Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { q = "" }.padding(10.dp)) },
+            leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.MiloIcons.Search, null, tint = Milo.dim) },
+            trailingIcon = { if (q.isNotEmpty()) Icon(MiloIcons.Close, "Clear search", tint = Milo.dim, modifier = Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { q = "" }.padding(10.dp)) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { done(); focus.clearFocus() }),
             colors = OutlinedTextFieldDefaults.colors(
@@ -136,7 +137,7 @@ fun SearchScreen(
                 }
                 items(recents, key = { "rc" + it }) { w ->
                     Row(Modifier.fillMaxWidth().clickable { q = w }.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.History, null, tint = Milo.dim, modifier = Modifier.size(22.dp))
+                        Icon(MiloIcons.History, null, tint = Milo.dim, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(14.dp))
                         Text(w, color = Milo.text, style = Ty.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -151,7 +152,7 @@ private fun Shell(title: String, sub: String, onBack: (() -> Unit)?, content: @C
     ) {
         if (onBack != null) {
             Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(onClick = onBack), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.ArrowBackIosNew, "Back", tint = Milo.text)
+                Icon(MiloIcons.ArrowBackIosNew, "Back", tint = Milo.text)
             }
         } else Spacer(Modifier.height(44.dp))
         Image(painterResource(R.drawable.logo_wordmark), null, Modifier.height(40.dp))

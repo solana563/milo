@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -120,7 +121,7 @@ fun DetailScreen(
                         ),
                     )
                     Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(top = 8.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        HeroBtn(Icons.Rounded.ArrowBackIosNew, "Back", onBack)
+                        HeroBtn(MiloIcons.ArrowBackIosNew, "Back", onBack)
                         Spacer(Modifier.weight(1f))
                         if (tracks.isNotEmpty()) HeroText("Select") { vm.selectAll(tracks.map { it.id }) }
                         if (headerAction2 != null) HeroText(headerAction2.first) { headerAction2.second() }
@@ -132,13 +133,13 @@ fun DetailScreen(
                         Spacer(Modifier.height(16.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
                             val on = tracks.isNotEmpty()
-                            HeroBtn(Icons.Rounded.Shuffle, "Shuffle", { vm.player.playShuffled(tracks) }, 52.dp, on)
+                            HeroBtn(MiloIcons.Shuffle, "Shuffle", { vm.player.playShuffled(tracks) }, 52.dp, on)
                             Box(
                                 Modifier.size(76.dp).pressable(on) { vm.player.playQueue(tracks, 0) }.clip(androidx.compose.foundation.shape.CircleShape).background(Color.White.copy(alpha = if (on) 1f else 0.4f)),
                                 contentAlignment = Alignment.Center,
-                            ) { Icon(Icons.Rounded.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(42.dp)) }
+                            ) { Icon(MiloIcons.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(42.dp)) }
                             if (ytTracks.isNotEmpty()) HeroBtn(
-                                if (allSaved) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", { vm.downloadTracks(ytTracks, downloadGroup) }, 52.dp,
+                                if (allSaved) MiloIcons.DownloadDone else MiloIcons.Download, "Download", { vm.downloadTracks(ytTracks, downloadGroup) }, 52.dp,
                             ) else Spacer(Modifier.size(52.dp))
                         }
                     }

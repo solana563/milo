@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +36,7 @@ fun SelectionBar(
     val shape = RoundedCornerShape(26.dp)
     Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).clip(shape).glass(shape, 1.3f, Milo.card2).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Close, "Cancel selection", tint = Milo.text, modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)).clickable(onClick = onClose).padding(12.dp))
+            Icon(MiloIcons.Close, "Cancel selection", tint = Milo.text, modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)).clickable(onClick = onClose).padding(12.dp))
             Spacer(Modifier.width(10.dp))
             Text("$count selected", color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }

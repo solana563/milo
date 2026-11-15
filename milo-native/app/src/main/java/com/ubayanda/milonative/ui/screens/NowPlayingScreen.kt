@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import com.ubayanda.milonative.ui.components.MiloSlider
 import com.ubayanda.milonative.ui.components.pressable
 import androidx.compose.animation.togetherWith
@@ -290,7 +291,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             }
                             else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                 colorFilter = if (Sticker.on || ChromeStyle.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
-                            else if (k.done) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
+                            else if (k.done) Icon(MiloIcons.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
                         }
                     }
                 }
@@ -327,14 +328,14 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                if (f.zone < 0) Icons.Rounded.Replay10 else if (f.zone > 0) Icons.Rounded.Forward10 else if (f.playing) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                                if (f.zone < 0) MiloIcons.Replay10 else if (f.zone > 0) MiloIcons.Forward10 else if (f.playing) MiloIcons.PlayArrow else MiloIcons.Pause,
                                 null, tint = Color.White, modifier = Modifier.size(40.dp),
                             )
                             if (f.zone != 0 && f.count > 1) Text("${f.count * 10} s", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
-                RoundBtn(Icons.Rounded.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
+                RoundBtn(MiloIcons.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
 
                 // one slim dock on the right edge instead of a stack of separate buttons (like the status-icon tab on the phone mock-up)
                 val dockShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
@@ -344,12 +345,12 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         .padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true) { vm.toggleFav(t.id) }
+                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true) { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                        RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true) { vm.downloadTracks(listOf(t)) }
+                        RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.Download, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true) { vm.downloadTracks(listOf(t)) }
                     }
-                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(Icons.Rounded.GraphicEq, "Visualiser", flat = true) { panel = Panel.Visual }
+                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true) { panel = Panel.Visual }
                     MoreMenu(vm, t, ui)
                 }
 
@@ -375,7 +376,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         )
                         val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
                         if (outNow.kind != "speaker") Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(if (outNow.bt) Icons.Rounded.BluetoothAudio else Icons.Rounded.Headphones, null, tint = Milo.amber, modifier = Modifier.size(16.dp))
+                            Icon(if (outNow.bt) MiloIcons.BluetoothAudio else MiloIcons.Headphones, null, tint = Milo.amber, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(outNow.name, color = Milo.amber, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -409,19 +410,19 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     Modifier.fillMaxWidth().padding(horizontal = Sp.x4, vertical = Sp.x3),
                     horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconTap(Icons.Rounded.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
-                    RoundDark(Icons.Rounded.SkipPrevious, "Previous") { vm.player.previous() }
+                    IconTap(MiloIcons.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
+                    RoundDark(MiloIcons.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
                         Modifier.size(88.dp).clip(CircleShape)
                             .background(if (Y2K.on) Brush.verticalGradient(listOf(Y2K.chromeLight, Y2K.chromeDark)) else androidx.compose.ui.graphics.SolidColor(Milo.cream))
                             .pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
+                        Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
                     }
-                    RoundDark(Icons.Rounded.SkipNext, "Next") { vm.player.next() }
+                    RoundDark(MiloIcons.SkipNext, "Next") { vm.player.next() }
                     IconTap(
-                        if (ui.repeat == 1) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat, "Repeat", 28.dp,
+                        if (ui.repeat == 1) MiloIcons.RepeatOne else MiloIcons.Repeat, "Repeat", 28.dp,
                         if (ui.repeat != 0) Milo.amber else Milo.text,
                     ) { vm.player.cycleRepeat() }
                 }
@@ -722,12 +723,12 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                             ctx.startActivity(android.content.Intent.createChooser(send, "Share lyrics").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                         },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Rounded.IosShare, "Share lyrics", tint = Milo.text, modifier = Modifier.size(26.dp)) }
+                    ) { Icon(MiloIcons.IosShare, "Share lyrics", tint = Milo.text, modifier = Modifier.size(26.dp)) }
                     Spacer(Modifier.width(10.dp))
                 }
                 Box {
                     Box(Modifier.size(48.dp).clip(CircleShape).clickable { moreMenu = true }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.MoreHoriz, "Lyrics options", tint = Milo.text, modifier = Modifier.size(26.dp))
+                        Icon(MiloIcons.MoreHoriz, "Lyrics options", tint = Milo.text, modifier = Modifier.size(26.dp))
                     }
                     DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
                         DropdownMenuItem(text = { Text(if (rescanning) "Rescanning\u2026" else "Rescan lyrics") }, onClick = {
@@ -754,7 +755,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 Box(
                     Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                     contentAlignment = Alignment.Center,
-                ) { Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
+                ) { Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
             }
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -862,7 +863,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
     var open by remember { mutableStateOf(false) }
     val actions = LocalActions.current
     Box {
-        RoundBtn(Icons.Rounded.MoreHoriz, "More", flat = true) { open = true }
+        RoundBtn(MiloIcons.MoreHoriz, "More", flat = true) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
@@ -886,10 +887,10 @@ private fun ActionRow(ui: PlayerUi, onQueue: () -> Unit, onOutput: () -> Unit, o
             .clip(CircleShape).background(Color.Black.copy(alpha = 0.30f)).border(1.dp, glassStroke(1f), CircleShape).padding(horizontal = 6.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        ActionItem(Icons.Rounded.QueueMusic, "Queue", false, onQueue)
-        ActionItem(if (onDevice && outNow.bt) Icons.Rounded.BluetoothAudio else if (onDevice) Icons.Rounded.Headphones else Icons.Rounded.Cast, "Output", onDevice, onOutput)
-        ActionItem(Icons.Rounded.Tune, "Sound", false, onSound)
-        ActionItem(Icons.Rounded.Bedtime, if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer", ui.sleepLeftMs > 0, onTimer)
+        ActionItem(MiloIcons.QueueMusic, "Queue", false, onQueue)
+        ActionItem(if (onDevice && outNow.bt) MiloIcons.BluetoothAudio else if (onDevice) MiloIcons.Headphones else MiloIcons.Cast, "Output", onDevice, onOutput)
+        ActionItem(MiloIcons.Tune, "Sound", false, onSound)
+        ActionItem(MiloIcons.Bedtime, if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer", ui.sleepLeftMs > 0, onTimer)
     }
 }
 
@@ -1076,7 +1077,7 @@ private fun VisualPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
                 Spacer(Modifier.weight(1f))
                 Box(Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
-                    Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                    Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp))
                 }
             }
             Spacer(Modifier.weight(1f))

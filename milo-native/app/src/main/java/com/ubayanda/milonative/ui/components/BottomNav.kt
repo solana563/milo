@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,11 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.ubayanda.milonative.ui.theme.Milo
 
 enum class Tab(val label: String, val icon: ImageVector) {
-    Home("Home", Icons.Outlined.Home),
-    Search("Search", Icons.Outlined.Search),
-    Discover("Discover", Icons.Outlined.Explore),
-    Library("Library", Icons.Outlined.BookmarkBorder),
-    Profile("Profile", Icons.Outlined.PersonOutline),
+    Home("Home", MiloIcons.Home),
+    Search("Search", MiloIcons.Search),
+    Discover("Discover", MiloIcons.Explore),
+    Library("Library", MiloIcons.BookmarkBorder),
+    Profile("Profile", MiloIcons.PersonOutline),
 }
 
 /**

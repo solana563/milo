@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
@@ -77,7 +78,7 @@ fun YouTubeScreen(vm: MainViewModel, items: List<Track>, start: Int, onClose: ()
 
     Column(Modifier.fillMaxSize().background(Milo.bg).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onClose) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Milo.text) }
+            IconButton(onClick = onClose) { Icon(MiloIcons.ArrowBack, "Back", tint = Milo.text) }
             Text("YouTube", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
         }
         AndroidView(
@@ -109,8 +110,8 @@ fun YouTubeScreen(vm: MainViewModel, items: List<Track>, start: Int, onClose: ()
             Text(t.artist, color = Milo.dim, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconButton(onClick = { go(index - 1) }, enabled = index > 0) { Icon(Icons.Rounded.SkipPrevious, "Previous", tint = if (index > 0) Milo.text else Milo.dim) }
-            IconButton(onClick = { go(index + 1) }, enabled = index < items.lastIndex) { Icon(Icons.Rounded.SkipNext, "Next", tint = if (index < items.lastIndex) Milo.text else Milo.dim) }
+            IconButton(onClick = { go(index - 1) }, enabled = index > 0) { Icon(MiloIcons.SkipPrevious, "Previous", tint = if (index > 0) Milo.text else Milo.dim) }
+            IconButton(onClick = { go(index + 1) }, enabled = index < items.lastIndex) { Icon(MiloIcons.SkipNext, "Next", tint = if (index < items.lastIndex) Milo.text else Milo.dim) }
         }
         Spacer(Modifier.height(4.dp))
         LazyColumn(Modifier.fillMaxSize().navigationBarsPadding()) {

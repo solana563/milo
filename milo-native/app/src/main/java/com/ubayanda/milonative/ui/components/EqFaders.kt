@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -143,7 +144,7 @@ fun GraphicEqPanel() {
                     .border(1.dp, Color(0x33FFFFFF), CircleShape).clickable { GraphicEq.setEnabled(!st.enabled) }
                     .semantics { contentDescription = if (st.enabled) "Equaliser on. Tap to turn off" else "Equaliser off. Tap to turn on" },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (st.enabled) Color.Black else Milo.dim, modifier = Modifier.size(24.dp)) }
+            ) { Icon(MiloIcons.PowerSettingsNew, null, tint = if (st.enabled) Color.Black else Milo.dim, modifier = Modifier.size(24.dp)) }
             Text(
                 if (sel in 0 until GraphicEq.N) label(GraphicEq.FREQS[sel]) + " Hz  " + "%+.1f dB".format(st.gains[sel]) else if (st.enabled) st.preset else "Off",
                 color = Milo.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(horizontal = 14.dp),

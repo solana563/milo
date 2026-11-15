@@ -342,3 +342,7 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 ### Round 76 — Now Playing reworked around the new buttons
 - Like / Download / Visualiser / More now live in one slim frosted dock hugging the right edge (idea from the phone mock-up's status-icon tab) instead of four separate round buttons.
 - Control card: soft blurred colour glow from the cover bleeds through the glass (idea from the Veri glow cards); Queue / Output / Sound / Timer sit in a glass capsule; spacing tightened so the cover keeps more room.
+
+### Round 77 — icon set restyled (soft solid glyphs)
+- New `ui/theme/MiloIcons.kt`: 62 in-app icons redrawn as soft, solid, round-cornered glyphs (Phosphor Icons, MIT licence, © Phosphor Icons, https://phosphoricons.com), built from path data so no new library is needed. All `Icons.Rounded/Outlined.*` uses in the app were switched to `MiloIcons.*` (same names). Toggle pairs: liked = solid heart, not liked = outlined heart.
+- Not changed: the app launcher icon, notification / widget / Android Auto icons (XML drawables), and the theme art (Y2K, Spider, Sticker, Nebula, Chrome), which stay as they are.

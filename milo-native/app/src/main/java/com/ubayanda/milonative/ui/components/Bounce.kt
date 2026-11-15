@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VisibilityThreshold
@@ -167,7 +168,7 @@ fun BouncyRefresh(refreshing: Boolean, onRefresh: () -> Unit, modifier: Modifier
             contentAlignment = Alignment.Center,
         ) {
             if (refreshing) CircularProgressIndicator(Modifier.size(22.dp), color = Milo.amber, strokeWidth = 2.5.dp)
-            else Icon(Icons.Rounded.Refresh, null, tint = Milo.amber, modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = p * 270f })
+            else Icon(MiloIcons.Refresh, null, tint = Milo.amber, modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = p * 270f })
         }
     }
 }

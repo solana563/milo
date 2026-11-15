@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -151,7 +152,7 @@ fun TrackRow(
         ) {
             if (selecting) {
                 Icon(
-                    if (picked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, if (picked) "Selected" else "Not selected",
+                    if (picked) MiloIcons.CheckCircle else MiloIcons.RadioButtonUnchecked, if (picked) "Selected" else "Not selected",
                     tint = if (picked) Milo.amber else Milo.dim, modifier = Modifier.padding(end = 12.dp).size(24.dp),
                 )
             }
@@ -167,20 +168,20 @@ fun TrackRow(
                     color = Milo.dim, style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (saved) Icon(Icons.Rounded.DownloadDone, "Saved on this phone", tint = Milo.amber, modifier = Modifier.padding(end = 6.dp).size(16.dp))
+            if (saved) Icon(MiloIcons.DownloadDone, "Saved on this phone", tint = Milo.amber, modifier = Modifier.padding(end = 6.dp).size(16.dp))
             else if (dlNow != null && dlNow >= 0f) Text("${(dlNow * 100).toInt()}%", color = Milo.amber, style = Ty.caption, modifier = Modifier.padding(end = 6.dp))
             else if (isYt && !selecting) Icon(
-                Icons.Rounded.Download, "Download for offline", tint = Milo.dim,
+                MiloIcons.Download, "Download for offline", tint = Milo.dim,
                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)).clickable { vm.downloadTracks(listOf(t)) }.padding(13.dp),
             )
             if (current) PlayingBars(accent)
             Text(fmtTime(t.durationMs), color = if (current) accent else Milo.dim, style = Ty.caption)
             if (handle != null) {
-                Icon(Icons.Rounded.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
+                Icon(MiloIcons.DragHandle, "Drag to reorder", tint = Milo.dim, modifier = Modifier.padding(horizontal = 6.dp).size(40.dp).then(handle).padding(8.dp))
             }
             if (!selecting) Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Icons.Rounded.MoreHoriz, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
+                    Icon(MiloIcons.MoreHoriz, "More", tint = Milo.dim, modifier = Modifier.size(22.dp))
                 }
                 if (editing) EditInfoDialog(
                     t.title, t.artist.takeIf { it != "Unknown artist" } ?: "", t.album, com.ubayanda.milonative.data.MetaEdits.has(t.id),
@@ -200,27 +201,27 @@ fun TrackRow(
                     }
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PopupQuick(Icons.Rounded.SkipNext, "Play next") { menu = false; vm.player.playNext(t) }
-                        PopupQuick(Icons.Rounded.QueueMusic, "Queue") { menu = false; vm.player.addToQueue(t) }
-                        PopupQuick(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, if (liked) "Liked" else "Like", on = liked) { menu = false; vm.toggleFav(t.id) }
-                        PopupQuick(Icons.Rounded.PlaylistAdd, "Playlist") { menu = false; actions.addToPlaylist(t) }
+                        PopupQuick(MiloIcons.SkipNext, "Play next") { menu = false; vm.player.playNext(t) }
+                        PopupQuick(MiloIcons.QueueMusic, "Queue") { menu = false; vm.player.addToQueue(t) }
+                        PopupQuick(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, if (liked) "Liked" else "Like", on = liked) { menu = false; vm.toggleFav(t.id) }
+                        PopupQuick(MiloIcons.PlaylistAdd, "Playlist") { menu = false; actions.addToPlaylist(t) }
                     }
                     Spacer(Modifier.height(8.dp))
-                    PopupAction(Icons.Rounded.Checklist, "Select multiple") { menu = false; vm.toggleSelect(t.id) }
-                    PopupAction(Icons.Rounded.Share, "Share") { menu = false; actions.share(t) }
-                    if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(Icons.Rounded.Edit, "Edit info") { menu = false; editing = true }
-                    PopupAction(Icons.Rounded.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
-                    PopupAction(Icons.Rounded.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
-                    if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(Icons.Rounded.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }
+                    PopupAction(MiloIcons.Checklist, "Select multiple") { menu = false; vm.toggleSelect(t.id) }
+                    PopupAction(MiloIcons.Share, "Share") { menu = false; actions.share(t) }
+                    if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(MiloIcons.Edit, "Edit info") { menu = false; editing = true }
+                    PopupAction(MiloIcons.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
+                    PopupAction(MiloIcons.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
+                    if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(MiloIcons.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }
                     if (isYt) PopupAction(
-                        if (saved) Icons.Rounded.DeleteOutline else Icons.Rounded.Download,
+                        if (saved) MiloIcons.DeleteOutline else MiloIcons.Download,
                         if (saved) "Remove download" else "Download for offline",
                     ) {
                         menu = false
                         if (saved) { com.ubayanda.milonative.data.OfflineStore.remove(t.uri.removePrefix("yt:")); vm.offerUndo("Removed download") { vm.downloadTracks(listOf(t)) } }
                         else { vm.rememberRemote(listOf(t)); com.ubayanda.milonative.data.OfflineStore.enqueue(listOf(t)) { n, e -> Toast.makeText(ctx, if (n > 0) "Saved for offline" else e ?: "Couldn't download", Toast.LENGTH_SHORT).show() }; Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show() }
                     }
-                    extra.forEach { a -> PopupAction(Icons.Rounded.RemoveCircleOutline, a.label, Color(0xFFFF8A80)) { menu = false; a.run() } }
+                    extra.forEach { a -> PopupAction(MiloIcons.RemoveCircleOutline, a.label, Color(0xFFFF8A80)) { menu = false; a.run() } }
                 }
             }
         }

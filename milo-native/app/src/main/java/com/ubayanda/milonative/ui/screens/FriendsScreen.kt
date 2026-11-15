@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import com.ubayanda.milonative.ui.components.glass
 import com.ubayanda.milonative.data.Invite
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -163,10 +164,10 @@ fun FriendsScreen(vm: MainViewModel, acct: AccountUi, onBack: () -> Unit, onChat
     }
     Column(Modifier.fillMaxSize().background(Milo.panel)) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 6.dp, end = 10.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Milo.text) }
+            IconButton(onClick = onBack) { Icon(MiloIcons.ArrowBack, "Back", tint = Milo.text) }
             Text("Chats", color = Milo.text, style = Ty.display, modifier = Modifier.weight(1f))
             if (acct.signedIn) Box(Modifier.size(44.dp).clip(CircleShape).background(Milo.card2).clickable { addOpen = !addOpen }, contentAlignment = Alignment.Center) {
-                Icon(if (addOpen) Icons.Rounded.Close else Icons.Rounded.PersonAdd, "Add a friend", tint = Milo.text, modifier = Modifier.size(22.dp))
+                Icon(if (addOpen) MiloIcons.Close else MiloIcons.PersonAdd, "Add a friend", tint = Milo.text, modifier = Modifier.size(22.dp))
             }
         }
         if (!acct.signedIn) {
@@ -468,7 +469,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Milo.panel).imePadding()) {
         // ---- header ----
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Milo.text) }
+            IconButton(onClick = onBack) { Icon(MiloIcons.ArrowBack, "Back", tint = Milo.text) }
             Row(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable { profile = true }.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 UserAvatar(f.name, f.avatar, 44.dp, ring = now != null)
                 Column(Modifier.padding(start = 12.dp)) {
@@ -562,7 +563,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                                         val playing = tick >= 0 && VoicePlayer.playingId == m.id
                                         Row(Modifier.clickable { VoicePlayer.toggle(ctx, m.id, m.body) { tick++ } }, verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.size(36.dp).clip(CircleShape).background(fg.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                                                Icon(if (playing) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, if (playing) "Stop" else "Play", tint = fg, modifier = Modifier.size(24.dp))
+                                                Icon(if (playing) MiloIcons.Stop else MiloIcons.PlayArrow, if (playing) "Stop" else "Play", tint = fg, modifier = Modifier.size(24.dp))
                                             }
                                             Spacer(Modifier.width(10.dp))
                                             Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(30.dp)) {
@@ -620,7 +621,7 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                     Text(if (r.mine) "Replying to yourself" else "Replying to " + f.name, color = Milo.amber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text(r.shown, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                IconButton(onClick = { replyTo = null }) { Icon(Icons.Rounded.Close, "Cancel reply", tint = Milo.dim) }
+                IconButton(onClick = { replyTo = null }) { Icon(MiloIcons.Close, "Cancel reply", tint = Milo.dim) }
             }
         }
 
@@ -631,24 +632,24 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
         // ---- composer ----
         if (recording) {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(onClick = { recorder.cancel(); recording = false }) { Icon(Icons.Rounded.Close, "Cancel", tint = Milo.dim) }
+                IconButton(onClick = { recorder.cancel(); recording = false }) { Icon(MiloIcons.Close, "Cancel", tint = Milo.dim) }
                 Text("● Recording… tap send when done", color = DANGER, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { finishVoice() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Send, "Send voice note", tint = Color.Black, modifier = Modifier.size(22.dp))
+                    Icon(MiloIcons.Send, "Send voice note", tint = Color.Black, modifier = Modifier.size(22.dp))
                 }
             }
         } else {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box {
                     Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.card2).clickable { plus = true }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Add, "More", tint = Milo.amber, modifier = Modifier.size(26.dp))
+                        Icon(MiloIcons.Add, "More", tint = Milo.amber, modifier = Modifier.size(26.dp))
                     }
                     DropdownMenu(expanded = plus, onDismissRequest = { plus = false }) {
-                        DropdownMenuItem(text = { Text("Photo") }, leadingIcon = { Icon(Icons.Rounded.Image, null) }, onClick = {
+                        DropdownMenuItem(text = { Text("Photo") }, leadingIcon = { Icon(MiloIcons.Image, null) }, onClick = {
                             plus = false
                             photo.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
                         })
-                        if (current != null) DropdownMenuItem(text = { Text("Share what's playing") }, leadingIcon = { Icon(Icons.Rounded.MusicNote, null) }, onClick = {
+                        if (current != null) DropdownMenuItem(text = { Text("Share what's playing") }, leadingIcon = { Icon(MiloIcons.MusicNote, null) }, onClick = {
                             plus = false
                             val o = JSONObject().put("t", current.title).put("a", current.artist).put("al", current.album)
                             if (current.id < 0 && current.uri.startsWith("https://")) { o.put("url", current.uri); if (current.artUrl.startsWith("https://")) o.put("img", current.artUrl) }
@@ -670,10 +671,10 @@ fun ChatScreen(vm: MainViewModel, f0: Friend, onBack: () -> Unit) {
                     Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.card2).clickable {
                         if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) recording = recorder.start()
                         else mic.launch(android.Manifest.permission.RECORD_AUDIO)
-                    }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Mic, "Record a voice note", tint = Milo.amber, modifier = Modifier.size(22.dp)) }
+                    }, contentAlignment = Alignment.Center) { Icon(MiloIcons.Mic, "Record a voice note", tint = Milo.amber, modifier = Modifier.size(22.dp)) }
                 } else {
                     Box(Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { go() }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Send, "Send", tint = Color.Black, modifier = Modifier.size(22.dp))
+                        Icon(MiloIcons.Send, "Send", tint = Color.Black, modifier = Modifier.size(22.dp))
                     }
                 }
             }
@@ -771,7 +772,7 @@ private fun SongBubble(vm: MainViewModel, m: ChatMsg, fg: Color) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(fg.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            if (track != null) Cover(vm, track, 54.dp, 12.dp, px = 160) else Icon(Icons.Rounded.MusicNote, null, tint = fg, modifier = Modifier.size(26.dp))
+            if (track != null) Cover(vm, track, 54.dp, 12.dp, px = 160) else Icon(MiloIcons.MusicNote, null, tint = fg, modifier = Modifier.size(26.dp))
         }
         Column(Modifier.padding(start = 12.dp)) {
             Text(title, color = fg, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -835,7 +836,7 @@ private fun FeedContent(
                     .background(Milo.amber.copy(alpha = 0.16f)).pressable(true, onToChats).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.PersonAdd, null, tint = Milo.amber, modifier = Modifier.size(22.dp))
+                Icon(MiloIcons.PersonAdd, null, tint = Milo.amber, modifier = Modifier.size(22.dp))
                 Text(if (requests == 1) "1 friend request is waiting" else "$requests friend requests are waiting", color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp).weight(1f))
                 Text("View", color = Milo.amber, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
@@ -930,7 +931,7 @@ private fun FeedContent(
                     Text(f.name + " shared " + lists.size + (if (lists.size == 1) " playlist" else " playlists"), color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(lists.take(3).joinToString(" \u00b7 ") { it.name }, color = Milo.dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Icon(Icons.Rounded.PlayArrow, null, tint = Milo.amber, modifier = Modifier.size(26.dp))
+                Icon(MiloIcons.PlayArrow, null, tint = Milo.amber, modifier = Modifier.size(26.dp))
             }
         }
     }
@@ -953,8 +954,8 @@ private fun FeedContent(
                 FEED_REACTIONS.forEach { e -> EmojiTile(e) { react(vm, ctx, f, now, e); story = null } }
             }
             Spacer(Modifier.height(8.dp))
-            if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.PlayArrow, "Listen too") { story = null; playShared(vm, ctx, now) }
-            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.ChatBubble, "Message " + f.name.substringBefore(' ')) { story = null; onChat(f) }
+            if (!now.local && (now.url.isNotEmpty() || now.yt.isNotEmpty())) com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.PlayArrow, "Listen too") { story = null; playShared(vm, ctx, now) }
+            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.ChatBubble, "Message " + f.name.substringBefore(' ')) { story = null; onChat(f) }
         }
     }
     plFor?.let { f -> FriendPlaylistsDialog(vm, f.name, s.shared[f.id]?.playlists ?: emptyList()) { plFor = null } }

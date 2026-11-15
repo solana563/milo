@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,13 +76,13 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
                 }
             }
             Box(Modifier.size(48.dp).clip(CircleShape).pressable { vm.player.next() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
+                Icon(MiloIcons.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
             }
             Box(
                 Modifier.size(48.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))
+                Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))
             }
         }
         Box(Modifier.fillMaxWidth().height(3.dp).padding(horizontal = 18.dp)) {
@@ -101,7 +102,7 @@ fun NowPlayingPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .pressable(true, onClick).padding(horizontal = 22.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.MyLocation, null, tint = Milo.text, modifier = Modifier.size(22.dp))
+        Icon(MiloIcons.MyLocation, null, tint = Milo.text, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(10.dp))
         Text("Now playing", color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }

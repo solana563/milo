@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -83,7 +84,7 @@ fun LibraryScreen(
         if (likedCount > 0 && section != 3) LikedBanner(likedCount, onLiked, { onPlayLiked(false) }, { onPlayLiked(true) })
         com.ubayanda.milonative.ui.components.GlassSegmented(listOf("Songs", "Albums", "Artists", "Playlists"), section, onSection, Modifier.padding(horizontal = 18.dp))
         Spacer(Modifier.padding(top = 10.dp))
-        if (savedCount > 0) IconRow(Icons.Rounded.Download, true, "Downloads", plural(savedCount, "song") + " · play with no connection", { onSmart("downloads") })
+        if (savedCount > 0) IconRow(MiloIcons.Download, true, "Downloads", plural(savedCount, "song") + " · play with no connection", { onSmart("downloads") })
         when {
             section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked, onSmart)
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
@@ -119,7 +120,7 @@ private fun LikedBanner(count: Int, onOpen: () -> Unit, onPlay: () -> Unit, onSh
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Brush.verticalGradient(listOf(Color(0xFFE39000), Color(0xFF6B4300)))), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.size(26.dp))
+            Icon(MiloIcons.Favorite, null, tint = Color.White, modifier = Modifier.size(26.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
@@ -128,10 +129,10 @@ private fun LikedBanner(count: Int, onOpen: () -> Unit, onPlay: () -> Unit, onSh
             Text(plural(count, "song"), color = Milo.dim, fontSize = 13.sp, maxLines = 1)
         }
         Box(Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable(onClick = onShuffle), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Shuffle, "Shuffle liked songs", tint = Milo.text, modifier = Modifier.size(24.dp))
+            Icon(MiloIcons.Shuffle, "Shuffle liked songs", tint = Milo.text, modifier = Modifier.size(24.dp))
         }
         Box(Modifier.size(52.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Milo.cream).clickable(onClick = onPlay), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.PlayArrow, "Play liked songs", tint = Color.Black, modifier = Modifier.size(30.dp))
+            Icon(MiloIcons.PlayArrow, "Play liked songs", tint = Color.Black, modifier = Modifier.size(30.dp))
         }
     }
 }
@@ -204,14 +205,14 @@ private fun PlaylistsList(
         }
     }
     LazyColumn(state = vm.mem.list("lib-playlists"), contentPadding = PaddingValues(bottom = bottomPad)) {
-        item { IconRow(Icons.Rounded.Add, false, "New playlist", "Make your own mix", { creating = true }) }
-        item { IconRow(Icons.Rounded.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
-        item { IconRow(Icons.Rounded.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
-        item { IconRow(Icons.Rounded.QueueMusic, false, "Most played", "Built from your listening", { onSmart("most") }) }
-        item { IconRow(Icons.Rounded.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
-        item { IconRow(Icons.Rounded.QueueMusic, false, "Never played", "Songs waiting for you", { onSmart("never") }) }
+        item { IconRow(MiloIcons.Add, false, "New playlist", "Make your own mix", { creating = true }) }
+        item { IconRow(MiloIcons.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
+        item { IconRow(MiloIcons.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
+        item { IconRow(MiloIcons.QueueMusic, false, "Most played", "Built from your listening", { onSmart("most") }) }
+        item { IconRow(MiloIcons.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
+        item { IconRow(MiloIcons.QueueMusic, false, "Never played", "Songs waiting for you", { onSmart("never") }) }
         items(playlists, key = { it.id }) { p ->
-            IconRow(Icons.Rounded.QueueMusic, false, p.name, plural(p.trackIds.size, "song")) { onOpen(p) }
+            IconRow(MiloIcons.QueueMusic, false, p.name, plural(p.trackIds.size, "song")) { onOpen(p) }
         }
         if (playlists.isEmpty()) item { EmptyNote("No playlists yet", "Tap New playlist, or use the ⋮ menu on any song and choose Add to playlist.") }
     }

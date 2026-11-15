@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,7 +63,7 @@ fun CarScreen(vm: MainViewModel, t: Track?, ui: PlayerUi, liked: Boolean, onClos
                 modifier = Modifier.clip(CircleShape).background(Milo.card2).clickable(onClick = onClose).padding(horizontal = 22.dp, vertical = 14.dp))
             Spacer(Modifier.weight(1f))
             if (t != null) Box(Modifier.size(64.dp).clip(CircleShape).clickable { vm.toggleFav(t.id) }, contentAlignment = Alignment.Center) {
-                Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(36.dp))
+                Icon(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(36.dp))
             }
         }
         Spacer(Modifier.weight(1f))
@@ -77,9 +78,9 @@ fun CarScreen(vm: MainViewModel, t: Track?, ui: PlayerUi, liked: Boolean, onClos
         }
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            Big(Icons.Rounded.SkipPrevious, "Previous", 104.dp, Milo.card2, Color.White) { vm.player.previous() }
-            Big(if (ui.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, "Play or pause", 136.dp, Milo.amber, Color.Black) { vm.player.toggle() }
-            Big(Icons.Rounded.SkipNext, "Next", 104.dp, Milo.card2, Color.White) { vm.player.next() }
+            Big(MiloIcons.SkipPrevious, "Previous", 104.dp, Milo.card2, Color.White) { vm.player.previous() }
+            Big(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", 136.dp, Milo.amber, Color.Black) { vm.player.toggle() }
+            Big(MiloIcons.SkipNext, "Next", 104.dp, Milo.card2, Color.White) { vm.player.next() }
         }
         Spacer(Modifier.height(24.dp))
     }

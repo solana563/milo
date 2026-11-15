@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -207,7 +208,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     .pressable(true) { query = ""; tag = 0; mode = if (mode == 0) 3 else 0 }.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.compose.material3.Icon(Icons.Rounded.Radio, null, tint = if (mode == 0) Color.Black else Milo.amber, modifier = Modifier.size(26.dp))
+                androidx.compose.material3.Icon(MiloIcons.Radio, null, tint = if (mode == 0) Color.Black else Milo.amber, modifier = Modifier.size(26.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Live radio", color = if (mode == 0) Color.Black else Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -220,13 +221,13 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     .border(1.dp, com.ubayanda.milonative.ui.components.glassStroke(1f), RoundedCornerShape(Rad.lg))
                     .pressable(true) { sources = true },
                 contentAlignment = Alignment.Center,
-            ) { androidx.compose.material3.Icon(Icons.Rounded.MoreHoriz, "More sources", tint = Milo.text, modifier = Modifier.size(26.dp)) }
+            ) { androidx.compose.material3.Icon(MiloIcons.MoreHoriz, "More sources", tint = Milo.text, modifier = Modifier.size(26.dp)) }
         }
         if (sources) com.ubayanda.milonative.ui.components.MiloPopup({ sources = false }) {
             Text("Sources", color = Milo.text, style = Ty.title, modifier = Modifier.padding(start = 14.dp, bottom = 8.dp))
-            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.Home, "YouTube feed") { sources = false; query = ""; tag = 0; mode = 3 }
-            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.PlayArrow, "30-second previews (iTunes)") { sources = false; query = ""; tag = 0; mode = 1 }
-            com.ubayanda.milonative.ui.components.PopupAction(Icons.Rounded.Storage, "My server (Navidrome / Subsonic)") { sources = false; query = ""; tag = 0; mode = 2 }
+            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.Home, "YouTube feed") { sources = false; query = ""; tag = 0; mode = 3 }
+            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.PlayArrow, "30-second previews (iTunes)") { sources = false; query = ""; tag = 0; mode = 1 }
+            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.Storage, "My server (Navidrome / Subsonic)") { sources = false; query = ""; tag = 0; mode = 2 }
         }
         if (mode != 2) {
             Spacer(Modifier.height(Sp.x3))
@@ -295,14 +296,14 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
                     if (mode == 0) Text("LIVE", color = Milo.amber, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp))
                     val liked = favs.contains(t.id)
                     if (mode != 3) androidx.compose.material3.Icon(
-                        if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder,
                         contentDescription = if (liked) "Remove from Liked" else "Save",
                         tint = if (liked) Milo.amber else Milo.dim,
                         modifier = Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
                             .clickable { vm.playRemoteKeep(t); vm.toggleFav(t.id) }.padding(9.dp),
                     )
                     if (mode == 3 && t.uri.startsWith("yt:")) androidx.compose.material3.Icon(
-                        Icons.Rounded.Download, "Download for offline", tint = Milo.dim,
+                        MiloIcons.Download, "Download for offline", tint = Milo.dim,
                         modifier = Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).clickable { vm.downloadTracks(listOf(t)) }.padding(13.dp),
                     )
                 }

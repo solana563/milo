@@ -175,3 +175,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R75: progress bar looks like the Android 16 media bar (waves move, flat when paused); Queue/Output/Sound/Timer row works; Timer sheet incl. End of this song; Library Liked banner play/shuffle
 
 - [ ] R76: Now Playing: dock on the right edge works (like, download, visualiser, more); card glow changes with the cover; capsule row; cover area not cramped on a small phone
+
+- [ ] R77: icons look soft and solid everywhere (nav bar, player controls, rows, search, Classic mode); heart outline vs solid; nothing blank or oversized

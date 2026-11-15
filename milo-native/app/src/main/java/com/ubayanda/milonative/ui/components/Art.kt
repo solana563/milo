@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.ui.components
 
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import android.graphics.Bitmap
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +58,7 @@ fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 
         if (b == null && !done && t != null) Box(Modifier.size(size).shimmer())
         androidx.compose.animation.Crossfade(targetState = b, animationSpec = androidx.compose.animation.core.tween(260), label = "cover") { x ->
             if (x != null) Image(remember(x) { x.asImageBitmap() }, null, Modifier.size(size), contentScale = ContentScale.Crop)
-            else if (done || t == null) Icon(Icons.Rounded.MusicNote, null, tint = Milo.dim, modifier = Modifier.size(size / 2))
+            else if (done || t == null) Icon(MiloIcons.MusicNote, null, tint = Milo.dim, modifier = Modifier.size(size / 2))
         }
     }
 }
