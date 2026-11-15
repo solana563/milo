@@ -10,31 +10,51 @@ import kotlin.math.min
  * Ported 1:1 from the web app so both apps pick the same colour.
  */
 object ColorMath {
-    /** Returns packed 0xRRGGBB, or -1 when there are no usable pixels. */
+    /** Returns packed 0xRRGGBB, or -1 when there are no usable pixels. Hue is circular (reds don't split) and only pixels near the winning hue are averaged, so red stays red. */
     fun dominant(argb: IntArray): Int {
-        class Bin { var w = 0.0; var r = 0.0; var g = 0.0; var b = 0.0 }
-        val bins = HashMap<Int, Bin>()
+        val n = 24
+        val score = DoubleArray(n)
+        val greyScore = DoubleArray(4)
         var ar = 0.0; var ag = 0.0; var ab = 0.0; var an = 0
+        val keep = ArrayList<DoubleArray>()   // r, g, b, hue(0..1), weight
         for (p in argb) {
             if ((p ushr 24) < 200) continue
             val r = (p shr 16) and 255
             val g = (p shr 8) and 255
             val b = p and 255
-            val hsl = rgbToHsl(r, g, b)
             ar += r; ag += g; ab += b; an++
-            val h = hsl[0]; val s = hsl[1]; val l = hsl[2]
-            if (l < 0.1 || l > 0.94) continue
-            val key = if (s < 0.12) 100 + (l * 4).toInt() else ((h * 12).toInt()) % 12
-            val w = (0.25 + s * s * 1.6) * (1 - abs(l - 0.5) * 0.9)
-            val bin = bins.getOrPut(key) { Bin() }
-            bin.w += w; bin.r += r * w; bin.g += g * w; bin.b += b * w
+            val hsl = rgbToHsl(r, g, b)
+            val h = hsl[0]; val sat = hsl[1]; val l = hsl[2]
+            if (l < 0.08 || l > 0.95) continue
+            val w = (0.2 + sat * sat * 2.0) * (1 - abs(l - 0.5) * 0.8)
+            if (sat < 0.12) { greyScore[min(3, (l * 4).toInt())] += w; continue }
+            score[(h * n).toInt() % n] += w
+            keep.add(doubleArrayOf(r.toDouble(), g.toDouble(), b.toDouble(), h, w))
         }
-        val best = bins.values.maxByOrNull { it.w }
-        return when {
-            best != null && best.w > 0 -> pack((best.r / best.w).toInt(), (best.g / best.w).toInt(), (best.b / best.w).toInt())
-            an > 0 -> pack((ar / an).toInt(), (ag / an).toInt(), (ab / an).toInt())
-            else -> -1
+        if (keep.isEmpty()) {
+            val gi = greyScore.indices.maxByOrNull { greyScore[it] } ?: 0
+            return if (an > 0 && greyScore[gi] > 0) pack((ar / an).toInt(), (ag / an).toInt(), (ab / an).toInt()) else if (an > 0) pack((ar / an).toInt(), (ag / an).toInt(), (ab / an).toInt()) else -1
         }
+        // the colourful part has to matter; mostly grey art stays grey
+        val colourful = score.sum()
+        if (colourful < greyScore.sum() * 0.5) {
+            return if (an > 0) pack((ar / an).toInt(), (ag / an).toInt(), (ab / an).toInt()) else -1
+        }
+        // smooth neighbours (circular) so one hue family wins, then take the peak
+        var peak = 0; var best = -1.0
+        for (i in 0 until n) {
+            val v = score[i] + 0.5 * (score[(i + 1) % n] + score[(i + n - 1) % n])
+            if (v > best) { best = v; peak = i }
+        }
+        val centre = (peak + 0.5) / n
+        var wr = 0.0; var wg = 0.0; var wb = 0.0; var wt = 0.0
+        for (k in keep) {
+            var d = abs(k[3] - centre); if (d > 0.5) d = 1 - d
+            if (d > 1.5 / n) continue
+            wr += k[0] * k[4]; wg += k[1] * k[4]; wb += k[2] * k[4]; wt += k[4]
+        }
+        if (wt <= 0) return pack((ar / an).toInt(), (ag / an).toInt(), (ab / an).toInt())
+        return pack((wr / wt).toInt(), (wg / wt).toInt(), (wb / wt).toInt())
     }
 
     /** UI accent from the song's colour: same hue and saturation, only the lightness is nudged so it stays readable. */
@@ -44,8 +64,8 @@ object ColorMath {
         val b = rgb and 255
         val hsl = rgbToHsl(r, g, b)
         if (hsl[1] < 0.1) return pack(226, 226, 226)
-        val l = min(0.7, max(0.56, hsl[2]))
-        val out = hslToRgb(hsl[0], min(1.0, hsl[1] * 1.04), l)
+        val l = min(0.62, max(0.44, hsl[2]))
+        val out = hslToRgb(hsl[0], min(1.0, max(hsl[1], 0.55) * 1.04), l)
         return pack(out[0], out[1], out[2])
     }
 

@@ -101,6 +101,7 @@ fun MiloApp(vm: MainViewModel) {
     val playlists by vm.playlists.collectAsState()
     val acct by vm.account.collectAsState()
     val tintInt by vm.tint.collectAsState()
+    val songAccentInt by vm.accent.collectAsState()
 
     // the whole app takes the playing song's colour, like the web milo.
     val neutral = tintInt == 0
@@ -128,6 +129,7 @@ fun MiloApp(vm: MainViewModel) {
         TintState.card2 = lerp(base, white, 0.11f)
         TintState.line = lerp(base, white, 0.17f)
         TintState.art = !neutral
+        TintState.songAccent = if (neutral) null else Color(songAccentInt)
     }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }

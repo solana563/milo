@@ -51,21 +51,15 @@ import com.ubayanda.milonative.ui.theme.Rad
 import com.ubayanda.milonative.ui.theme.Ty
 
 /**
- * Call inside a dialog: blurs and dims everything behind it. Real blur needs Android 12+; older phones get the dim only.
+ * Call inside a dialog: dims everything behind it. (No blur since Round 84: it cost frames.)
  */
 @Composable
-fun BlurBehind(radius: Int = 42, dim: Float = 0.42f) {
+fun BlurBehind(radius: Int = 0, dim: Float = 0.42f) {
     val view = LocalView.current
     SideEffect {
         val w = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
         w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        w.setDimAmount(if (Build.VERSION.SDK_INT >= 31) dim else dim + 0.2f)
-        if (Build.VERSION.SDK_INT >= 31) {
-            w.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            val lp = w.attributes
-            lp.blurBehindRadius = radius
-            w.attributes = lp
-        }
+        w.setDimAmount((dim + 0.2f).coerceAtMost(0.75f))
     }
 }
 

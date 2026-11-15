@@ -55,8 +55,8 @@ fun DrawScope.wavyActive(brush: Brush, x0: Float, x1: Float, cy: Float, thick: F
 private fun shifted(c: Color): Color {
     val hsv = FloatArray(3)
     android.graphics.Color.colorToHSV(android.graphics.Color.argb(255, (c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt()), hsv)
-    hsv[0] = (hsv[0] + 40f) % 360f
-    hsv[1] = (hsv[1] * 1.1f).coerceAtMost(1f)
+    // same hue, only deeper: a red cover stays red (no drift towards orange)
+    hsv[2] = (hsv[2] * 0.62f).coerceIn(0f, 1f)
     return Color(android.graphics.Color.HSVToColor(hsv))
 }
 
@@ -80,7 +80,7 @@ fun AuraBackdrop(tint: Int, playing: Boolean, modifier: Modifier = Modifier) {
             drawRect(Brush.linearGradient(listOf(a, b.copy(alpha = 0.8f), dark), Offset(0f, 0f), Offset(size.width, size.height)))
             val ang = phase * 2f * PI.toFloat()
             val c = Offset(size.width * (0.5f + 0.3f * cos(ang)), size.height * (0.35f + 0.15f * sin(ang)))
-            drawRect(Brush.radialGradient(listOf(b.copy(alpha = 0.5f), Color.Transparent), c, size.maxDimension * 0.6f))
+            drawRect(Brush.radialGradient(listOf(a.copy(alpha = 0.55f), Color.Transparent), c, size.maxDimension * 0.6f))
         }
     )
 }

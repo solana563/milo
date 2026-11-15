@@ -146,10 +146,8 @@ import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
-import androidx.compose.ui.draw.blur
 import com.ubayanda.milonative.ui.components.frosted
 import com.ubayanda.milonative.ui.components.backdropSource
-import com.ubayanda.milonative.ui.components.liquidGlass
 import com.ubayanda.milonative.ui.components.glassStroke
 import com.ubayanda.milonative.ui.components.lift
 
@@ -200,12 +198,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     var tapFlash by remember { mutableStateOf<TapFlash?>(null) }
     LaunchedEffect(tapFlash?.token) { if (tapFlash != null) { kotlinx.coroutines.delay(750); tapFlash = null } }
     val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
-    val npBackdrop = com.ubayanda.milonative.ui.components.rememberBackdropState()
-    val npLive = npBackdrop.takeIf { android.os.Build.VERSION.SDK_INT >= 31 && !com.ubayanda.milonative.BuildConfig.LITE }
-    val npGlass = if (npLive != null) Modifier.liquidGlass(cardShape, Rad.xl, npLive, Color(0xFF0B0A09), 1.2f, tintAlpha = 0.5f)
-        else Modifier.clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
-    // behind a queue / sound sheet the player blurs (Android 12+; older phones just get the dim)
-    val behindBlur by androidx.compose.animation.core.animateDpAsState(if (panel == Panel.Queue || panel == Panel.Sound) 22.dp else 0.dp, label = "npBlur")
+    // flat cover-tinted card: no live blur or glass shader (they cost frames)
+    val npGlass = Modifier.clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
+    // behind a queue / sound sheet the player just dims (no blur)
+    val behindDim by androidx.compose.animation.core.animateFloatAsState(if (panel == Panel.Queue || panel == Panel.Sound) 0.5f else 1f, label = "npDim")
 
     var lyrics by remember(t.id) { mutableStateOf<Lyrics?>(null) }
     var lyricsLoading by remember(t.id) { mutableStateOf(true) }
@@ -236,12 +232,25 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         clip = p > 0f
     }.background(Milo.bg)) {
         // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
-        Box(Modifier.fillMaxSize().backdropSource(npBackdrop)) {
+        Box(Modifier.fillMaxSize()) {
             com.ubayanda.milonative.ui.components.AuraBackdrop(vm.tint.collectAsState().value, ui.isPlaying, Modifier.fillMaxSize())
-            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize().blur(behindBlur), contentScale = ContentScale.Crop, alpha = 0.3f) }
+            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f) }
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
-        Column(Modifier.fillMaxSize().blur(behindBlur)) {
+        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim }.pointerInput("lyrics-swipe-all") {
+            // swipe up anywhere on the player (title, gaps, buttons area) that a child did not already use
+            var up = false
+            var decided = false
+            detectVerticalDragGestures(
+                onDragStart = { lyJob?.cancel(); up = false; decided = false },
+                onVerticalDrag = { c, dy ->
+                    if (!decided && dy != 0f) { decided = true; up = dy < 0f || lyY < screenH }
+                    if (up) { c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) }
+                },
+                onDragEnd = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) },
+                onDragCancel = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) },
+            )
+        }) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
                 Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
@@ -268,10 +277,18 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         onDragCancel = { hx = 0f },
                     )
                 }.pointerInput(Unit) {
+                    // down = fold the player away; up = the lyrics page follows your finger and springs open
+                    var up = false
+                    var decided = false
                     detectVerticalDragGestures(
-                        onVerticalDrag = { _, dy -> if (!shut) drag = (drag + dy).coerceAtLeast(0f) },
-                        onDragEnd = { if (drag > 220f) dismissPlayer() else springBackPlayer() },
-                        onDragCancel = { springBackPlayer() },
+                        onDragStart = { lyJob?.cancel(); up = false; decided = false },
+                        onVerticalDrag = { c, dy ->
+                            if (!decided && dy != 0f) { decided = true; up = dy < 0f && drag <= 0f }
+                            if (up) { c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) }
+                            else if (!shut) drag = (drag + dy).coerceAtLeast(0f)
+                        },
+                        onDragEnd = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) else if (drag > 220f) dismissPlayer() else springBackPlayer() },
+                        onDragCancel = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) else springBackPlayer() },
                     )
                 }
             ) {
@@ -410,7 +427,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             // control card
             val glowBase = vm.tint.collectAsState().value.let { if (it == 0) Milo.amber else Color(0xFF000000.toInt() or it) }
             val glowA by androidx.compose.animation.animateColorAsState(glowBase, androidx.compose.animation.core.tween(700), label = "glowA")
-            val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color(0xFFFF4FA3), 0.45f), androidx.compose.animation.core.tween(700), label = "glowB")
+            val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color.White, 0.22f), androidx.compose.animation.core.tween(700), label = "glowB")
             Column(
                 Modifier.fillMaxWidth()
                     .pointerInput("lyrics-swipe") {
@@ -992,7 +1009,7 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
     var wavePhase by remember { mutableFloatStateOf(0f) }
     val run = ui.isPlaying && !calm
     // the wave travels about 32 dp a second; the angle is accumulated from real frame times so it never jumps when playback stops and starts
-    LaunchedEffect(run) { if (run) { var last = 0L; while (true) androidx.compose.runtime.withFrameNanos { n -> if (last != 0L) wavePhase = wavePhase + (n - last) / 1e9f * 5.0265f; last = n } } }
+    // (the frame loop that animated the wave is gone: no wave, no per-frame work)
     val pressK by androidx.compose.animation.core.animateFloatAsState(if (dragging) 1f else 0f, com.ubayanda.milonative.ui.components.Bounce.scale(), label = "handle")
     // the bar takes the cover's colour, softened toward white, and changes colour smoothly when the song changes
     val baseC = if (tint == 0) Milo.amber else Color(0xFF000000.toInt() or tint)
@@ -1023,31 +1040,13 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
             val r = 9.dp.toPx()
             val themed = ChromeStyle.on || Nebula.on || Sticker.on || Spider.on
             if (!themed) {
-                // Android 16's media bar: a thick pill, one soft solid wave rolling over the played part, and a big round handle
+                // a thick plain pill with a big round handle (no wave since Round 86)
                 val bar = 10.dp.toPx()
                 val tr = (10f + 2f * pressK).dp.toPx()
                 val tx2 = (w * shown).coerceIn(tr, w - tr)
                 val top = cy - bar / 2
                 drawRoundRect(fillC.copy(alpha = 0.28f), Offset(0f, top), Size(w, bar), CornerRadius(bar / 2))
                 drawRoundRect(fillC, Offset(0f, top), Size(tx2, bar), CornerRadius(bar / 2))
-                // the wave: one solid, lighter crest rising out of the bar, smooth and rounded, flat at both ends
-                val height = 9.dp.toPx() * waveK
-                if (height > 0.5f && tx2 > 8f) {
-                    val k = (2.0 * Math.PI / 84.dp.toPx()).toFloat()
-                    val ease = minOf(36.dp.toPx(), tx2 / 2f).coerceAtLeast(1f)
-                    val path = androidx.compose.ui.graphics.Path()
-                    path.moveTo(0f, top)
-                    var x = 0f
-                    while (x < tx2) {
-                        x = minOf(x + 2f, tx2)
-                        val t = minOf(x / ease, (tx2 - x) / ease).coerceIn(0f, 1f)
-                        val env = t * t * (3f - 2f * t)
-                        path.lineTo(x, top - height * env * (0.5f + 0.5f * kotlin.math.sin(x * k - wavePhase)))
-                    }
-                    path.lineTo(tx2, top)
-                    path.close()
-                    drawPath(path, androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.4f))
-                }
                 drawCircle(androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.55f), tr, Offset(tx2, cy))
                 return@Canvas
             }
@@ -1066,7 +1065,7 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
                 Nebula.on -> Brush.horizontalGradient(listOf(Nebula.cyan, Nebula.magenta), 0f, w)
                 else -> SolidColor(if (Spider.on) Spider.red else Color.White)
             }
-            wavyActive(brush, th / 2, tx - gapHalf, cy, th, if (ChromeStyle.on) 0f else amp, wl, wavePhase, 18.dp.toPx())
+            wavyActive(brush, th / 2, tx - gapHalf, cy, th, 0f, wl, wavePhase, 18.dp.toPx())
             // the handle
             if (ChromeStyle.on) {
                 drawChromeBall(Offset(tx, cy), 13.dp.toPx())

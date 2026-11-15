@@ -369,3 +369,16 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ### Round 83 — bouncy swipe to open the lyrics
 - Swipe up anywhere on the control card (or tap the lyrics line): the lyrics page rises with your finger, then springs open on the same bouncy spring as the rest of the UI (damping ratio 0.424, stiffness 200), with a light tick as it opens. Let go early and it springs back down. Close it with the Back button, system back, or by pulling down the grab bar at the top of the lyrics page (springs back if you let go early).
+
+## Round 84 — no blur
+- Removed every live blur for performance: the liquid-glass shader + RenderEffect blur (bottom bar, mini player, Now Playing card), `Modifier.blur` behind the Queue/Sound sheets (now a plain dim), the backdrop recording layer, and the window blur behind dialogs/popups (dim only).
+- Kept: the tiny pre-softened 48px cover bitmap (made once per song on the CPU, drawn as a plain image) and the animated cover-colour gradient.
+
+## Round 85 — colours that follow the song
+- Dominant colour: hue is now circular (reds no longer split across the wheel), 24 bins with neighbour smoothing, and only pixels near the winning hue are averaged, so a red cover gives red, not orange. Mostly grey covers stay grey.
+- The app accent (buttons, icons, bar) now follows the song's colour unless a fixed accent was picked in Profile. Accent lightness range lowered (0.44–0.62) so reds read as deep red.
+- Player background no longer shifts the hue by +40° (that turned red into orange); it uses a deeper shade of the same hue. The control-card glow uses a lighter shade of the same hue instead of pink.
+
+## Round 86 — plain thick bar, lyrics swipe from anywhere
+- Progress bar: wave removed everywhere (default and themed looks); the thick pill and big round handle stay, and the per-frame wave animation loop is gone.
+- Lyrics: swipe up on the cover art, or on any free part of the Now Playing screen, now pulls the lyrics page up with the same bouncy spring (the control card and grab handle still work). Swipe down on the art still folds the player away.

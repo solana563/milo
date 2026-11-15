@@ -24,14 +24,17 @@ object TintState {
     var line by mutableStateOf(Color(0xFF2B2723))
     var art by mutableStateOf(false)
     var accent by mutableStateOf(Color(0xFFF99C00))
+    /** The song's own accent (from the cover); used while the person has not picked a fixed accent. */
+    var songAccent by mutableStateOf<Color?>(null)
+    var picked by mutableStateOf(false)
 }
 
 /** The accent colour the person picked (amber by default). */
 object Accent {
     val choices = listOf(0xFFF99C00, 0xFFFF6B6B, 0xFFE06BFF, 0xFF6B9BFF, 0xFF3DDC97, 0xFFF4EFE4).map { Color(it) }
     private fun p(c: android.content.Context) = c.getSharedPreferences("milo_ui", android.content.Context.MODE_PRIVATE)
-    fun load(c: android.content.Context) { val v = p(c).getLong("accent", 0L); if (v != 0L) TintState.accent = Color(v.toULong()) }
-    fun set(c: android.content.Context, col: Color) { TintState.accent = col; p(c).edit().putLong("accent", col.value.toLong()).apply() }
+    fun load(c: android.content.Context) { val v = p(c).getLong("accent", 0L); if (v != 0L) { TintState.accent = Color(v.toULong()); TintState.picked = true } }
+    fun set(c: android.content.Context, col: Color) { TintState.accent = col; TintState.picked = true; p(c).edit().putLong("accent", col.value.toLong()).apply() }
 }
 
 /** The same palette as the web milo.: near-black, warm cream text, amber accent; panels, cards and lines pick up the song's colour. */
@@ -44,7 +47,7 @@ object Milo {
     val text: Color get() = if (ChromeStyle.on) ChromeStyle.text else if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF3EDE0)
     val cream: Color get() = if (ChromeStyle.on) ChromeStyle.text else if (Nebula.on) Nebula.text else if (Sticker.on) Color.White else if (Spider.on) Spider.bone else if (Y2K.on) Y2K.ice else Color(0xFFF4EFE4)
     val dim: Color get() = if (ChromeStyle.on) ChromeStyle.dim else if (Nebula.on) Nebula.dim else if (Sticker.on) Sticker.dim else if (Spider.on) Spider.dim else if (Y2K.on) Y2K.dim else Color(0xFFA8A194)
-    val amber: Color get() = if (ChromeStyle.on) ChromeStyle.silver else if (Nebula.on) Nebula.cyan else if (Sticker.on) Color.White else if (Spider.on) Spider.red else if (Y2K.on) Y2K.aqua else TintState.accent
+    val amber: Color get() = if (ChromeStyle.on) ChromeStyle.silver else if (Nebula.on) Nebula.cyan else if (Sticker.on) Color.White else if (Spider.on) Spider.red else if (Y2K.on) Y2K.aqua else if (!TintState.picked) (TintState.songAccent ?: TintState.accent) else TintState.accent
 }
 
 val Figtree = FontFamily(

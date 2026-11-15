@@ -14,7 +14,7 @@ Nothing here is marked "verified" unless a person ran it on a phone. The build s
 | Library | Scan, albums, artists, playlists, favourites | A | |
 | Library | M3U import/export | B | Unit-tested parser (this round) |
 | Library | Very large libraries (10k+) | C | Lazy lists, windowed play queue; scan post-processing moved off main thread (Round 30c); sort speed unit-tested at 20k; real-phone benchmark still to do |
-| UI | Liquid glass, scroll/search memory | A | Confirmed Rounds 26, 28 |
+| UI | Liquid glass, scroll/search memory | A | Confirmed Rounds 26, 28 | (R84: now flat translucent, no blur)
 | UI | milo. Lite flavour (Android 8+) | A | Confirmed on Samsung S7 edge |
 | Account | Email sign-up / log-in | A | |
 | Account | Google sign-in | B | Needs OAuth client per package |
