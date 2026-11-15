@@ -179,3 +179,7 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R77: icons look soft and solid everywhere (nav bar, player controls, rows, search, Classic mode); heart outline vs solid; nothing blank or oversized
 
 - [ ] R78: all 8 dock buttons reachable (scroll on a small phone); timer badge shows time left; control card clearly smaller than the cover
+
+- [ ] R79: progress bar is one thick solid wave, flat when paused, handle grows when held
+
+- [ ] R80: progress bar = thick pill + one solid wave on the played part + big round thumb; clean flat pill when paused

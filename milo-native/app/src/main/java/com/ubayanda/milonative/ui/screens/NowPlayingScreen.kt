@@ -972,33 +972,31 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
             val r = 9.dp.toPx()
             val themed = ChromeStyle.on || Nebula.on || Sticker.on || Spider.on
             if (!themed) {
-                // Android 16's media bar: a thick rounded bar, a big round handle, and soft see-through waves rolling over the played part
-                val bar = 9.dp.toPx()
-                val tr = (8f + 2f * pressK).dp.toPx()
+                // Android 16's media bar: a thick pill, one soft solid wave rolling over the played part, and a big round handle
+                val bar = 10.dp.toPx()
+                val tr = (10f + 2f * pressK).dp.toPx()
                 val tx2 = (w * shown).coerceIn(tr, w - tr)
                 val top = cy - bar / 2
                 drawRoundRect(fillC.copy(alpha = 0.28f), Offset(0f, top), Size(w, bar), CornerRadius(bar / 2))
                 drawRoundRect(fillC, Offset(0f, top), Size(tx2, bar), CornerRadius(bar / 2))
-                val lightC = androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.6f)
-                fun wave(wlen: Float, height: Float, ph: Float, alpha: Float) {
-                    if (height < 0.5f || tx2 < 8f) return
-                    val k = (2.0 * Math.PI / wlen).toFloat()
+                // the wave: one solid, lighter crest rising out of the bar, smooth and rounded, flat at both ends
+                val height = 9.dp.toPx() * waveK
+                if (height > 0.5f && tx2 > 8f) {
+                    val k = (2.0 * Math.PI / 84.dp.toPx()).toFloat()
                     val ease = minOf(36.dp.toPx(), tx2 / 2f).coerceAtLeast(1f)
                     val path = androidx.compose.ui.graphics.Path()
-                    path.moveTo(0f, cy)
+                    path.moveTo(0f, top)
                     var x = 0f
                     while (x < tx2) {
-                        x = minOf(x + 3f, tx2)
+                        x = minOf(x + 2f, tx2)
                         val t = minOf(x / ease, (tx2 - x) / ease).coerceIn(0f, 1f)
                         val env = t * t * (3f - 2f * t)
-                        path.lineTo(x, top + 1f - height * env * (0.5f + 0.5f * kotlin.math.sin(x * k - ph)))
+                        path.lineTo(x, top - height * env * (0.5f + 0.5f * kotlin.math.sin(x * k - wavePhase)))
                     }
-                    path.lineTo(tx2, cy)
+                    path.lineTo(tx2, top)
                     path.close()
-                    drawPath(path, lightC.copy(alpha = alpha))
+                    drawPath(path, androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.4f))
                 }
-                wave(96.dp.toPx(), 9.dp.toPx() * waveK, wavePhase * 0.5f, 0.45f)
-                wave(64.dp.toPx(), 6.dp.toPx() * waveK, 1.5f - wavePhase * 0.4f, 0.30f)
                 drawCircle(androidx.compose.ui.graphics.lerp(fillC, Color.White, 0.55f), tr, Offset(tx2, cy))
                 return@Canvas
             }

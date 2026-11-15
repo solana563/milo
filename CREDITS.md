@@ -353,3 +353,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ### Round 78 — Now Playing: every button in the dock, smaller control card
 - The Queue / Output / Sound / Timer capsule under the playback controls is gone. All buttons now live in the right-edge dock: Like, Download, Queue, Output, Sound, Timer (shows time left), Visualiser, More. The dock scrolls if the phone is too short.
 - Control card made smaller (play 72 dp, skip 58 dp, tighter padding) so the cover card is clearly the bigger of the two.
+
+### Round 79 — progress bar: one thick solid wave
+- Default theme progress bar is now a single thick (8 dp) solid round-ended wave in the cover's colour, a thick flat track after the handle and a round handle, to match the new solid icons. The two see-through layers from Round 75 are gone. Themed looks (Y2K family) keep their thinner wave.
+
+### Round 80 — progress bar matches the Android 16 media bar
+- Default progress bar: a thick (10 dp) pill, ONE soft solid wave (lighter tint of the cover colour, fully opaque) rolling out of the played part and easing flat at both ends, and a big round handle (20 dp, grows when held). Paused = a clean flat pill. Replaces Round 79's thin wavy stroke.
