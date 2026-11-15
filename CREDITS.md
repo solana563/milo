@@ -382,3 +382,12 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 86 — plain thick bar, lyrics swipe from anywhere
 - Progress bar: wave removed everywhere (default and themed looks); the thick pill and big round handle stay, and the per-frame wave animation loop is gone.
 - Lyrics: swipe up on the cover art, or on any free part of the Now Playing screen, now pulls the lyrics page up with the same bouncy spring (the control card and grab handle still work). Swipe down on the art still folds the player away.
+
+## Round 87 — milo.'s official font
+- Brand face: Figtree ExtraBold/Black Italic (SIL Open Font License; licence copy in docs/licenses/Figtree-OFL.txt). It is the same family as the app's UI font, so the wordmark and the text feel like one system.
+- New `MiloBrand` font family and `MiloWordmark(size)` composable (heavy italic, tight spacing, the full stop in the accent colour). Used in the Connect screen title and the lyric share card. Body text is unchanged.
+
+## Round 88 — official logo
+- The supplied milo. logo (shape + heavy italic wordmark + amber full stop) replaces the old logo_wordmark.png as a crisp vector drawable (res/drawable/logo_wordmark.xml), so it stays sharp at every size. Used at the top of Home, the sign-in gate and the permission screen (same resource name, no code change).
+- The blurred shadow copy, dark background and embedded metadata of the source file were left out (vector drawables cannot blur); the logo itself is unchanged. Source copy kept in docs/brand/milo-logo.svg.
+- The old res/drawable-nodpi/logo_wordmark.png is deleted: if you copy files by hand, delete it, or the build reports a duplicate resource.

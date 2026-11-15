@@ -192,3 +192,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R84: no blur anywhere — bottom bar, mini player, Now Playing card are flat translucent; Queue/Sound sheets dim the player; dialogs dim only. Check scrolling/animation feels smoother and text stays readable.
 - [ ] R85: play a red, a blue, a green, a purple and a mostly grey song: accent, bar, buttons and player background match the cover's hue (red = deep red, never orange). If an accent was picked in Profile it stays fixed.
 - [ ] R86: progress bar is a plain thick pill (no wave) in every theme; swipe up on the cover and on empty parts of the player opens lyrics with the bounce; swipe down on cover still closes the player; sideways swipe on the cover still skips.
+- [ ] R87: 'milo.' on the Connect title and on shared lyric cards is heavy italic (Figtree Black Italic) with the dot in the accent; the home header logo is still the old image.
+- [ ] R88: new milo. logo shows at the top of Home, on the sign-in gate and the permission screen, sharp, cream on dark with the amber dot; no old PNG logo left.

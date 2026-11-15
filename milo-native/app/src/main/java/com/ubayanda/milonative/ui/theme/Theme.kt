@@ -10,7 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,6 +57,26 @@ val Figtree = FontFamily(
         Font(R.font.figtree, FontWeight(w), variationSettings = FontVariation.Settings(FontVariation.weight(w)))
     }
 )
+
+/** milo.'s own face: Figtree ExtraBold / Black Italic (SIL OFL). Used for the wordmark, never for body text. */
+val MiloBrand = FontFamily(
+    listOf(800, 900).map { w ->
+        Font(R.font.figtree_italic, FontWeight(w), FontStyle.Italic, variationSettings = FontVariation.Settings(FontVariation.weight(w)))
+    }
+)
+
+/** The milo. wordmark as text: heavy italic, tight, with the full stop in the accent colour. */
+@Composable
+fun MiloWordmark(size: androidx.compose.ui.unit.TextUnit, modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier, color: Color = Milo.text, dot: Color = Milo.amber) {
+    androidx.compose.material3.Text(
+        androidx.compose.ui.text.buildAnnotatedString {
+            append("milo")
+            pushStyle(androidx.compose.ui.text.SpanStyle(color = dot)); append("."); pop()
+        },
+        modifier = modifier, color = color, fontSize = size, fontFamily = MiloBrand, fontWeight = FontWeight(900), fontStyle = FontStyle.Italic,
+        letterSpacing = (-0.04f * size.value).sp,
+    )
+}
 
 val Fraunces = FontFamily(
     listOf(500, 600).map { w ->

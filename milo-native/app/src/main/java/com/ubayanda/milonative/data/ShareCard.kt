@@ -49,7 +49,13 @@ object ShareCard {
                 size -= 4f
             }
             c.save(); c.translate(80f, 360f); layout.draw(c); c.restore()
-            val fp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF5B63B.toInt(); textSize = 54f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+            val fp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF5B63B.toInt(); textSize = 64f
+                typeface = try {
+                    val base = androidx.core.content.res.ResourcesCompat.getFont(ctx, com.ubayanda.milonative.R.font.figtree_italic)
+                    if (base != null && android.os.Build.VERSION.SDK_INT >= 28) Typeface.create(base, 900, true) else Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC)
+                } catch (_: Exception) { Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC) }
+                letterSpacing = -0.04f
+            }
             c.drawText("milo.", 80f, h - 80f, fp)
             val dir = File(ctx.cacheDir, "cards").also { it.mkdirs() }
             val f = File(dir, "lyric-" + System.currentTimeMillis() + ".png")

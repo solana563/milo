@@ -67,7 +67,7 @@ fun ConnectScreen(vm: MainViewModel, onClose: () -> Unit) {
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) { Pill("Back", null, false, compact = true, onClick = onClose); Spacer(Modifier.padding(6.dp)); Text("milo. Connect", color = Milo.text, style = Ty.title) } }
+        item { Row(verticalAlignment = Alignment.CenterVertically) { Pill("Back", null, false, compact = true, onClick = onClose); Spacer(Modifier.padding(6.dp)); com.ubayanda.milonative.ui.theme.MiloWordmark(26.sp); Text(" Connect", color = Milo.text, style = Ty.title) } }
         item {
             Column(Modifier.fillMaxWidth().clip(card).background(Milo.card2).padding(16.dp)) {
                 Text("This phone: " + vm.thisDeviceName, color = Milo.text, style = Ty.heading)
