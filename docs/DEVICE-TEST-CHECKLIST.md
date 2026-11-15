@@ -177,3 +177,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R76: Now Playing: dock on the right edge works (like, download, visualiser, more); card glow changes with the cover; capsule row; cover area not cramped on a small phone
 
 - [ ] R77: icons look soft and solid everywhere (nav bar, player controls, rows, search, Classic mode); heart outline vs solid; nothing blank or oversized
+
+- [ ] R78: all 8 dock buttons reachable (scroll on a small phone); timer badge shows time left; control card clearly smaller than the cover

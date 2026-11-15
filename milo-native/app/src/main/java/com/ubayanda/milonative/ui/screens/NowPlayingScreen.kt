@@ -342,14 +342,23 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 Column(
                     Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 12.dp)
                         .clip(dockShape).background(Color.Black.copy(alpha = 0.38f)).border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
+                        .verticalScroll(androidx.compose.foundation.rememberScrollState())
                         .padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
                     RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true) { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
                         RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.Download, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true) { vm.downloadTracks(listOf(t)) }
                     }
+                    RoundBtn(MiloIcons.QueueMusic, "Queue", flat = true) { panel = Panel.Queue }
+                    RoundBtn(
+                        if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.Cast,
+                        "Output", tint = if (outDock.kind != "speaker") Milo.amber else Color.White, flat = true,
+                    ) { castOpen = true }
+                    RoundBtn(MiloIcons.Tune, "Sound", flat = true) { panel = Panel.Sound }
+                    RoundBtn(MiloIcons.Bedtime, "Sleep timer", tint = if (ui.sleepLeftMs > 0) Milo.amber else Color.White, flat = true, badge = if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else null) { panel = Panel.Timer }
                     if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true) { panel = Panel.Visual }
                     MoreMenu(vm, t, ui)
                 }
@@ -398,7 +407,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         drawRect(Brush.radialGradient(listOf(glowA.copy(alpha = 0.38f), Color.Transparent), Offset(size.width * 0.12f, size.height * 0.95f), size.width * 0.75f))
                         drawRect(Brush.radialGradient(listOf(glowB.copy(alpha = 0.28f), Color.Transparent), Offset(size.width * 0.95f, size.height * 0.05f), size.width * 0.55f))
                     }
-                    .navigationBarsPadding().padding(top = Sp.x4, bottom = Sp.x2),
+                    .navigationBarsPadding().padding(top = Sp.x3, bottom = Sp.x1),
             ) {
                 if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter), vm.tint.collectAsState().value) { vm.player.seekTo(it) }
@@ -407,18 +416,18 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     Text(fmtTime(ui.durationMs), color = Milo.dim, style = Ty.caption)
                 }
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = Sp.x4, vertical = Sp.x3),
+                    Modifier.fillMaxWidth().padding(horizontal = Sp.x4, vertical = Sp.x1),
                     horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconTap(MiloIcons.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
                     RoundDark(MiloIcons.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
-                        Modifier.size(88.dp).clip(CircleShape)
+                        Modifier.size(72.dp).clip(CircleShape)
                             .background(if (Y2K.on) Brush.verticalGradient(listOf(Y2K.chromeLight, Y2K.chromeDark)) else androidx.compose.ui.graphics.SolidColor(Milo.cream))
                             .pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(46.dp))
+                        Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(38.dp))
                     }
                     RoundDark(MiloIcons.SkipNext, "Next") { vm.player.next() }
                     IconTap(
@@ -445,8 +454,6 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
                     )
                 }
-                // the four things people reach for most, labelled, in one row
-                ActionRow(ui, { panel = Panel.Queue }, { castOpen = true }, { panel = Panel.Sound }, { panel = Panel.Timer })
             }
         }
 
@@ -877,35 +884,6 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
     }
 }
 
-/** Queue, Output, Sound and Timer as one labelled row under the controls. */
-@Composable
-private fun ActionRow(ui: PlayerUi, onQueue: () -> Unit, onOutput: () -> Unit, onSound: () -> Unit, onTimer: () -> Unit) {
-    val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
-    val onDevice = outNow.kind != "speaker"
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).padding(top = 2.dp, bottom = Sp.x2)
-            .clip(CircleShape).background(Color.Black.copy(alpha = 0.30f)).border(1.dp, glassStroke(1f), CircleShape).padding(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        ActionItem(MiloIcons.QueueMusic, "Queue", false, onQueue)
-        ActionItem(if (onDevice && outNow.bt) MiloIcons.BluetoothAudio else if (onDevice) MiloIcons.Headphones else MiloIcons.Cast, "Output", onDevice, onOutput)
-        ActionItem(MiloIcons.Tune, "Sound", false, onSound)
-        ActionItem(MiloIcons.Bedtime, if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer", ui.sleepLeftMs > 0, onTimer)
-    }
-}
-
-@Composable
-private fun ActionItem(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
-    val c = if (active) Milo.amber else Milo.text
-    Column(
-        Modifier.defaultMinSize(minWidth = 64.dp, minHeight = 52.dp).clip(RoundedCornerShape(16.dp)).pressable { onClick() }.padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(icon, label, tint = c, modifier = Modifier.size(24.dp))
-        Text(label, color = c.copy(alpha = if (active) 1f else 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
-    }
-}
-
 /** "When should we stop?": pick how long, or stop at the end of this song. */
 @Composable
 private fun TimerContent(vm: MainViewModel, ui: PlayerUi) {
@@ -930,11 +908,14 @@ private fun TimerContent(vm: MainViewModel, ui: PlayerUi) {
 }
 
 @Composable
-private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, flat: Boolean = false, onClick: () -> Unit) {
+private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, flat: Boolean = false, badge: String? = null, onClick: () -> Unit) {
     Box(
-        modifier.size(52.dp).clip(CircleShape).then(if (flat) Modifier else Modifier.background(Color.Black.copy(alpha = 0.32f))).clickable(onClick = onClick),
+        modifier.size(if (flat) 48.dp else 52.dp).clip(CircleShape).then(if (flat) Modifier else Modifier.background(Color.Black.copy(alpha = 0.32f))).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp)) }
+    ) {
+        Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp).then(if (badge != null) Modifier.offset(y = (-5).dp) else Modifier))
+        if (badge != null) Text(badge, color = tint, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp))
+    }
 }
 
 @Composable
@@ -1058,9 +1039,9 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
 @Composable
 private fun RoundDark(icon: ImageVector, desc: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(70.dp).clip(CircleShape).background(Milo.card2).clickable(onClick = onClick),
+        Modifier.size(58.dp).clip(CircleShape).background(Milo.card2).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, desc, tint = Milo.text, modifier = Modifier.size(34.dp)) }
+    ) { Icon(icon, desc, tint = Milo.text, modifier = Modifier.size(28.dp)) }
 }
 
 

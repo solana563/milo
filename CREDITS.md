@@ -349,3 +349,7 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 
 ### Round 77 fix 1
 CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons.Icons.Outlined.Search; the bulk rename turned it into a path that does not exist. Now points at com.ubayanda.milonative.ui.theme.MiloIcons.Search.
+
+### Round 78 — Now Playing: every button in the dock, smaller control card
+- The Queue / Output / Sound / Timer capsule under the playback controls is gone. All buttons now live in the right-edge dock: Like, Download, Queue, Output, Sound, Timer (shows time left), Visualiser, More. The dock scrolls if the phone is too short.
+- Control card made smaller (play 72 dp, skip 58 dp, tighter padding) so the cover card is clearly the bigger of the two.
