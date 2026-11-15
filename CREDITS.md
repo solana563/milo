@@ -338,3 +338,7 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 - Timer sheet "When should we stop?": 5/10/15/30/45/60 min, "End of this song", countdown + Cancel. PlayerHolder.sleepInMs added.
 - Library: "Liked songs" banner card (play / shuffle / open) above the segmented control.
 - Not done: Library sort button and grid/list toggle; Explore mood hero; Profile personality card.
+
+### Round 76 — Now Playing reworked around the new buttons
+- Like / Download / Visualiser / More now live in one slim frosted dock hugging the right edge (idea from the phone mock-up's status-icon tab) instead of four separate round buttons.
+- Control card: soft blurred colour glow from the cover bleeds through the glass (idea from the Veri glow cards); Queue / Output / Sound / Timer sit in a glass capsule; spacing tightened so the cover keeps more room.

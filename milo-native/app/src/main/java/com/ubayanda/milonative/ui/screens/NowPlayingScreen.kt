@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
@@ -335,13 +336,20 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
                 RoundBtn(Icons.Rounded.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
 
-                Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White) { vm.toggleFav(t.id) }
+                // one slim dock on the right edge instead of a stack of separate buttons (like the status-icon tab on the phone mock-up)
+                val dockShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+                Column(
+                    Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 12.dp)
+                        .clip(dockShape).background(Color.Black.copy(alpha = 0.38f)).border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
+                        .padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    RoundBtn(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true) { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                        RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White) { vm.downloadTracks(listOf(t)) }
+                        RoundBtn(if (savedNow) Icons.Rounded.DownloadDone else Icons.Rounded.Download, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true) { vm.downloadTracks(listOf(t)) }
                     }
-                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(Icons.Rounded.GraphicEq, "Visualiser") { panel = Panel.Visual }
+                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(Icons.Rounded.GraphicEq, "Visualiser", flat = true) { panel = Panel.Visual }
                     MoreMenu(vm, t, ui)
                 }
 
@@ -354,7 +362,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     },
                     label = "titles",
                 ) { tt ->
-                    Column(Modifier.padding(start = Sp.gutter, end = 80.dp, bottom = Sp.x6)) {
+                    Column(Modifier.padding(start = Sp.gutter, end = 68.dp, bottom = Sp.x6)) {
                         Text(tt.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(tt.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
                         Text(
@@ -378,10 +386,18 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             Spacer(Modifier.height(8.dp)) // black canvas shows between the art and the control card, like the web
 
             // control card
+            val glowBase = vm.tint.collectAsState().value.let { if (it == 0) Milo.amber else Color(0xFF000000.toInt() or it) }
+            val glowA by androidx.compose.animation.animateColorAsState(glowBase, androidx.compose.animation.core.tween(700), label = "glowA")
+            val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color(0xFFFF4FA3), 0.45f), androidx.compose.animation.core.tween(700), label = "glowB")
             Column(
                 Modifier.fillMaxWidth()
-                    .lift(cardShape, 18f).then(npGlass)
-                    .navigationBarsPadding().padding(top = Sp.x5, bottom = Sp.x2),
+                    .lift(cardShape, 18f).then(npGlass).clip(cardShape)
+                    .drawBehind {
+                        // soft blurred colour blobs from the cover bleed through the glass, like the glow cards in the reference
+                        drawRect(Brush.radialGradient(listOf(glowA.copy(alpha = 0.38f), Color.Transparent), Offset(size.width * 0.12f, size.height * 0.95f), size.width * 0.75f))
+                        drawRect(Brush.radialGradient(listOf(glowB.copy(alpha = 0.28f), Color.Transparent), Offset(size.width * 0.95f, size.height * 0.05f), size.width * 0.55f))
+                    }
+                    .navigationBarsPadding().padding(top = Sp.x4, bottom = Sp.x2),
             ) {
                 if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter), vm.tint.collectAsState().value) { vm.player.seekTo(it) }
@@ -418,7 +434,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             onDragEnd = { if (total < -30f) panel = Panel.Lyrics; total = 0f },
                             onDragCancel = { total = 0f },
                         )
-                    }.padding(top = 8.dp, bottom = 8.dp),
+                    }.padding(top = 4.dp, bottom = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(Modifier.width(80.dp).height(5.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
@@ -846,7 +862,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
     var open by remember { mutableStateOf(false) }
     val actions = LocalActions.current
     Box {
-        RoundBtn(Icons.Rounded.MoreHoriz, "More") { open = true }
+        RoundBtn(Icons.Rounded.MoreHoriz, "More", flat = true) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
@@ -865,7 +881,11 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
 private fun ActionRow(ui: PlayerUi, onQueue: () -> Unit, onOutput: () -> Unit, onSound: () -> Unit, onTimer: () -> Unit) {
     val outNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
     val onDevice = outNow.kind != "speaker"
-    Row(Modifier.fillMaxWidth().padding(horizontal = Sp.x4).padding(top = 2.dp, bottom = Sp.x2), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).padding(top = 2.dp, bottom = Sp.x2)
+            .clip(CircleShape).background(Color.Black.copy(alpha = 0.30f)).border(1.dp, glassStroke(1f), CircleShape).padding(horizontal = 6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
         ActionItem(Icons.Rounded.QueueMusic, "Queue", false, onQueue)
         ActionItem(if (onDevice && outNow.bt) Icons.Rounded.BluetoothAudio else if (onDevice) Icons.Rounded.Headphones else Icons.Rounded.Cast, "Output", onDevice, onOutput)
         ActionItem(Icons.Rounded.Tune, "Sound", false, onSound)
@@ -909,9 +929,9 @@ private fun TimerContent(vm: MainViewModel, ui: PlayerUi) {
 }
 
 @Composable
-private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, onClick: () -> Unit) {
+private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, flat: Boolean = false, onClick: () -> Unit) {
     Box(
-        modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.32f)).clickable(onClick = onClick),
+        modifier.size(52.dp).clip(CircleShape).then(if (flat) Modifier else Modifier.background(Color.Black.copy(alpha = 0.32f))).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp)) }
 }
