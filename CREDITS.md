@@ -346,3 +346,6 @@ CI error: `VisibilityThreshold` unresolved in Bounce.kt and MiloApp.kt. It is an
 ### Round 77 — icon set restyled (soft solid glyphs)
 - New `ui/theme/MiloIcons.kt`: 62 in-app icons redrawn as soft, solid, round-cornered glyphs (Phosphor Icons, MIT licence, © Phosphor Icons, https://phosphoricons.com), built from path data so no new library is needed. All `Icons.Rounded/Outlined.*` uses in the app were switched to `MiloIcons.*` (same names). Toggle pairs: liked = solid heart, not liked = outlined heart.
 - Not changed: the app launcher icon, notification / widget / Android Auto icons (XML drawables), and the theme art (Y2K, Spider, Sticker, Nebula, Chrome), which stay as they are.
+
+### Round 77 fix 1
+CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons.Icons.Outlined.Search; the bulk rename turned it into a path that does not exist. Now points at com.ubayanda.milonative.ui.theme.MiloIcons.Search.
