@@ -183,3 +183,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R79: progress bar is one thick solid wave, flat when paused, handle grows when held
 
 - [ ] R80: progress bar = thick pill + one solid wave on the played part + big round thumb; clean flat pill when paused
+
+- [ ] R81: play a YouTube song from search, an album and an artist page for a while; Taste Profile top artists show real names and no "YouTube Music"; old "YouTube Music" entry gone

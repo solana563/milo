@@ -19,7 +19,7 @@ class Taste(
 ) {
     private val artistTotals: Map<String, Int> by lazy {
         val m = HashMap<String, Int>()
-        songs.forEach { (k, v) -> m.merge(k.substringAfterLast('|'), v.plays, Int::plus) }
+        songs.forEach { (k, v) -> val a = k.substringAfterLast('|'); if (a !in YtMusic.PLACEHOLDER_ARTISTS) m.merge(a, v.plays, Int::plus) }
         m
     }
     fun stat(t: Track) = songs[SmartMix.key(t)] ?: SongStat()

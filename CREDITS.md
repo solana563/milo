@@ -359,3 +359,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ### Round 80 — progress bar matches the Android 16 media bar
 - Default progress bar: a thick (10 dp) pill, ONE soft solid wave (lighter tint of the cover colour, fully opaque) rolling out of the played part and easing flat at both ends, and a big round handle (20 dp, grows when held). Paused = a clean flat pill. Replaces Round 79's thin wavy stroke.
+
+### Round 81 — "YouTube Music" is never an artist
+- Cause: songs whose artist the YouTube parser could not read were given the stand-in artist "YouTube Music", so the Taste Profile counted that as a real artist.
+- Fix: stand-in artist is now "Unknown artist"; album pages give their songs the album's artist and artist pages give theirs the page's artist; when a song starts playing, stats and taste use the real artist/channel YouTube reports for it. Stand-in words ("YouTube Music", "YouTube", "Unknown artist", blank) are ignored by Top artists, Recently discovered artists, artist boosts and mixes, and the old "YouTube Music" entries are removed from the taste data on start-up. Old plays stay counted as songs but no longer as an artist (their real artist can't be recovered).

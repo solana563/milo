@@ -416,13 +416,20 @@ object YtMusic {
     /** Tracks use negative ids so they never clash with MediaStore songs. */
     fun trackId(videoId: String): Long = -(1L + hashId("yt:$videoId"))
 
-    fun toTrack(s: Song, coverFallback: String = ""): Track {
+    /** Words that stand in when a song's real artist is not known. They must never be counted as an artist. */
+    val PLACEHOLDER_ARTISTS = setOf("", "youtube music", "youtube", "unknown artist")
+    fun isPlaceholder(artist: String) = artist.trim().lowercase() in PLACEHOLDER_ARTISTS
+
+    /** The real artist / channel YouTube reports for a song that has been opened for playing (empty if not known yet). */
+    fun authorOf(videoId: String): String = streams[videoId]?.author.orEmpty()
+
+    fun toTrack(s: Song, coverFallback: String = "", artistFallback: String = ""): Track {
         val id = trackId(s.id)
         val cover = art(s.thumb.ifEmpty { coverFallback }, 544)
         // songs of one album share a cover, so give them one album id and the cover is loaded once
         val aid = 4_000_000_000_000L + (if (s.albumId.isNotEmpty()) hashId(s.albumId) else -id)
         return Track(
-            id = id, uri = "yt:${s.id}", title = s.title, artist = s.artist.ifEmpty { "YouTube Music" },
+            id = id, uri = "yt:${s.id}", title = s.title, artist = s.artist.ifEmpty { artistFallback }.ifEmpty { "Unknown artist" },
             album = s.album.ifEmpty { "YouTube Music" }, albumId = aid, durationMs = if (s.durationSec > 0) s.durationSec * 1000L else 1L,
             trackNo = 0, year = 0, addedSec = 0L, artUrl = cover,
         )

@@ -56,7 +56,7 @@ class StatsStore(ctx: Context) {
     fun plays() = songs.values.sumOf { it.plays }
     fun topSongs(n: Int) = songs.values.filter { it.plays > 0 }.sortedWith(compareByDescending<Row> { it.plays }.thenByDescending { it.ms }).take(n)
     fun topArtists(n: Int): List<Pair<String, Int>> =
-        songs.values.filter { it.plays > 0 && it.artist.isNotBlank() && it.artist != "Unknown artist" }
+        songs.values.filter { it.plays > 0 && !YtMusic.isPlaceholder(it.artist) }
             .groupBy { it.artist }.map { (k, v) -> k to v.sumOf { it.plays } }.sortedByDescending { it.second }.take(n)
 
     fun years(): List<Int> = yrs.keys.sortedDescending()
@@ -65,7 +65,7 @@ class StatsStore(ctx: Context) {
     fun yearTopSongs(y: Int, n: Int) = (yrs[y]?.songs?.values ?: emptyList<Row>()).filter { it.plays > 0 }
         .sortedWith(compareByDescending<Row> { it.plays }.thenByDescending { it.ms }).take(n)
     fun yearTopArtists(y: Int, n: Int): List<Pair<String, Int>> =
-        (yrs[y]?.songs?.values ?: emptyList<Row>()).filter { it.plays > 0 && it.artist.isNotBlank() && it.artist != "Unknown artist" }
+        (yrs[y]?.songs?.values ?: emptyList<Row>()).filter { it.plays > 0 && !YtMusic.isPlaceholder(it.artist) }
             .groupBy { it.artist }.map { (k, v) -> k to v.sumOf { it.plays } }.sortedByDescending { it.second }.take(n)
 
     fun save() { p.edit().putString("d", json().toString()).apply() }

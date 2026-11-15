@@ -142,7 +142,9 @@ fun YtPageScreen(vm: MainViewModel, id: String, ui: PlayerUi, bottomPad: Dp, onO
             }
             p.kind == "artist" -> YtArtistView(vm, p, ui, bottomPad, onOpen, onBack)
             else -> {
-                val tracks = remember(p) { p.songs.map { YtMusic.toTrack(it, p.cover) } }
+                // songs that come without their own artist take the album's artist (the second part of "Album · Artist · Year")
+                val albumArtist = remember(p) { p.subtitle.split(" \u00b7 ").map { it.trim() }.firstOrNull { it.isNotEmpty() && !it.matches(Regex("(?i)album|single|ep|playlist|(19|20)\\d{2}")) }.orEmpty() }
+                val tracks = remember(p) { p.songs.map { YtMusic.toTrack(it, p.cover, if (p.kind.contains("album", true)) albumArtist else "") } }
                 LaunchedEffect(tracks) { vm.rememberRemote(tracks) }
                 // a playlist's own cover if somebody chose one; YouTube's 2x2 collage of the first songs is not drawn as a cover
                 val cover = remember(p) {
@@ -160,7 +162,7 @@ fun YtPageScreen(vm: MainViewModel, id: String, ui: PlayerUi, bottomPad: Dp, onO
 private fun YtArtistView(vm: MainViewModel, p: YtMusic.Page, ui: PlayerUi, bottomPad: Dp, onOpen: (String) -> Unit, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val tracks = remember(p) { p.songs.map { YtMusic.toTrack(it, p.avatar.ifEmpty { p.banner }) } }
+    val tracks = remember(p) { p.songs.map { YtMusic.toTrack(it, p.avatar.ifEmpty { p.banner }, p.title) } }
     LaunchedEffect(tracks) { vm.rememberRemote(tracks) }
     val bannerTrack = remember(p) { YtMusic.cardTrack(YtMusic.Card("artist", p.id, p.title, "", p.banner.ifEmpty { p.avatar }), 1000) }
     val banner by rememberCover(vm, bannerTrack, 1000)

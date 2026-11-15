@@ -113,7 +113,7 @@ fun TasteProfileScreen(vm: MainViewModel, onClose: () -> Unit) {
                 Text("Top songs", color = Milo.text, style = Ty.heading, modifier = Modifier.padding(top = 14.dp))
                 if (stats.songs.isEmpty()) Dim("Nothing yet.")
                 val ms = (stats.songs.maxOfOrNull { it.plays } ?: 1).coerceAtLeast(1)
-                stats.songs.forEach { r -> BarRow(r.title + " · " + r.artist, r.plays.toString() + "×", r.plays / ms.toFloat()) }
+                stats.songs.forEach { r -> BarRow(if (com.ubayanda.milonative.data.YtMusic.isPlaceholder(r.artist)) r.title else r.title + " · " + r.artist, r.plays.toString() + "×", r.plays / ms.toFloat()) }
             }
         }
 

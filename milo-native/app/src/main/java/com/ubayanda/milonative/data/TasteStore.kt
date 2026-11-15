@@ -36,6 +36,8 @@ class TasteStore(ctx: Context) {
             o.optJSONArray("songs")?.let { a -> for (i in 0 until a.length()) { val r = a.getJSONObject(i); val k = r.getString("k"); songs[k] = SongStat(r.optInt("p"), r.optInt("s"), r.optLong("l"), r.optLong("f")); r.optString("n").takeIf { it.isNotEmpty() }?.let { labels[k] = it } } }
             o.optJSONObject("af")?.let { j -> j.keys().forEach { k -> val r = j.getJSONObject(k); artistFirst[k] = r.optLong("t"); artistName[k] = r.optString("n") } }
             o.optJSONObject("ab")?.let { j -> j.keys().forEach { artistBoost[it] = j.optInt(it) } }
+            // earlier versions counted the stand-in "YouTube Music" as an artist: forget that
+            artistFirst.keys.removeAll { it in YtMusic.PLACEHOLDER_ARTISTS }; artistName.keys.removeAll { it in YtMusic.PLACEHOLDER_ARTISTS }; artistBoost.keys.removeAll { it in YtMusic.PLACEHOLDER_ARTISTS }
             o.optJSONObject("gb")?.let { j -> j.keys().forEach { genreBoost[it] = j.optInt(it) } }
             o.optJSONObject("ba")?.let { j -> j.keys().forEach { bannedArtists[it] = j.optString(it) } }
             o.optJSONObject("bs")?.let { j -> j.keys().forEach { bannedSongs[it] = j.optString(it) } }
@@ -67,7 +69,7 @@ class TasteStore(ctx: Context) {
         songs[k] = s.copy(plays = s.plays + 1, last = now, first = if (s.first == 0L) now else s.first)
         labels[k] = t.title + " · " + t.artist
         val a = t.artist.trim().lowercase()
-        if (a.isNotEmpty() && t.artist != "Unknown artist" && a !in artistFirst) { artistFirst[a] = now; artistName[a] = t.artist }
+        if (!YtMusic.isPlaceholder(t.artist) && a !in artistFirst) { artistFirst[a] = now; artistName[a] = t.artist }
     }
 
     @Synchronized fun skip(t: Track) {
@@ -79,7 +81,7 @@ class TasteStore(ctx: Context) {
 
     @Synchronized fun moreLike(t: Track) {
         val a = t.artist.trim().lowercase()
-        if (a.isNotEmpty() && t.artist != "Unknown artist") artistBoost.merge(a, 1, Int::plus)
+        if (!YtMusic.isPlaceholder(t.artist)) artistBoost.merge(a, 1, Int::plus)
         if (t.genre.isNotBlank()) genreBoost.merge(t.genre.trim().lowercase(), 1, Int::plus)
         save()
     }

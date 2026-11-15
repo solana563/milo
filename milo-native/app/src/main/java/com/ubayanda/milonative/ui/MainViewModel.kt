@@ -1420,7 +1420,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 prev?.let { if (!counted && acc >= 1_000L) tasteStore.skip(it) }
                 cur = st.currentId; acc = 0L; counted = false
             }
-            val t = trackById(cur)
+            val t = trackById(cur)?.let { withRealArtist(it) }
             prev = t
             if (t != null && st.isPlaying) {
                 acc += 1000
@@ -1438,6 +1438,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (++n >= 10) { n = 0; statsStore.save(); tasteStore.save(); refreshStats() }
         }
+    }
+
+    /** A YouTube song that came without an artist counts under the real artist / channel YouTube reports once it is playing, never under a stand-in word. */
+    private fun withRealArtist(t: Track): Track {
+        if (!t.uri.startsWith("yt:") || !com.ubayanda.milonative.data.YtMusic.isPlaceholder(t.artist)) return t
+        val au = com.ubayanda.milonative.data.YtMusic.authorOf(t.uri.removePrefix("yt:"))
+        return if (au.isBlank() || com.ubayanda.milonative.data.YtMusic.isPlaceholder(au)) t else t.copy(artist = au)
     }
 
     // ---- smart autoplay: when the queue runs out, line up songs that fit ----
