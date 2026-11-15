@@ -366,3 +366,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ### Round 82 — Now Playing dock icons made clearer
 - Only the dock on the cover changed: Save (arrow-down circle), Queue (list), Output (speaker; Bluetooth / headphones when connected), Sound (faders), Timer (countdown clock, shows time left), Visual (waveform), Like and More as before. Each button now has a short caption under it. Every other icon in the app is untouched (5 new `Dock*` icons added to MiloIcons.kt).
+
+### Round 83 — bouncy swipe to open the lyrics
+- Swipe up anywhere on the control card (or tap the lyrics line): the lyrics page rises with your finger, then springs open on the same bouncy spring as the rest of the UI (damping ratio 0.424, stiffness 200), with a light tick as it opens. Let go early and it springs back down. Close it with the Back button, system back, or by pulling down the grab bar at the top of the lyrics page (springs back if you let go early).

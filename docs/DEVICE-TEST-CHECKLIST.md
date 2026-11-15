@@ -187,3 +187,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R81: play a YouTube song from search, an album and an artist page for a while; Taste Profile top artists show real names and no "YouTube Music"; old "YouTube Music" entry gone
 
 - [ ] R82: dock icons + captions readable at a glance; all 8 reachable by scrolling on a short phone
+
+- [ ] R83: swipe up on the control card opens lyrics with a bounce; short swipe springs back; pull the lyrics grab bar down to close; system back closes lyrics first

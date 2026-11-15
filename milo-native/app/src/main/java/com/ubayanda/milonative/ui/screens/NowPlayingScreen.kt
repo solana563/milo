@@ -166,6 +166,18 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     var drag by remember { mutableFloatStateOf(0f) }
     val dragScope = androidx.compose.runtime.rememberCoroutineScope()
     val screenH = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    // the lyrics page rises with your finger and springs open (or back down): lyY = its distance from the top, screenH = closed
+    var lyY by remember { mutableFloatStateOf(screenH) }
+    var lyJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    val lyScope = androidx.compose.runtime.rememberCoroutineScope()
+    val lyHaptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    fun lyTo(target: Float) {
+        lyJob?.cancel()
+        val from = lyY
+        if (target == 0f && from > 0f) lyHaptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+        lyJob = lyScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(target, com.ubayanda.milonative.ui.components.Bounce.px()) { lyY = value } }
+    }
+    val lyOpen = lyY < screenH - 0.5f
     var shut by remember { mutableStateOf(false) }
     // let go before the line: it springs back with a bounce; past it: it is thrown down the screen on the same spring, then closes
     fun springBackPlayer() { val from = drag; dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { drag = value } } }
@@ -212,7 +224,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         else -> l.plain.lineSequence().firstOrNull { it.isNotBlank() } ?: "Lyrics"
     }
 
-    BackHandler { if (panel != Panel.None) panel = Panel.None else onClose() }
+    BackHandler { if (lyOpen) lyTo(screenH) else if (panel != Panel.None) panel = Panel.None else onClose() }
 
     Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.graphicsLayer {
         // dragging down shrinks the player toward the mini player at the bottom and rounds its corners, so it reads as folding into it
@@ -401,6 +413,15 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color(0xFFFF4FA3), 0.45f), androidx.compose.animation.core.tween(700), label = "glowB")
             Column(
                 Modifier.fillMaxWidth()
+                    .pointerInput("lyrics-swipe") {
+                        // swipe up on the card: the lyrics page follows your finger, then springs open (or back) when you let go
+                        detectVerticalDragGestures(
+                            onDragStart = { lyJob?.cancel() },
+                            onVerticalDrag = { c, dy -> c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) },
+                            onDragEnd = { lyTo(if (lyY < screenH * 0.88f) 0f else screenH) },
+                            onDragCancel = { lyTo(if (lyY < screenH * 0.88f) 0f else screenH) },
+                        )
+                    }
                     .lift(cardShape, 18f).then(npGlass).clip(cardShape)
                     .drawBehind {
                         // soft blurred colour blobs from the cover bleed through the glass, like the glow cards in the reference
@@ -437,14 +458,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
                 // lyrics handle: shows the line being sung; tap it or drag it up for the full lyrics page
                 Column(
-                    Modifier.fillMaxWidth().clickable { panel = Panel.Lyrics }.pointerInput(Unit) {
-                        var total = 0f
-                        detectVerticalDragGestures(
-                            onVerticalDrag = { _, dy -> total += dy },
-                            onDragEnd = { if (total < -30f) panel = Panel.Lyrics; total = 0f },
-                            onDragCancel = { total = 0f },
-                        )
-                    }.padding(top = 4.dp, bottom = 6.dp),
+                    Modifier.fillMaxWidth().clickable { lyTo(0f) }.padding(top = 4.dp, bottom = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(Modifier.width(80.dp).height(5.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
@@ -460,10 +474,36 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         when (panel) {
             Panel.Queue -> Sheet(0.72f, soft, { panel = Panel.None }) { QueueContent(vm, ui) }
             Panel.Sound -> Sheet(0.8f, soft, { panel = Panel.None }) { SoundContent(vm, ui) }
-            Panel.Lyrics -> LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { panel = Panel.None }
+            Panel.Lyrics -> {}
             Panel.Visual -> VisualPage(vm, t, ui, soft) { panel = Panel.None }
             Panel.Timer -> Sheet(0.52f, soft, { panel = Panel.None }) { TimerContent(vm, ui) }
             Panel.None -> {}
+        }
+
+        if (lyOpen) {
+            Box(Modifier.fillMaxSize().offset { IntOffset(0, lyY.roundToInt()) }) {
+                // fills the gap under the page for the moment it overshoots the top on its bounce
+                Box(Modifier.fillMaxWidth().height(160.dp).align(Alignment.BottomCenter).offset(y = 160.dp).background(Milo.bg))
+                Box(Modifier.fillMaxSize().graphicsLayer {
+                    val r = 36.dp.toPx() * (lyY / screenH * 8f).coerceIn(0f, 1f)
+                    shape = RoundedCornerShape(topStart = androidx.compose.foundation.shape.CornerSize(r), topEnd = androidx.compose.foundation.shape.CornerSize(r), bottomEnd = androidx.compose.foundation.shape.CornerSize(0f), bottomStart = androidx.compose.foundation.shape.CornerSize(0f))
+                    clip = true
+                }) {
+                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { lyTo(screenH) }
+                    // grab this and pull down to close; it springs back if you let go early
+                    Box(
+                        Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp).width(140.dp).height(36.dp).pointerInput("lyrics-close") {
+                            detectVerticalDragGestures(
+                                onDragStart = { lyJob?.cancel() },
+                                onVerticalDrag = { c, dy -> c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) },
+                                onDragEnd = { lyTo(if (lyY > screenH * 0.16f) screenH else 0f) },
+                                onDragCancel = { lyTo(0f) },
+                            )
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) { Box(Modifier.width(44.dp).height(5.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.35f))) }
+                }
+            }
         }
     }
 }
