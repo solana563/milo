@@ -363,3 +363,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ### Round 81 — "YouTube Music" is never an artist
 - Cause: songs whose artist the YouTube parser could not read were given the stand-in artist "YouTube Music", so the Taste Profile counted that as a real artist.
 - Fix: stand-in artist is now "Unknown artist"; album pages give their songs the album's artist and artist pages give theirs the page's artist; when a song starts playing, stats and taste use the real artist/channel YouTube reports for it. Stand-in words ("YouTube Music", "YouTube", "Unknown artist", blank) are ignored by Top artists, Recently discovered artists, artist boosts and mixes, and the old "YouTube Music" entries are removed from the taste data on start-up. Old plays stay counted as songs but no longer as an artist (their real artist can't be recovered).
+
+### Round 82 — Now Playing dock icons made clearer
+- Only the dock on the cover changed: Save (arrow-down circle), Queue (list), Output (speaker; Bluetooth / headphones when connected), Sound (faders), Timer (countdown clock, shows time left), Visual (waveform), Like and More as before. Each button now has a short caption under it. Every other icon in the app is untouched (5 new `Dock*` icons added to MiloIcons.kt).

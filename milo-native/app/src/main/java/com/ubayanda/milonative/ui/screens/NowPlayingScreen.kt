@@ -347,19 +347,19 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
-                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true) { vm.toggleFav(t.id) }
+                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                        RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.Download, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true) { vm.downloadTracks(listOf(t)) }
+                        RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true, label = if (savedNow) "Saved" else "Save") { vm.downloadTracks(listOf(t)) }
                     }
-                    RoundBtn(MiloIcons.QueueMusic, "Queue", flat = true) { panel = Panel.Queue }
+                    RoundBtn(MiloIcons.DockQueue, "Queue", flat = true, label = "Queue") { panel = Panel.Queue }
                     RoundBtn(
-                        if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.Cast,
-                        "Output", tint = if (outDock.kind != "speaker") Milo.amber else Color.White, flat = true,
+                        if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.DockSpeaker,
+                        "Output", tint = if (outDock.kind != "speaker") Milo.amber else Color.White, flat = true, label = "Output",
                     ) { castOpen = true }
-                    RoundBtn(MiloIcons.Tune, "Sound", flat = true) { panel = Panel.Sound }
-                    RoundBtn(MiloIcons.Bedtime, "Sleep timer", tint = if (ui.sleepLeftMs > 0) Milo.amber else Color.White, flat = true, badge = if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else null) { panel = Panel.Timer }
-                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true) { panel = Panel.Visual }
+                    RoundBtn(MiloIcons.DockSound, "Sound", flat = true, label = "Sound") { panel = Panel.Sound }
+                    RoundBtn(MiloIcons.DockTimer, "Sleep timer", tint = if (ui.sleepLeftMs > 0) Milo.amber else Color.White, flat = true, label = if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer") { panel = Panel.Timer }
+                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true, label = "Visual") { panel = Panel.Visual }
                     MoreMenu(vm, t, ui)
                 }
 
@@ -870,7 +870,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
     var open by remember { mutableStateOf(false) }
     val actions = LocalActions.current
     Box {
-        RoundBtn(MiloIcons.MoreHoriz, "More", flat = true) { open = true }
+        RoundBtn(MiloIcons.MoreHoriz, "More", flat = true, label = "More") { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
@@ -908,7 +908,18 @@ private fun TimerContent(vm: MainViewModel, ui: PlayerUi) {
 }
 
 @Composable
-private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, flat: Boolean = false, badge: String? = null, onClick: () -> Unit) {
+private fun RoundBtn(icon: ImageVector, desc: String, modifier: Modifier = Modifier, tint: Color = Color.White, flat: Boolean = false, badge: String? = null, label: String? = null, onClick: () -> Unit) {
+    if (label != null) {
+        // dock button: icon with a short caption under it so nothing has to be guessed
+        Column(
+            modifier.width(56.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+            Text(label, color = tint.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+        }
+        return
+    }
     Box(
         modifier.size(if (flat) 48.dp else 52.dp).clip(CircleShape).then(if (flat) Modifier else Modifier.background(Color.Black.copy(alpha = 0.32f))).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
