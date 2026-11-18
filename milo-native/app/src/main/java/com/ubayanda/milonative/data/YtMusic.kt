@@ -62,6 +62,46 @@ object YtMusic {
             o.optJSONObject("REMIX")?.let { remix = remix.copy(version = it.optString("v", remix.version), ua = it.optString("ua", remix.ua)) }
             o.optJSONObject("VISION")?.let { vision = vision.copy(version = it.optString("v", vision.version)) }
         } catch (_: Exception) {}
+        refreshRemote(p)
+    }
+
+    /**
+     * Where milo. looks for fresh client identities (config/streaming.json in the repository, raw link). Leave empty to keep this switched off.
+     * Idea from Musike (MIT, github.com/Ernani1234/musike): YouTube changes client versions often, so they can be fixed by editing one file instead of shipping a new app.
+     */
+    private const val REMOTE_CONFIG = ""
+
+    private fun refreshRemote(p: android.content.SharedPreferences) {
+        if (REMOTE_CONFIG.isBlank() || !REMOTE_CONFIG.startsWith("https://")) return
+        val now = System.currentTimeMillis()
+        if (now - p.getLong("ymcAt", 0L) < 6 * 3600_000L) return
+        p.edit().putLong("ymcAt", now).apply()      // also on failure: do not hammer an unreachable host
+        Thread {
+            try {
+                val body = http.newCall(Request.Builder().url(REMOTE_CONFIG).build()).execute().use { r ->
+                    if (!r.isSuccessful) return@Thread
+                    r.body?.string().orEmpty()
+                }
+                val o = JSONObject(body)
+                val okV = Regex("^[0-9A-Za-z._-]{1,40}$")
+                val out = JSONObject()
+                o.optJSONObject("REMIX")?.let { j ->
+                    val v = j.optString("v"); val ua = j.optString("ua")
+                    val e = JSONObject()
+                    if (okV.matches(v)) e.put("v", v)
+                    if (ua.length in 20..300 && ua.none { it == '\n' || it == '\r' }) e.put("ua", ua)
+                    if (e.length() > 0) out.put("REMIX", e)
+                }
+                o.optJSONObject("VISION")?.let { j ->
+                    val v = j.optString("v")
+                    if (okV.matches(v)) out.put("VISION", JSONObject().put("v", v))
+                }
+                if (out.length() == 0) return@Thread
+                out.optJSONObject("REMIX")?.let { remix = remix.copy(version = it.optString("v", remix.version), ua = it.optString("ua", remix.ua)) }
+                out.optJSONObject("VISION")?.let { vision = vision.copy(version = it.optString("v", vision.version)) }
+                p.edit().putString("ymc", out.toString()).apply()
+            } catch (_: Exception) {}
+        }.start()
     }
 
     // ---- transport ----

@@ -169,11 +169,25 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     var lyJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val lyScope = androidx.compose.runtime.rememberCoroutineScope()
     val lyHaptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val lyDens = androidx.compose.ui.platform.LocalDensity.current.density
     fun lyTo(target: Float) {
         lyJob?.cancel()
         val from = lyY
+        val d = target - from
         if (target == 0f && from > 0f) lyHaptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-        lyJob = lyScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(target, com.ubayanda.milonative.ui.components.Bounce.px()) { lyY = value } }
+        if (kotlin.math.abs(d) < 1f) { lyY = target; return }
+        // a visible bounce whatever the distance: the page glides to the target on a spring, overshoots by about 72 dp, then wobbles back (2-3 swings).
+        // Closing never overshoots (that part is off screen), it just settles shut.
+        val cap = 72f * lyDens
+        val dir = if (d < 0f) -1f else 1f
+        lyJob = lyScope.launch {
+            var passed = false
+            androidx.compose.animation.core.Animatable(0f).animateTo(1f, androidx.compose.animation.core.spring(0.424f, 200f, 0.002f)) {
+                if (value >= 1f) passed = true
+                lyY = if (!passed) from + d * value else if (target >= screenH) target else target + dir * (value - 1f) / 0.23f * cap
+            }
+            lyY = target
+        }
     }
     val lyOpen = lyY < screenH - 0.5f
     var shut by remember { mutableStateOf(false) }
@@ -376,7 +390,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
-                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { vm.toggleFav(t.id) }
+                    // the heart pops when a song is liked
+                    val heartPop = remember { androidx.compose.animation.core.Animatable(1f) }
+                    LaunchedEffect(liked) { if (liked) { heartPop.snapTo(0.55f); heartPop.animateTo(1f, androidx.compose.animation.core.spring(0.32f, 420f)) } else heartPop.snapTo(1f) }
+                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", Modifier.graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }, tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { vm.toggleFav(t.id) }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
                         RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true, label = if (savedNow) "Saved" else "Save") { vm.downloadTracks(listOf(t)) }
@@ -575,10 +592,12 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
     val reorder = remember(listState) {
         ReorderState(
             listState, 1,
-            { f, t -> local = local.toMutableList().also { it.add(t, it.removeAt(f)) } },
+            { f, t -> val l = local; if (f in l.indices && t in l.indices) local = l.toMutableList().also { it.add(t, it.removeAt(f)) } },
             { f, t -> vm.player.moveInQueue(f, t) },
         )
     }
+    // the queue changed under a finger (a song ended, autoplay added tracks, it was cleared): drop the half-finished drag instead of moving stale indexes
+    LaunchedEffect(ui.queueIds) { reorder.reset() }
     LazyColumn(state = listState) {
         item {
             val auto by vm.autoplay.collectAsState()
@@ -648,12 +667,32 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
             }
         }
 
+        Label("Soft pause & skip")
+        val tfp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
+        var tf by remember { mutableStateOf(tfp.getInt("tfade", 300).toFloat()) }
+        Text(
+            if (tf < 50f) "Off. Pause, play and skip act at once." else "${(tf / 100f).roundToInt() / 10f} s: pausing, resuming and skipping ease the volume instead of cutting. Works from the lock screen and notification too.",
+            color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        MiloSlider(
+            value = tf, onValueChange = { tf = (it / 100f).roundToInt() * 100f; tfp.edit().putInt("tfade", tf.toInt()).apply() }, valueRange = 0f..1500f, steps = 14,
+            colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
+        )
+
         Label("Loudness matching")
         val fxp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
         var rg by remember { mutableStateOf(fxp.getBoolean("rg", true)) }
         Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Turns louder songs down to match quieter ones, using ReplayGain tags in your files and YouTube's own loudness. It never boosts, so nothing distorts. Applies from the next song.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
             com.ubayanda.milonative.ui.components.MiloSwitch(checked = rg, onCheckedChange = { rg = it; fxp.edit().putBoolean("rg", it).apply() },
+                colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
+        }
+
+        Label("Song analysis (experimental)")
+        var xan by remember { mutableStateOf(fxp.getBoolean("xanalyse", false)) }
+        Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Reads each song's tempo, beats and key while it plays and writes what it found to Diagnostics. It is the first step toward beat-matched mixing and changes nothing you hear. A YouTube song that isn't saved is streamed once to be read, which uses data.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            com.ubayanda.milonative.ui.components.MiloSwitch(checked = xan, onCheckedChange = { xan = it; fxp.edit().putBoolean("xanalyse", it).apply() },
                 colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
         }
 
@@ -855,6 +894,11 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                             else state.animateScrollBy((info.offset - state.layoutInfo.beforeContentPadding).toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 170f))
                         }
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
+                            // an instrumental opening: dots count it down until the first line
+                            lyrics.synced.firstOrNull()?.let { f ->
+                                if (f.timeMs >= com.ubayanda.milonative.ui.components.MinInterludeMs)
+                                    item(key = "interlude-open", contentType = "dots") { com.ubayanda.milonative.ui.components.InterludeDots(0L, f.timeMs, pos) }
+                            }
                             itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
                                 val on = i == idx
                                 val sc by androidx.compose.animation.core.animateFloatAsState(
@@ -897,6 +941,13 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                     val tl = tr?.getOrNull(i).orEmpty()
                                     if (tl.isNotBlank() && !tl.equals(line.text, ignoreCase = true)) {
                                         Text(tl, color = Milo.amber.copy(alpha = if (on) 1f else 0.5f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 4.dp))
+                                    }
+                                    // a long gap after this line (singing time guessed from its length) is an interlude: dots count it down
+                                    val nextT = lyrics.synced.getOrNull(i + 1)?.timeMs
+                                    if (nextT != null && line.text.isNotBlank()) {
+                                        val sung = line.timeMs + (line.text.length * 75L).coerceIn(1800L, 6000L)
+                                        if (nextT - sung >= com.ubayanda.milonative.ui.components.MinInterludeMs)
+                                            com.ubayanda.milonative.ui.components.InterludeDots(sung, nextT, pos)
                                     }
                                 }
                             }

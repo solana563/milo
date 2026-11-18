@@ -391,3 +391,47 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - The supplied milo. logo (shape + heavy italic wordmark + amber full stop) replaces the old logo_wordmark.png as a crisp vector drawable (res/drawable/logo_wordmark.xml), so it stays sharp at every size. Used at the top of Home, the sign-in gate and the permission screen (same resource name, no code change).
 - The blurred shadow copy, dark background and embedded metadata of the source file were left out (vector drawables cannot blur); the logo itself is unchanged. Source copy kept in docs/brand/milo-logo.svg.
 - The old res/drawable-nodpi/logo_wordmark.png is deleted: if you copy files by hand, delete it, or the build reports a duplicate resource.
+
+## Round 89 — lyrics page bounce
+- The lyrics page now overshoots by a fixed ~72 dp and wobbles 2–3 times when it opens or springs back, whatever the distance (before, the bounce scaled with how far it travelled and could look flat). Closing just settles shut.
+- Mini player untouched (still the softened cover art look).
+
+## Round 90 — queue reorder crash
+- Crash report (IndexOutOfBoundsException: Index 1, Size 0 in the queue drag): a drag was still running when the queue list changed or emptied, so the stale positions were applied to an empty list. The move is now bounds-checked, and a half-finished drag is dropped whenever the queue changes underneath it.
+
+## Round 91 — milo. desktop, forked from Limusic
+- New `milo-desktop-tauri/`: a fork of Limusic 1.4.0-rc.3 (Rust + Tauri 2, libmpv, Svelte), GPL-3.0, from the zip you uploaded. See `milo-desktop-tauri/MILO-NOTICE.md` for what changed.
+- Stage 1: rebrand (name, wordmark, icons, Figtree, amber default), updater and release feeds switched off so milo. never installs Limusic builds, Ko-fi and issue links replaced by a credit to Limusic.
+- The UI builds and passes svelte-check (0 errors) here. The Rust side was NOT compiled here (no webkit/libmpv in this sandbox): the new workflow `.github/workflows/desktop-tauri.yml` does it.
+- Correction to Round 29: the whole repo is GPL-3.0, so the Windows app is not on a separate licence either.
+- The old desktop apps (`desktop/` Electron, `milo-windows/` WinUI) stay until the new one matches them.
+
+## Round 92 — remote client config (idea from Musike)
+- Salvaged from Musike (MIT, Ernani Neto, github.com/Ernani1234/musike): keep YouTube client identities in a small JSON file the app fetches, so a breakage is fixed by editing the file, not by a new release.
+- `config/streaming.json` holds the current WEB_REMIX / VISIONOS versions. `YtMusic.refreshRemote` fetches it at most every 6 hours on a background thread, accepts only short, plain version strings and a user-agent, and stores it in the existing "ymc" prefs. Switched OFF until `REMOTE_CONFIG` in `data/YtMusic.kt` is set to the raw https link of that file in your repository.
+- No Musike code was copied; the design differs (it carries client versions, Musike's file lists client names).
+
+## Round 93 — more lyrics sources (from Mochy Music)
+- Salvaged ideas from Mochy Music (GPL-3.0, github.com/realidkroo/Mochy-Music, realidkroo): when lrclib has no synced lyrics, milo. now also asks BetterLyrics (word-by-word TTML), SimpMusic (by YouTube id) and KuGou, in that order. The code is written for milo. (`data/LyricsFallbacks.kt`); the endpoints and the way to talk to them follow Mochy's providers.
+- Word-by-word lyrics from BetterLyrics go through milo.'s existing enhanced-LRC reader, so the sung-word highlight works for them.
+- These are community services: song title, artist, length and (SimpMusic) the YouTube id are sent to them, as lrclib already gets. They can go down or change; a failure just means the next source is tried.
+- Not ported yet (see the Mochy gap list in the chat): Crossmix transitions, song recognition, animated covers, artist bios, floating lyrics, TV, bedside clock.
+
+## Round 94 — soft pause & skip (from Mochy Music)
+- Pause, play and skips now ease the volume instead of cutting, from every route into the player: the app's buttons, the notification, the lock screen, headsets and the car. Idea from Mochy's TransportFadingPlayer (GPL-3.0, realidkroo/Mochy-Music); `player/FadingPlayer.kt` is written for milo.
+- New "Soft pause & skip" slider in the Sound panel (0–1.5 s, default 0.3 s, 0 = off). A second press during a fade acts at once; pressing play mid-fade-out swells back up; a skip fades the old song out for half that time, changes song, then fades the new one in.
+- It stays out of the way of the crossfade (no fade while two songs are mixing or while casting) and of the sleep timer / loudness matching (it is one more multiplier in the same volume line). When paused the volume is back at full, so a Bluetooth or widget resume is never silent.
+- CastBridge (all three flavours) takes the new session player as an optional extra parameter so returning from a cast gives the fading player back to the session.
+
+## Round 95 — Crossmix stage 1: song analysis (from Mochy Music)
+- `crossmix/CrossmixAnalysis.kt`, `CrossmixAnalysisRepository.kt` and `StreamPcmDecoder.kt` are ported from Mochy Music's crossmix package (GPL-3.0, realidkroo/Mochy-Music), package renamed only. They decode a song through the player's own data source (so YouTube ids, saved songs and files all open) and find tempo, beats, bars, key, energy and quiet start/end. Results are cached on disk.
+- `crossmix/CrossmixLab.kt` is milo's own glue: off by default, switched on in the Sound panel ("Song analysis"), reads the playing song whole and the next song's opening, and writes one line each to Diagnostics under "crossmix". It does not touch playback.
+- Next stages: the planner (when and how to hand over), then the two-player beat-locked mix, then the transition effects. Each waits for your Diagnostics lines.
+
+## Round 96 — more lyric sources and Wikipedia "About" (from Mochy Music)
+- `data/LyricsMore.kt`: NetEase Cloud Music (word-timed when it has it), Deezer (anonymous login, word-timed or line-timed) and QQ Music (line-timed) added after BetterLyrics, SimpMusic and KuGou as fallbacks when lrclib has nothing synced. Where to ask and how to read each answer come from Mochy's providers/directlyrics (GPL-3.0, realidkroo/Mochy-Music); code written for milo. Results are checked against title, artist and length so a cover or live take isn't picked.
+- `data/WikiAbout.kt` + `DetailScreen.kt`: artist and album pages show a short "About" from Wikipedia's summary service (tap to expand, "Wikipedia" credited, text is CC BY-SA). Idea from Mochy's utils/Wikipedia.kt.
+
+## Round 97 — lyrics interlude dots and a popping heart (UI, after Mochy Music)
+- `ui/components/InterludeDots.kt`: during an instrumental opening or a long gap between lyric lines, three dots count the gap down (lighting one by one, a gentle bob, a swell just before the next line) and the lines slide to make room. After Mochy's LyricsInterludeDots (GPL-3.0, realidkroo/Mochy-Music); this version is written for milo, without the shader glow. Gaps are found from the lines' own times with the sung length guessed from the line's length, since the lyrics carry no end times.
+- NowPlayingScreen: the Like heart pops when a song is liked (Mochy's LikeBurst idea, much smaller).

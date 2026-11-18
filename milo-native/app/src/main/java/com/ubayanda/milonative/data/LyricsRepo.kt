@@ -83,10 +83,15 @@ class LyricsRepo(private val context: Context) {
         val title = cleanTitle(t.title, artist)
         val secs = (t.durationMs / 1000).toInt()
         // 1) exact studio match (needs the length to agree within 2 seconds, so a longer video version misses on purpose)
-        open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&album_name=${q(t.album)}&duration=$secs")?.let { return it }
-        open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&duration=$secs")?.let { return it }
         // 2) search, then take the version whose length is closest to this one
-        return bestOf(open("https://lrclib.net/api/search?q=${q("$title $artist".trim())}"), secs, looksLikeVideo(t.title))
+        val lrclib = open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&album_name=${q(t.album)}&duration=$secs")
+            ?: open("https://lrclib.net/api/get?track_name=${q(title)}&artist_name=${q(artist)}&duration=$secs")
+            ?: bestOf(open("https://lrclib.net/api/search?q=${q("$title $artist".trim())}"), secs, looksLikeVideo(t.title))
+        // lrclib has it synced: keep it. Otherwise (nothing, or text only) try BetterLyrics / SimpMusic / KuGou for synced lyrics.
+        val hasSynced = lrclib != null && try { JSONObject(lrclib).optString("syncedLyrics").isNotBlank() } catch (_: Exception) { false }
+        if (hasSynced) return lrclib
+        val vid = t.uri.takeIf { it.startsWith("yt:") }?.removePrefix("yt:")?.takeIf { it.length == 11 }
+        return LyricsFallbacks.synced(title, artist, t.album, secs, vid) ?: lrclib
     }
 
     private fun bestOf(body: String?, secs: Int, video: Boolean): String? = try {

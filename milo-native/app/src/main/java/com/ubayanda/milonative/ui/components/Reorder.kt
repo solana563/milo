@@ -44,10 +44,13 @@ class ReorderState(
         val target = infos.firstOrNull { it.index != cur.index && it.index >= headerCount && center >= it.offset && center <= it.offset + it.size } ?: return
         val to = target.index - headerCount
         offset -= (target.offset - cur.offset)
+        if (to < 0) return
         onMove(dragIndex, to)
         dragIndex = to
         settling = true
     }
+
+    fun reset() { dragIndex = -1; startIndex = -1; offset = 0f; draggedKey = null; settling = false }
 
     fun end() {
         val from = startIndex; val to = dragIndex
