@@ -146,6 +146,7 @@ import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Ty
 import com.ubayanda.milonative.util.fmtTime
 import kotlin.math.roundToInt
+import com.ubayanda.milonative.ui.components.cascadeIn
 import com.ubayanda.milonative.ui.components.frosted
 import com.ubayanda.milonative.ui.components.backdropSource
 import com.ubayanda.milonative.ui.components.glassStroke
@@ -335,6 +336,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                 colorFilter = if (Sticker.on || ChromeStyle.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
                             else if (k.done) Icon(MiloIcons.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
+                        }
+                        // an animated cover the person chose for this song plays silently over the art
+                        val canvasCtx = androidx.compose.ui.platform.LocalContext.current
+                        com.ubayanda.milonative.ui.components.CanvasStore.get(canvasCtx, k.id)?.let { cu ->
+                            com.ubayanda.milonative.ui.components.CanvasLoop(cu, uiNow.isPlaying, Modifier.fillMaxSize())
                         }
                     }
                 }
@@ -598,6 +604,9 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
     }
     // the queue changed under a finger (a song ended, autoplay added tracks, it was cleared): drop the half-finished drag instead of moving stale indexes
     LaunchedEffect(ui.queueIds) { reorder.reset() }
+    // the first moments of the page: rows rise in as a cascade (after Mochy's page transition)
+    var fresh by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(900); fresh = false }
     LazyColumn(state = listState) {
         item {
             val auto by vm.autoplay.collectAsState()
@@ -622,7 +631,7 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
             val dragging = reorder.isDragging(key)
             Box(
                 if (dragging) Modifier.zIndex(1f).graphicsLayer { translationY = reorder.offset }
-                else Modifier.animateItem()
+                else Modifier.animateItem().cascadeIn(i, fresh)
             ) {
                 TrackRow(
                     vm, t, t.id == ui.currentId, Milo.amber, listOf(RowAction("Remove from queue") { vm.player.removeFromQueue(i) }),
@@ -921,6 +930,8 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         // an instrumental opening adds one list row (the dots) before the first line
                         val lead = if ((lyrics.synced.firstOrNull()?.timeMs ?: 0L) >= com.ubayanda.milonative.ui.components.MinInterludeMs) 1 else 0
                         // the line that was being sung until a moment ago, so rows below can trail the scroll by exactly the step it made
+                        var freshPage by remember(lyrics) { mutableStateOf(true) }
+                        LaunchedEffect(lyrics) { kotlinx.coroutines.delay(900); freshPage = false }
                         var prevIdx by remember(lyrics) { androidx.compose.runtime.mutableIntStateOf(-1) }
                         LaunchedEffect(idx) { kotlinx.coroutines.delay(60); prevIdx = idx }
                         LaunchedEffect(idx, bouncy) {
@@ -963,7 +974,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                     androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 300f), label = "lyKick",
                                 )
                                 Column(
-                                    Modifier.fillMaxWidth().graphicsLayer {
+                                    Modifier.fillMaxWidth().cascadeIn(i - (idx - 2).coerceAtLeast(0), freshPage).graphicsLayer {
                                         scaleX = sc; scaleY = sc; translationY = kick * dens + lag.value
                                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                                     }.combinedClickable(
@@ -1030,11 +1041,19 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
 private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
     var open by remember { mutableStateOf(false) }
     val actions = LocalActions.current
+    val canvasCtx = androidx.compose.ui.platform.LocalContext.current
+    val songNow by rememberUpdatedState(t)
+    val pickCanvas = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u ->
+        if (u != null) com.ubayanda.milonative.ui.components.CanvasStore.set(canvasCtx, songNow.id, u)
+    }
     Box {
         RoundBtn(MiloIcons.MoreHoriz, "More", flat = true, label = "More") { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
+            DropdownMenuItem(text = { Text("Animated cover: choose a video") }, onClick = { open = false; pickCanvas.launch(arrayOf("video/*")) })
+            if (com.ubayanda.milonative.ui.components.CanvasStore.get(canvasCtx, t.id) != null)
+                DropdownMenuItem(text = { Text("Animated cover: remove") }, onClick = { open = false; com.ubayanda.milonative.ui.components.CanvasStore.set(canvasCtx, t.id, null) })
             val dtapCtx = androidx.compose.ui.platform.LocalContext.current
             var dtapOn by remember { mutableStateOf(dtapCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) }
             DropdownMenuItem(text = { Text(if (dtapOn) "Double-tap gestures: on" else "Double-tap gestures: off") }, onClick = {
