@@ -19,33 +19,56 @@ import java.io.File
 
 /** Draws a lyric as a picture (song colour, cover, the lines, "milo.") and opens the share sheet for it. */
 object ShareCard {
+    val STYLES = listOf("Song colour", "Blurred cover", "Paper", "Black")
+    val FORMATS = listOf("Portrait", "Story", "Square")
+    fun style(ctx: Context) = ctx.getSharedPreferences("milo_fx", 0).getInt("cardstyle", 0).coerceIn(0, STYLES.lastIndex)
+    fun format(ctx: Context) = ctx.getSharedPreferences("milo_fx", 0).getInt("cardfmt", 0).coerceIn(0, FORMATS.lastIndex)
+
     fun share(ctx: Context, title: String, artist: String, lines: List<String>, cover: Bitmap?, tint: Int) {
         try {
-            val w = 1080; val h = 1350
+            val st = style(ctx)
+            val w = 1080; val h = when (format(ctx)) { 1 -> 1920; 2 -> 1080; else -> 1350 }
+            val paper = st == 2
+            val fg = if (paper) 0xFF1B1916.toInt() else 0xFFFFFFFF.toInt()
+            val fg2 = if (paper) 0xAA1B1916.toInt() else 0xCCFFFFFF.toInt()
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val c = Canvas(bmp)
             val base = if (tint == 0) 0xFF2A2724.toInt() else tint or (0xFF shl 24)
             val top = ColorUtils.blendARGB(base, 0xFF000000.toInt(), 0.30f)
             val bottom = ColorUtils.blendARGB(base, 0xFF000000.toInt(), 0.78f)
-            c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), Paint().apply { shader = LinearGradient(0f, 0f, 0f, h.toFloat(), top, bottom, Shader.TileMode.CLAMP) })
+            when (st) {
+                1 -> {
+                    c.drawColor(0xFF000000.toInt())
+                    if (cover != null) {
+                        // the cover blown up to fill the card, then darkened, so the words stay readable
+                        val sc = maxOf(w.toFloat() / cover.width, h.toFloat() / cover.height)
+                        val dw = cover.width * sc; val dh = cover.height * sc
+                        c.drawBitmap(cover, null, RectF((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f), Paint(Paint.FILTER_BITMAP_FLAG))
+                    }
+                    c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), Paint().apply { shader = LinearGradient(0f, 0f, 0f, h.toFloat(), 0x88000000.toInt(), 0xE6000000.toInt(), Shader.TileMode.CLAMP) })
+                }
+                2 -> c.drawColor(ColorUtils.blendARGB(0xFFF4EFE6.toInt(), base, 0.10f))
+                3 -> c.drawColor(0xFF000000.toInt())
+                else -> c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), Paint().apply { shader = LinearGradient(0f, 0f, 0f, h.toFloat(), top, bottom, Shader.TileMode.CLAMP) })
+            }
             if (cover != null) {
                 val r = RectF(80f, 80f, 260f, 260f)
                 c.save(); c.clipPath(Path().apply { addRoundRect(r, 36f, 36f, Path.Direction.CW) })
                 c.drawBitmap(cover, null, r, Paint(Paint.FILTER_BITMAP_FLAG)); c.restore()
             }
             val tx = if (cover != null) 292f else 80f
-            val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); textSize = 46f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+            val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = fg; textSize = 46f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
             c.drawText(ellipsize(title, tp, w - tx - 80f), tx, 150f, tp)
-            val ap = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xCCFFFFFF.toInt(); textSize = 36f }
+            val ap = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = fg2; textSize = 36f }
             c.drawText(ellipsize(artist, ap, w - tx - 80f), tx, 210f, ap)
             val text = lines.filter { it.isNotBlank() }.joinToString("\n").take(260)
             var size = 76f
             var layout: StaticLayout
-            val lp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+            val lp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = fg; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
             while (true) {
                 lp.textSize = size
                 layout = StaticLayout.Builder.obtain(text, 0, text.length, lp, w - 160).setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 1.15f).build()
-                if (layout.height <= 760 || size <= 36f) break
+                if (layout.height <= h - 590 || size <= 36f) break
                 size -= 4f
             }
             c.save(); c.translate(80f, 360f); layout.draw(c); c.restore()

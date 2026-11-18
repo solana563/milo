@@ -8,6 +8,7 @@ class TrackActions(
     val addToPlaylist: (Track) -> Unit,
     val share: (Track) -> Unit,
     val carMode: () -> Unit = {},
+    val bedside: () -> Unit = {},
 )
 
 val LocalActions = staticCompositionLocalOf { TrackActions({}, {}) }

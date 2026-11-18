@@ -83,6 +83,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         com.ubayanda.milonative.widget.FavBridge.toggle = { toggleFav(it) }
+        // the floating lyrics pill follows playback even while the app is in the background
+        com.ubayanda.milonative.ui.FloatingLyrics.init(app)
+        viewModelScope.launch {
+            // let the rest of the class finish setting up first (the track lists are declared further down)
+            kotlinx.coroutines.yield()
+            player.state.collect { u ->
+                val t = u.currentId?.let { id -> _tracks.value.firstOrNull { it.id == id } ?: saved.value[id] ?: remote.value[id] }
+                com.ubayanda.milonative.ui.FloatingLyrics.onState(getApplication(), viewModelScope, u, t) { lyricsRepo.get(it) }
+            }
+        }
         if (cloud.session != null) viewModelScope.launch {
             resolveProfile()
             // started offline: quietly try again until the server answers

@@ -640,6 +640,22 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
         Text("Sound", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(20.dp))
 
+        Label("Volume")
+        run {
+            val vctx = androidx.compose.ui.platform.LocalContext.current
+            val am = remember { vctx.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
+            val maxV = remember { am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
+            var vol by remember { mutableFloatStateOf(am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC).toFloat()) }
+            // the hardware buttons change it too, so look again now and then while the panel is open
+            LaunchedEffect(Unit) { while (true) { vol = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC).toFloat(); kotlinx.coroutines.delay(500) } }
+            Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("\uD83D\uDD0A", fontSize = 18.sp)
+                Spacer(Modifier.width(8.dp))
+                MiloSlider(vol, { vol = it.roundToInt().toFloat(); am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, vol.toInt(), 0) },
+                    Modifier.weight(1f), valueRange = 0f..maxV.toFloat(), colors = amberSlider())
+            }
+        }
+
         Label("Speed")
         LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf(0.75f, 1f, 1.25f, 1.5f, 2f)) { s ->
@@ -849,6 +865,24 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text(if (bouncyPref) "Bouncy lyrics: on" else "Bouncy lyrics: off") }, onClick = {
                             bouncyPref = !bouncyPref; fx.edit().putBoolean("lybounce", bouncyPref).apply(); moreMenu = false
                         })
+                        val flOn = com.ubayanda.milonative.ui.FloatingLyrics.enabled(ctx) && com.ubayanda.milonative.ui.FloatingLyrics.canDraw(ctx)
+                        DropdownMenuItem(text = { Text(if (flOn) "Floating lyrics: on" else "Floating lyrics: off") }, onClick = {
+                            moreMenu = false
+                            if (flOn) com.ubayanda.milonative.ui.FloatingLyrics.set(ctx, false)
+                            else if (com.ubayanda.milonative.ui.FloatingLyrics.canDraw(ctx)) com.ubayanda.milonative.ui.FloatingLyrics.set(ctx, true)
+                            else {
+                                // the person grants "Display over other apps" on the system page, then comes back
+                                com.ubayanda.milonative.ui.FloatingLyrics.set(ctx, true)
+                                android.widget.Toast.makeText(ctx, "Allow milo to display over other apps, then come back.", android.widget.Toast.LENGTH_LONG).show()
+                                com.ubayanda.milonative.ui.FloatingLyrics.askPermission(ctx)
+                            }
+                        })
+                        DropdownMenuItem(text = { Text("Lyric card look: " + com.ubayanda.milonative.data.ShareCard.STYLES[com.ubayanda.milonative.data.ShareCard.style(ctx)]) }, onClick = {
+                            fx.edit().putInt("cardstyle", (com.ubayanda.milonative.data.ShareCard.style(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.STYLES.size).apply(); moreMenu = false
+                        })
+                        DropdownMenuItem(text = { Text("Lyric card shape: " + com.ubayanda.milonative.data.ShareCard.FORMATS[com.ubayanda.milonative.data.ShareCard.format(ctx)]) }, onClick = {
+                            fx.edit().putInt("cardfmt", (com.ubayanda.milonative.data.ShareCard.format(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.FORMATS.size).apply(); moreMenu = false
+                        })
                         DropdownMenuItem(text = { Text("Lyrics earlier (\u22120.5 s)") }, onClick = { lyOff -= 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         DropdownMenuItem(text = { Text("Lyrics later (+0.5 s)") }, onClick = { lyOff += 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         if (lyOff != 0L) DropdownMenuItem(text = { Text("Reset timing (" + (if (lyOff > 0) "+" else "") + (lyOff / 1000.0) + " s)") }, onClick = { lyOff = 0; fx.edit().remove("lyoff_" + t.id).apply(); moreMenu = false })
@@ -884,9 +918,14 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         val btDelay = if (btNow.bt) com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx) else 0
                         val pos = ui.positionMs - btDelay - lyOff
                         val idx = lyrics.synced.indexOfLast { it.timeMs <= pos + 250 }
+                        // an instrumental opening adds one list row (the dots) before the first line
+                        val lead = if ((lyrics.synced.firstOrNull()?.timeMs ?: 0L) >= com.ubayanda.milonative.ui.components.MinInterludeMs) 1 else 0
+                        // the line that was being sung until a moment ago, so rows below can trail the scroll by exactly the step it made
+                        var prevIdx by remember(lyrics) { androidx.compose.runtime.mutableIntStateOf(-1) }
+                        LaunchedEffect(idx) { kotlinx.coroutines.delay(60); prevIdx = idx }
                         LaunchedEffect(idx, bouncy) {
                             if (idx < 0) return@LaunchedEffect
-                            val target = (idx - 2).coerceAtLeast(0)
+                            val target = (idx - 2 + lead).coerceAtLeast(0)
                             if (!bouncy) { state.animateScrollToItem(target); return@LaunchedEffect }
                             val info = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }
                             // a spring, so the page glides to the next line and settles with a little give; far jumps (a seek) just go there
@@ -901,6 +940,20 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                             }
                             itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
                                 val on = i == idx
+                                // follow-through: when the page steps one line, rows below the sung line hold back by that step and
+                                // catch up, the further down the later (after Mochy's LyricsStagger)
+                                val lag = remember { androidx.compose.animation.core.Animatable(0f) }
+                                LaunchedEffect(idx) {
+                                    val d = i - idx
+                                    if (bouncy && d in 1..9 && idx - prevIdx == 1) {
+                                        val step = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == prevIdx + lead }?.size?.toFloat() ?: 0f
+                                        if (step > 0f) {
+                                            lag.snapTo(step)
+                                            val omega = 1000f / (55f * d)
+                                            lag.animateTo(0f, androidx.compose.animation.core.spring(1f, omega * omega))
+                                        }
+                                    } else if (lag.value != 0f) lag.snapTo(0f)
+                                }
                                 val sc by androidx.compose.animation.core.animateFloatAsState(
                                     if (!bouncy || on) 1f else 0.9f,
                                     androidx.compose.animation.core.spring(dampingRatio = 0.38f, stiffness = 260f), label = "lyScale",
@@ -911,7 +964,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                 )
                                 Column(
                                     Modifier.fillMaxWidth().graphicsLayer {
-                                        scaleX = sc; scaleY = sc; translationY = kick * dens
+                                        scaleX = sc; scaleY = sc; translationY = kick * dens + lag.value
                                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                                     }.combinedClickable(
                                         onClick = { vm.player.seekTo(line.timeMs) },
@@ -988,6 +1041,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
                 dtapOn = !dtapOn; dtapCtx.getSharedPreferences("milo_fx", 0).edit().putBoolean("dtap", dtapOn).apply(); open = false
             })
             DropdownMenuItem(text = { Text("Car mode") }, onClick = { open = false; actions.carMode() })
+            DropdownMenuItem(text = { Text("Bedside clock") }, onClick = { open = false; actions.bedside() })
         }
     }
 }

@@ -435,3 +435,18 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 97 — lyrics interlude dots and a popping heart (UI, after Mochy Music)
 - `ui/components/InterludeDots.kt`: during an instrumental opening or a long gap between lyric lines, three dots count the gap down (lighting one by one, a gentle bob, a swell just before the next line) and the lines slide to make room. After Mochy's LyricsInterludeDots (GPL-3.0, realidkroo/Mochy-Music); this version is written for milo, without the shader glow. Gaps are found from the lines' own times with the sung length guessed from the line's length, since the lyrics carry no end times.
 - NowPlayingScreen: the Like heart pops when a song is liked (Mochy's LikeBurst idea, much smaller).
+
+## Round 98 — bedside clock (after Mochy Music)
+- `ui/screens/BedsideScreen.kt`: a very dark clock screen (large time in the phone's 12/24-hour style, the date, what's playing with a thin progress line, previous/play/next, a one-tap 30-minute sleep timer). Tap the time to cycle bright / dim / very dim. The clock drifts a few pixels every minute to avoid burn-in. The screen stays on. Opened from the player's ⋮ menu ("Bedside clock") and Profile > Tools; Back closes it. Idea from Mochy's bedside mode (GPL-3.0, realidkroo/Mochy-Music, ui/player/bedside); written for milo and far smaller (no alarm, weather or tiles).
+
+## Round 99 — lyric card looks and shapes (after Mochy Music's share studio)
+- Long-pressing a lyric already made a picture to share. Now the lyrics ⋮ menu has "Lyric card look" (song colour, blurred cover, paper, black) and "Lyric card shape" (portrait, story 9:16, square). The text size fits the chosen shape. Mochy's share studio (GPL-3.0, realidkroo/Mochy-Music, ui/player/share) has a much larger editor with a word-by-word picker and animated cards; only the looks and shapes idea is taken here, the picker and animation are not.
+
+## Round 100 — floating lyrics (after Mochy Music's floating pill)
+- `ui/FloatingLyrics.kt`: while a song with synced lyrics plays and milo is not on screen, a small dark pill over other apps shows the line being sung. Drag it up or down to place it (remembered); tap it to open milo. It hides whenever milo is open. Off by default; switched on from the lyrics ⋮ menu ("Floating lyrics"), which sends you to the system "Display over other apps" page the first time. New permission `SYSTEM_ALERT_WINDOW` in the main manifest (all flavours).
+- Fed by the view-model's playback updates, so it keeps working with the app in the background. Respects each song's lyrics timing adjustment. Mochy's pill (GPL-3.0, realidkroo/Mochy-Music, floating/) also has controls, word-by-word fill, themes and drop targets; none of that is here.
+
+## Round 101 — lyrics follow-through, scroll fix, volume slider (UI, after Mochy Music)
+- Lyrics page: when the page steps down one line, the lines below the sung one hold back by that step and catch up on a critically damped spring, the further down the later (about 55 ms more per row, up to nine rows). Same idea as Mochy's LyricsStagger (GPL-3.0, realidkroo/Mochy-Music); a per-row spring here, not Mochy's frame engine. Only on single-line steps and only with "Bouncy lyrics" on, so seeks and jumps still just go there.
+- Fix to Round 97: an instrumental opening adds a dots row to the lyric list, which shifted the auto-scroll by one line. The scroll target now allows for it.
+- Sound panel: a Volume slider for the phone's music volume (follows the hardware buttons too), as Mochy's player has volume on the player page.

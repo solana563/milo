@@ -138,6 +138,7 @@ fun MiloApp(vm: MainViewModel) {
     var playerOpen by remember { mutableStateOf(false) }
     var friendsOpen by remember { mutableStateOf(false) }
     var car by remember { mutableStateOf(false) }
+    var bedside by remember { mutableStateOf(false) }
     var yt by remember { mutableStateOf<Pair<List<Track>, Int>?>(null) }
     /** YouTube Music pages (artist / album / playlist), newest last; back goes to the one before. */
     var ytPages by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -167,6 +168,7 @@ fun MiloApp(vm: MainViewModel) {
                 ctx.startActivity(Intent.createChooser(send, "Share song").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             },
             carMode = { car = true },
+            bedside = { bedside = true },
         )
     }
 
@@ -185,6 +187,7 @@ fun MiloApp(vm: MainViewModel) {
         }
     }
     BackHandler(enabled = car) { car = false }
+    BackHandler(enabled = bedside) { bedside = false }
     BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
     BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
     BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
@@ -375,6 +378,9 @@ fun MiloApp(vm: MainViewModel) {
 
             AnimatedVisibility(visible = car, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.CarScreen(vm, current, ui, current != null && favs.contains(current.id)) { car = false }
+            }
+            AnimatedVisibility(visible = bedside, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.BedsideScreen(vm, current, ui) { bedside = false }
             }
             AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.DownloadManagerScreen(vm) { vm.showDownloads = false }
