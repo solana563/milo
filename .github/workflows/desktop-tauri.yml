@@ -1,0 +1,56 @@
+name: Desktop (Tauri) checks
+
+# milo. desktop, forked from Limusic (GPL-3.0). Stage 1: only checks that it still compiles.
+# Installers (Windows / Linux / macOS) come in stage 2, once these pass.
+on:
+  workflow_dispatch:
+  push:
+    paths: ['milo-desktop-tauri/**', '.github/workflows/desktop-tauri.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-tauri-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: milo-desktop-tauri/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: milo-desktop-tauri/ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+
+  rust:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: milo-desktop-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: milo-desktop-tauri
+      - name: Build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libdbus-1-dev libmpv-dev
+      # the Tauri build script wants the UI output folder to exist
+      - run: mkdir -p ui/build && echo '<!doctype html>' > ui/build/index.html
+      - run: cargo test --all
