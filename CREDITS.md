@@ -467,3 +467,16 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 106 — build fix: CrossmixBars
 - CI: `CrossmixAnalysis.kt` refers to `CrossmixBars` (bar and section detection), a separate Mochy file I had not copied in Round 95. Added `crossmix/CrossmixBars.kt` (Mochy Music, GPL-3.0, realidkroo/Mochy-Music; package renamed only). I also listed every capitalised name used across the four crossmix files and checked each is defined here or imported; nothing else is missing.
+
+## Round 107 — from your first error report
+- Friends share: with no connection, the "now playing" push retried every 4 s forever (30 failed POSTs in two minutes in the report). It now waits longer after each failure (8 s, 16 s … up to 2 min) and goes back to normal after one success. `MainViewModel.shareLoop`.
+- Queue drag: the report still held the old IndexOutOfBounds in the queue move. The move now removes the item, then inserts at an index clamped to the list, so it cannot go out of range whatever the drag reports. (The report's crash time was before the Round 90 check; this makes the move itself safe.)
+- Song analysis, first real data (10 songs): it works and finishes in about one to two minutes per song. Tempo looked right for most; "Work" (92 bpm) read 122.8 with full confidence because dembow pulses in dotted eighths (4/3 of the beat). Added a 4/3 check in `CrossmixAnalysis.estimateTempo` (milo's own, not Mochy's). Expect "Work" ≈ 92 now; send the next Diagnostics to confirm, and to see whether any song that was right is now moved.
+
+## Round 108 — automatic animated covers from the official music video (the Mochy way, without Spotify)
+- Player ⋮ menu > "Animated cover from music video": Off / Wi-Fi only / Any network (off by default). For a YouTube song, milo looks up the song's official music video (YouTube Music lists it as the "Video" counterpart of the song), takes a silent video-only stream of about 360p, and plays it looping over the cover, fading in when its first frame is ready. A song with no official video just keeps its still cover; "no video" results are remembered for the session, while a network hiccup is retried. A video you chose yourself (Round 103) always wins. `YtMusic.musicVideoFor`, `AutoCanvas` and `CanvasLoop`.
+- This is Mochy's "YouTube video background" idea (GPL-3.0, realidkroo/Mochy-Music, ui/player/YouTubeVideoLookup.kt), written for milo on milo's own YouTube Music calls. It uses data (a few MB per song at 360p, none on Wi-Fi-only over mobile data) and no account.
+- Still not done, on purpose: Spotify's own Canvas clips (they need your Spotify sign-in and private Spotify endpoints; see Round 103).
+
+## Round 109 — desktop test fix
+- Desktop CI: 265 of 266 Rust tests passed; `macos_window_config_mirrors_the_base_window` failed because `tauri.macos.conf.json` still had the window title "Limusic" while the main config says "milo." (Round 91 renamed one and not the other). The macOS window title is now "milo.". The test guards the macOS copy staying in step with the main window config, so it was right to fail.
