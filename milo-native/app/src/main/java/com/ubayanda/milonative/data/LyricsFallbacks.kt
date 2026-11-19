@@ -41,6 +41,9 @@ object LyricsFallbacks {
         val lrc = runCatching { betterLyrics(title, artist, album, secs) }.getOrNull()
             ?: videoId?.let { runCatching { simpMusic(it, secs) }.getOrNull() }
             ?: runCatching { kuGou(title, artist, secs) }.getOrNull()
+            ?: runCatching { LyricsMore.netEase(title, artist, secs) }.getOrNull()
+            ?: runCatching { LyricsMore.deezer(title, artist, secs) }.getOrNull()
+            ?: runCatching { LyricsMore.qqMusic(title, artist, secs) }.getOrNull()
         return lrc?.takeIf { it.isNotBlank() }?.let { JSONObject().put("syncedLyrics", it).toString() }
     }
 
@@ -137,7 +140,8 @@ object LyricsFallbacks {
         for (i in 0 until songs.length()) {
             val s = songs.optJSONObject(i) ?: continue
             if (secs > 0 && abs(s.optInt("duration") - secs) > 8) continue
-            val hash = s.optString("hash").ifEmpty { continue }
+            val hash = s.optString("hash")
+            if (hash.isEmpty()) continue
             val cands = JSONObject(get("https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&hash=$hash") ?: continue).optJSONArray("candidates") ?: continue
             val c = cands.optJSONObject(0) ?: continue
             val dl = JSONObject(get("https://lyrics.kugou.com/download?fmt=lrc&charset=utf8&client=pc&ver=1&id=${c.optLong("id")}&accesskey=${q(c.optString("accesskey"))}") ?: continue)
