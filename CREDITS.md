@@ -464,3 +464,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 105 — cumulative pack (rounds 94–104)
 - CI said `Unresolved reference 'LyricsMore'`: LyricsMore.kt (Round 96) was not in the project the build ran on. This zip carries every file changed or added in rounds 94–104 in one go, so one unzip over the project root brings everything level. Also `MainViewModel` now looks the playing track up through the existing `trackById`.
+
+## Round 106 — build fix: CrossmixBars
+- CI: `CrossmixAnalysis.kt` refers to `CrossmixBars` (bar and section detection), a separate Mochy file I had not copied in Round 95. Added `crossmix/CrossmixBars.kt` (Mochy Music, GPL-3.0, realidkroo/Mochy-Music; package renamed only). I also listed every capitalised name used across the four crossmix files and checked each is defined here or imported; nothing else is missing.

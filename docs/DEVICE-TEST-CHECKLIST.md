@@ -211,3 +211,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R103: player ⋮ > Animated cover: choose a video (pick a short mp4): after a moment it fades in over the cover, loops silently, pauses when music pauses, is gone on the next song, comes back when you return to this song (also after restarting the app). Remove clears it. Music/volume/Bluetooth unaffected while it plays.
 - [ ] R104: CI build of the full flavour passes again (LyricsFallbacks KuGou fix). If a new compile error appears, send the log.
 - [ ] R105: if CI says 'Unresolved reference LyricsMore' (or any new file), a file from rounds 94-103 was not copied: unzip round94-104-cumulative.zip over the project root to bring everything in line.
+- [ ] R106: CI full-debug compile passes with CrossmixBars added. Send the log if another error shows.
