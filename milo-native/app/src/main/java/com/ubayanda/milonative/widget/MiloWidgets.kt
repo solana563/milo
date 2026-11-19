@@ -294,3 +294,34 @@ class ArtWidget : GlanceAppWidget() {
     }
 }
 class ArtWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget = ArtWidget() }
+
+// ---- turntable: a record with the cover as its label, controls underneath (idea from Mochy Music's turntable widget) ----
+class TurntableWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Responsive(setOf(DpSize(110.dp, 110.dp), DpSize(180.dp, 180.dp), DpSize(250.dp, 250.dp)))
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val s = WidgetState.read(context)
+        provideContent {
+            val sz = LocalSize.current
+            val disc = (minOf(sz.width.value, sz.height.value - 44f).coerceAtLeast(56f)).dp
+            Column(
+                GlanceModifier.fillMaxSize().cornerRadius(24.dp).background(CARD).padding(8.dp).clickable(openApp(context)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(GlanceModifier.defaultWeight().fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(GlanceModifier.size(disc - 8.dp).cornerRadius((disc - 8.dp) / 2).background(Color(0xFF050505)), contentAlignment = Alignment.Center) {
+                        Cover(s, (disc - 8.dp) * 0.62f, (disc - 8.dp) * 0.31f)
+                        Box(GlanceModifier.size(10.dp).cornerRadius(5.dp).background(CARD)) {}
+                    }
+                }
+                if (sz.height >= 150.dp) {
+                    Text(ttl(s), maxLines = 1, style = TextStyle(color = ColorProvider(TEXT), fontSize = 13.sp, fontWeight = FontWeight.Bold))
+                    Text(sub(s), maxLines = 1, style = TextStyle(color = ColorProvider(DIM), fontSize = 11.sp))
+                    Spacer(GlanceModifier.height(4.dp))
+                }
+                Controls(context, s, if (sz.width >= 150.dp) 3 else 1, 36.dp, 32.dp, 24.dp)
+            }
+        }
+    }
+}
+class TurntableWidgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget = TurntableWidget() }

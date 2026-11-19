@@ -480,3 +480,16 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 109 — desktop test fix
 - Desktop CI: 265 of 266 Rust tests passed; `macos_window_config_mirrors_the_base_window` failed because `tauri.macos.conf.json` still had the window title "Limusic" while the main config says "milo." (Round 91 renamed one and not the other). The macOS window title is now "milo.". The test guards the macOS copy staying in step with the main window config, so it was right to fail.
+
+## Round 110 — Identify a song
+- Idea from Mochy Music (GPL-3.0), which recognises songs through Shazam's private endpoints. milo does not use those; it uses AudD (audd.io), which offers an official API and a token the person supplies. Ten seconds of microphone audio is sent only when the person taps Listen.
+
+## Round 111 — Turntable widget
+- New home-screen widget: a record with the cover as its label and play/prev/next underneath. Idea from Mochy Music's turntable widget (GPL-3.0); drawn fresh with Glance, so it does not spin (Glance widgets can't animate). milo already had the player, pill and cover widgets.
+
+## Round 112 — iPod skin
+- New full-screen "iPod skin" (Profile > Tools): a grey-green screen with the song and a click wheel (turn for volume, middle button to scrub, ring buttons for close, previous, next, play/pause), white or black body. Idea from Mochy Music's iPod player style (GPL-3.0); written fresh for milo and far smaller. Mochy's cover-flow and menu pages are not ported.
+
+## Round 113 — UI brought in line with the features (iOS-style glass)
+- Detail (artist/album/playlist) header: a wide glass "Play" pill with round glass shuffle/download buttons, and a spaced-capitals line ("ALBUM · 10 SONGS · 30 MIN"), after the iOS music look the owner supplied.
+- Bedside clock: Close, Sleep and the transport buttons now use milo's own glass surface and dim together with the clock.

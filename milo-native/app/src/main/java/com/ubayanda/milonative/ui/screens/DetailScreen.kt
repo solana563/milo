@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -129,15 +130,23 @@ fun DetailScreen(
                     }
                     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(title, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, maxLines = 2)
-                        Text(subtitle + " · " + plural(tracks.size, "song"), color = Color(0xFFE6E6E6), fontSize = 13.sp, textAlign = TextAlign.Center)
+                        val mins = (tracks.sumOf { it.durationMs } / 60_000L).toInt()
+                        Text((subtitle + " · " + plural(tracks.size, "song") + if (mins > 0) " · $mins min" else "").uppercase(), color = Color(0xFFE6E6E6), fontSize = 12.sp, letterSpacing = 1.4.sp, textAlign = TextAlign.Center)
                         Spacer(Modifier.height(16.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             val on = tracks.isNotEmpty()
+                            // iOS-style: a wide glass Play pill, then round glass buttons
+                            Row(
+                                Modifier.height(52.dp).pressable(on) { vm.player.playQueue(tracks, 0) }.clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                                    .background(Color.White.copy(alpha = if (on) 0.2f else 0.1f)).border(1.dp, Color.White.copy(alpha = 0.28f), androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                                    .padding(horizontal = 22.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(MiloIcons.PlayArrow, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Play", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                            }
                             HeroBtn(MiloIcons.Shuffle, "Shuffle", { vm.player.playShuffled(tracks) }, 52.dp, on)
-                            Box(
-                                Modifier.size(76.dp).pressable(on) { vm.player.playQueue(tracks, 0) }.clip(androidx.compose.foundation.shape.CircleShape).background(Color.White.copy(alpha = if (on) 1f else 0.4f)),
-                                contentAlignment = Alignment.Center,
-                            ) { Icon(MiloIcons.PlayArrow, "Play", tint = Color.Black, modifier = Modifier.size(42.dp)) }
                             if (ytTracks.isNotEmpty()) HeroBtn(
                                 if (allSaved) MiloIcons.DownloadDone else MiloIcons.Download, "Download", { vm.downloadTracks(ytTracks, downloadGroup) }, 52.dp,
                             ) else Spacer(Modifier.size(52.dp))

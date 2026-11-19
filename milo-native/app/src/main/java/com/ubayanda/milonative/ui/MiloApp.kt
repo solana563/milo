@@ -139,6 +139,8 @@ fun MiloApp(vm: MainViewModel) {
     var friendsOpen by remember { mutableStateOf(false) }
     var car by remember { mutableStateOf(false) }
     var bedside by remember { mutableStateOf(false) }
+    var identifying by remember { mutableStateOf(false) }
+    var ipod by remember { mutableStateOf(false) }
     var yt by remember { mutableStateOf<Pair<List<Track>, Int>?>(null) }
     /** YouTube Music pages (artist / album / playlist), newest last; back goes to the one before. */
     var ytPages by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -169,6 +171,8 @@ fun MiloApp(vm: MainViewModel) {
             },
             carMode = { car = true },
             bedside = { bedside = true },
+            identify = { identifying = true },
+            ipod = { ipod = true },
         )
     }
 
@@ -188,6 +192,11 @@ fun MiloApp(vm: MainViewModel) {
     }
     BackHandler(enabled = car) { car = false }
     BackHandler(enabled = bedside) { bedside = false }
+    BackHandler(enabled = ipod) { ipod = false }
+    if (identifying) com.ubayanda.milonative.ui.components.IdentifyDialog(
+        onSearch = { q -> vm.mem.sQuery = q; tab = Tab.Search; identifying = false },
+        onDismiss = { identifying = false },
+    )
     BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
     BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
     BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
@@ -381,6 +390,9 @@ fun MiloApp(vm: MainViewModel) {
             }
             AnimatedVisibility(visible = bedside, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.BedsideScreen(vm, current, ui) { bedside = false }
+            }
+            AnimatedVisibility(visible = ipod, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+                com.ubayanda.milonative.ui.screens.IpodScreen(vm, current, ui) { ipod = false }
             }
             AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.DownloadManagerScreen(vm) { vm.showDownloads = false }

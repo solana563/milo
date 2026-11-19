@@ -492,6 +492,8 @@ private fun ToolsCard(vm: MainViewModel) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Pill("Car mode", null, true) { actions.carMode() }
             Pill("Bedside clock", null, false) { actions.bedside() }
+            Pill("Identify song", null, false) { actions.identify() }
+            Pill("iPod skin", null, false) { actions.ipod() }
             Pill("Save backup", null, false) { save.launch("milo-backup.json") }
             Pill("Restore", null, false) { open.launch(arrayOf("application/json", "text/plain", "*/*")) }
         }

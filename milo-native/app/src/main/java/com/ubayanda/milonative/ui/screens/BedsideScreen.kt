@@ -33,7 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import com.ubayanda.milonative.ui.components.glass
+import com.ubayanda.milonative.ui.components.pressable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -94,11 +97,11 @@ fun BedsideScreen(vm: MainViewModel, t: Track?, ui: PlayerUi, onClose: () -> Uni
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Close", color = soft, fontSize = 16.sp, fontWeight = FontWeight.Medium,
-                modifier = Modifier.clip(CircleShape).clickable(onClick = onClose).padding(horizontal = 16.dp, vertical = 10.dp))
+                modifier = Modifier.alpha(bright).pressable(true, onClose).glass(CircleShape).padding(horizontal = 18.dp, vertical = 10.dp))
             Spacer(Modifier.weight(1f))
             val left = ui.sleepLeftMs
             Text(if (left > 0) "Sleep in ${(left / 60_000L) + 1} min · cancel" else "Sleep in 30 min", color = soft, fontSize = 16.sp,
-                modifier = Modifier.clip(CircleShape).clickable { vm.player.sleepIn(if (left > 0) 0 else 30) }.padding(horizontal = 16.dp, vertical = 10.dp))
+                modifier = Modifier.alpha(bright).pressable(true) { vm.player.sleepIn(if (left > 0) 0 else 30) }.glass(CircleShape).padding(horizontal = 18.dp, vertical = 10.dp))
         }
         Spacer(Modifier.weight(1f))
         Column(
@@ -129,17 +132,17 @@ fun BedsideScreen(vm: MainViewModel, t: Track?, ui: PlayerUi, onClose: () -> Uni
         }
         Spacer(Modifier.height(14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            Ctl(MiloIcons.SkipPrevious, "Previous", 64.dp, soft) { vm.player.previous() }
-            Ctl(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", 84.dp, ink) { vm.player.toggle() }
-            Ctl(MiloIcons.SkipNext, "Next", 64.dp, soft) { vm.player.next() }
+            Ctl(MiloIcons.SkipPrevious, "Previous", 64.dp, soft, bright) { vm.player.previous() }
+            Ctl(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", 84.dp, ink, bright) { vm.player.toggle() }
+            Ctl(MiloIcons.SkipNext, "Next", 64.dp, soft, bright) { vm.player.next() }
         }
         Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
-private fun Ctl(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, size: androidx.compose.ui.unit.Dp, tint: Color, onClick: () -> Unit) {
-    Box(Modifier.size(size).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+private fun Ctl(icon: androidx.compose.ui.graphics.vector.ImageVector, desc: String, size: androidx.compose.ui.unit.Dp, tint: Color, bright: Float, onClick: () -> Unit) {
+    Box(Modifier.size(size).alpha(bright).pressable(true, onClick).glass(CircleShape), contentAlignment = Alignment.Center) {
         Icon(icon, desc, tint = tint, modifier = Modifier.size(size * 0.55f))
     }
 }

@@ -59,5 +59,6 @@ object WidgetUpdater {
         PlayerWidget().updateAll(app)
         PillWidget().updateAll(app)
         ArtWidget().updateAll(app)
+        TurntableWidget().updateAll(app)
     }
 }

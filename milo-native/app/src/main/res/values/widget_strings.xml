@@ -5,4 +5,5 @@
     <string name="widget_pill_desc">A slim player bar</string>
     <string name="widget_art_name">milo. cover</string>
     <string name="widget_art_desc">Big cover art with play and next</string>
+    <string name="widget_turntable_desc">A record with the cover as its label, and controls</string>
 </resources>
