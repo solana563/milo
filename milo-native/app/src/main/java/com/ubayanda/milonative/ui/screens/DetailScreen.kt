@@ -145,6 +145,22 @@ fun DetailScreen(
                     }
                 }
             }
+            val g = downloadGroup
+            if (g != null && (g.kind == "artist" || g.kind == "album")) {
+                var about by remember(g) { mutableStateOf<String?>(null) }
+                var more by remember(g) { mutableStateOf(false) }
+                androidx.compose.runtime.LaunchedEffect(g) {
+                    about = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.ubayanda.milonative.data.WikiAbout.fetch(g.kind, g.name, if (g.kind == "album") subtitle else null)
+                    }
+                }
+                about?.let { txt ->
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp).pressable(true) { more = !more }) {
+                        Text(txt, color = Milo.dim, fontSize = 13.sp, maxLines = if (more) 40 else 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text("Wikipedia" + if (more) "" else " · tap to read more", color = Milo.dim.copy(alpha = 0.6f), fontSize = 11.sp)
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
             if (tracks.isEmpty()) EmptyNote("Nothing here yet", "Use the ⋮ menu on any song to add it.")
         }

@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
  */
 class PlaybackService : MediaLibraryService() {
     private var session: MediaLibrarySession? = null
+    private var fading: FadingPlayer? = null
+    private var lastV = 1f
     private var exo: ExoPlayer? = null
     private var castBridge: CastBridge? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -209,7 +211,7 @@ class PlaybackService : MediaLibraryService() {
         val g = ghost
         if (xfPhase == 0) {
             if (xfWarm && g != null && g.playWhenReady != p.playWhenReady) g.playWhenReady = p.playWhenReady
-            if (x > 0L && p.isPlaying && session?.player === p && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
+            if (x > 0L && p.isPlaying && (session?.player === p || session?.player === fading) && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
                 val dur = p.duration
                 val item = p.currentMediaItem
                 if (item != null && dur != C.TIME_UNSET && dur > x * 3) {
@@ -341,7 +343,16 @@ class PlaybackService : MediaLibraryService() {
                 ghost?.takeIf { xfPhase != 0 }?.let { it.volume = minOf(it.volume, left / 30_000f) }
             }
         }
-        val tv = v * rgScale
+        lastV = v
+        val tv = v * rgScale * (fading?.gain ?: 1f)
+        if (p.volume != tv) p.volume = tv
+    }
+
+    private fun applyVolumeNow() {
+        val p = exo ?: return
+        // while two songs are crossfading the tick owns the volumes
+        if (xfPhase != 0) return
+        val tv = lastV * rgScale * (fading?.gain ?: 1f)
         if (p.volume != tv) p.volume = tv
     }
 
@@ -424,9 +435,12 @@ class PlaybackService : MediaLibraryService() {
             this, 0, Intent(this, com.ubayanda.milonative.MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaLibrarySession.Builder(this, player, CarLibrary(this)).setSessionActivity(open).build()
+        // pause / play / skips ease the volume ("Soft pause & skip" in the Sound panel); 0 = off
+        val fp = FadingPlayer(player, handler, { fxPrefs.getInt("tfade", 300).toLong() }, { xfPhase == 0 && session?.player === fading }, ::applyVolumeNow)
+        fading = fp
+        session = MediaLibrarySession.Builder(this, fp, CarLibrary(this)).setSessionActivity(open).build()
         AudioFx.attach(this, player.audioSessionId)
-        castBridge = CastBridge(this, { session }, player).also { it.init() }
+        castBridge = CastBridge(this, { session }, player, fp).also { it.init() }
         BtOutput.start(this, { player.isPlaying }, { player.play() })
         svcScope.launch { Extras.state.collect { player.skipSilenceEnabled = it.skipSilence } }
         svcScope.launch { BtOutput.now.collect { ParamEq.useDevice(if (it.kind == "speaker") "default" else it.name) } }
@@ -466,6 +480,7 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                try { com.ubayanda.milonative.crossmix.CrossmixLab.look(this@PlaybackService, mediaItem, if (player.hasNextMediaItem()) player.getMediaItemAt(player.nextMediaItemIndex) else null) } catch (_: Throwable) {}
                 // the main player reached the end of the old song by itself during the fade: that is the hand-over
                 if (xfOwn) xfOwn = false
                 else if (xfPhase == 1 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && ghost != null) beginHandoff(player, ghost!!, android.os.SystemClock.elapsedRealtime())

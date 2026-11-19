@@ -461,3 +461,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 104 — build fix (Round 93)
 - `data/LyricsFallbacks.kt` line 143: `ifEmpty { continue }` is a `continue` inside a lambda, which Kotlin does not allow by default ("break continue in inline lambdas is experimental"). Replaced with a plain empty check. This was the only compile error in the Round 93–103 CI log.
+
+## Round 105 — cumulative pack (rounds 94–104)
+- CI said `Unresolved reference 'LyricsMore'`: LyricsMore.kt (Round 96) was not in the project the build ran on. This zip carries every file changed or added in rounds 94–104 in one go, so one unzip over the project root brings everything level. Also `MainViewModel` now looks the playing track up through the existing `trackById`.

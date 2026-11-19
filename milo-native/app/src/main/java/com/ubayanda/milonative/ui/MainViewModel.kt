@@ -89,7 +89,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // let the rest of the class finish setting up first (the track lists are declared further down)
             kotlinx.coroutines.yield()
             player.state.collect { u ->
-                val t = u.currentId?.let { id -> _tracks.value.firstOrNull { it.id == id } ?: saved.value[id] ?: remote.value[id] }
+                val t = trackById(u.currentId)
                 com.ubayanda.milonative.ui.FloatingLyrics.onState(getApplication(), viewModelScope, u, t) { lyricsRepo.get(it) }
             }
         }

@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
  * Songs that are files on the phone are served over Wi-Fi by [LocalAudioServer]. Everything here is guarded, so a phone without
  * Cast support just never offers it.
  */
-class CastBridge(private val ctx: Context, private val session: () -> MediaSession?, private val local: ExoPlayer) {
+class CastBridge(private val ctx: Context, private val session: () -> MediaSession?, private val local: ExoPlayer, private val sessionLocal: androidx.media3.common.Player = local) {
     private var cast: CastPlayer? = null
     private val server = LocalAudioServer(ctx)
     private val originals = HashMap<String, MediaItem>()
@@ -88,7 +88,7 @@ class CastBridge(private val ctx: Context, private val session: () -> MediaSessi
     private fun toLocal() {
         try {
             val s = session() ?: return
-            if (s.player === local) return
+            if (s.player === sessionLocal) return
             val items = snapItems.map { originals[it.mediaId] ?: it }
             val idx = snapIndex; val pos = snapPos
             local.volume = 1f
@@ -97,7 +97,7 @@ class CastBridge(private val ctx: Context, private val session: () -> MediaSessi
                 local.prepare()
                 local.playWhenReady = false // never blast music on the phone's speaker the moment the TV disconnects
             }
-            s.player = local
+            s.player = sessionLocal
             server.stop()
         } catch (_: Throwable) {}
     }
