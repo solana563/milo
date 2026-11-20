@@ -226,3 +226,8 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R118: build only: CI compiles the new crossmix/engine files (no behaviour change yet).
 - [ ] R119: CI compiles after the catch-up pack (replace every file in it, none skipped).
 - [ ] R120: Sound > Transitions > Crossmix on a local playlist: a song ends into the next on the beat, no double audio/click; Try a mix now; skip, seek, pause mid-mix; headphones plug/unplug; cast starts (no mix); switch back to Classic. Send Diagnostics lines tagged crossmix.
+- [ ] R121: with Crossmix on, play a streamed playlist: fewer 'could not read' lines in Diagnostics, more varied styles than Filter sweep; playback and UI stay smooth while it analyses.
+- [ ] R122: Sound > Soft pause & skip: set 1 s, pause/play and skip from the app, lock screen and notification: smooth fade, no click, play resumes at full volume; try Echo and Tape stop; press pause twice (second = now); skip during a crossmix; cast.
+- [ ] R123: Sound > Haptics on: phone buzzes on kicks, Bass vs Vibe feel different, Low/High strength; off stops it; no stutter in the audio; during a crossmix it doesn't double-buzz.
+- [ ] R124: Sound > Cover style: try Squared, Disc, Big disc with arm, Disc + album; spin on/off; pause greys the record and lifts the arm; swipe next/previous still glides; back to Full screen restores the old look; no jank on a long listen.
+- [ ] R125: Squared cover shows a soft mirror under it that fades out; like a song from the dock: heart flies up, thumps, bursts, dives back and the button bounces; unlike is quiet; like twice quickly (2 hearts).

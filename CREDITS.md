@@ -520,3 +520,30 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - New setting Now Playing > Sound > Transitions: Classic (milo's older crossfade, default, untouched) or Crossmix (length, tempo match, style, stunts, always blend, "Try a mix now", live status).
 - Crossmix stands down for repeat-one, Bluetooth compat mode, and while casting. YouTube download/offline path unchanged.
 - Not done yet: Mochy's pause/play/skip fades and effects (TransportTransitions) still use milo's own soft transport.
+
+## Round 121 — crossmix analysis tuning from the A33 error report
+- Report showed many "could not read … timed out after 40/60 s with 20–50 s of audio decoded" (streams read at under half real time) and two "Failed to instantiate extractor".
+- Analysis thread now runs at nice +1 instead of Java MIN_PRIORITY (which starved it on a busy phone). The fixed 40/60 s limits became a stall watchdog (give up after 30 s with no new audio) under a 150/240 s cap, and the failure line now says how many seconds it took.
+- Mochy's analysis itself is unchanged. "Failed to instantiate extractor" comes from the stream not delivering bytes (see "[stream …] timeout"): not changed, still falls back to a plain mix.
+
+## Round 122 — Mochy's transport fades wired in
+- Source: Mochy Music (GPL-3.0) TransportTransitions + TransportFadingPlayer, now the media session's player in place of milo's smaller FadingPlayer: pause, play and skips (app buttons, lock screen, notification, headset, car) fade, with an optional effect (echo, rewind, tape stop, fade to far, reverb wash, filter sweep) done in the audio renderer when the transition processor is available.
+- "Soft pause & skip" slider now runs 0–3 s; effect chips appear under it. Skips fade out then in; a skip mid-crossmix or while casting acts at once.
+- Not wired yet: "blend skips" (a skip played as a crossfade on a second player); milo's older FadingPlayer.kt stays in the tree unused.
+
+## Round 123 — haptics
+- Source: Mochy Music (GPL-3.0) HapticAudioProcessor (bass / vocal / vibe follower with kick detection) and its vibration-motor mapping (click / tick primitives on Android 11+, amplitude one-shots below).
+- Now Playing > Sound > Haptics: switch, what to follow (Everything, Vocals, Vibe, Bass), strength. Off by default.
+- Small changes: songs the chain carries as float skip haptics instead of failing; only the playing player buzzes during a crossmix, never the classic crossfade's tail player.
+
+## Round 124 — player cover styles (first part of the player looks)
+- Source: Mochy Music (GPL-3.0) DiscCover (record geometry for small / big / album / label discs, the vinyl and name plate, the tonearm) and TurntableArt (vinyl, arm and deck drawing). Pictures are milo's bitmaps instead of Coil requests.
+- Now Playing > Sound > Cover style: Full screen (as before, default), Squared, Disc, Disc label, Big disc, Big disc with arm, Disc + album. Records spin while playing and grey a little when paused, the arm lifts on pause. Options: spin, realistic vinyl, text round the label.
+- The cover is softened across the screen behind the stage; the dock, title and controls are unchanged.
+- Not done: the Turntable style (its arm file needs more of Mochy's player), morphing cover and song info, cover reflection, like burst, Player Studio.
+
+## Round 125 — cover reflection and like burst
+- Source: Mochy Music (GPL-3.0) CoverReflection (the cover mirrored under itself, blurred once at 96 px and faded by a vertex-colour mesh, no live blur) and LikeBurst (the heart leaves the Like button, thumps red with a burst, floats back to white and dives home, the button bouncing as it lands; up to 4 in the air).
+- The reflection shows under the Squared cover style. Its blur is Mochy's three-pass box blur on milo's bitmap.
+- The burst runs from the Like button in the player dock (liking only; unliking stays quiet). The heart is milo's own heart glyph; Mochy's haptic cues use gentler Compose-compatible ones.
+- Left out for now: double-tap on the cover to like (milo's double-tap zones already seek/play), and Mochy's "Added to Library" label.

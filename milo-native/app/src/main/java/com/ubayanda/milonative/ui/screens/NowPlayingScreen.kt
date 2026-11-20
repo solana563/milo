@@ -1,5 +1,10 @@
 package com.ubayanda.milonative.ui.screens
 
+import com.ubayanda.milonative.ui.player.LikeBurstOverlay
+import com.ubayanda.milonative.ui.player.LikeBurstState
+import com.ubayanda.milonative.ui.player.LikeSlot
+import com.ubayanda.milonative.ui.player.likeButtonTarget
+import com.ubayanda.milonative.ui.player.isDisc
 import com.ubayanda.milonative.ui.theme.MiloIcons
 import com.ubayanda.milonative.ui.components.MiloSlider
 import com.ubayanda.milonative.ui.components.pressable
@@ -308,6 +313,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     )
                 }
             ) {
+                val coverLook by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
+                val likeBurst = remember { LikeBurstState() }
                 // next / previous: the new cover glides in from the side it came from while the old one slips away
                 androidx.compose.animation.AnimatedContent(
                     targetState = ArtKey(t.id, cover, coverDone),
@@ -334,6 +341,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Y2K.navy.copy(alpha = 0.55f), Y2K.navy.copy(alpha = 0.85f)))))
                                 SpinningCd(b.asImageBitmap(), uiNow.isPlaying, Modifier.align(Alignment.Center).fillMaxWidth(0.72f))
                             }
+                            else if (b != null && coverLook.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE) com.ubayanda.milonative.ui.player.CoverStage(b, coverLook, uiNow.isPlaying)
                             else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                 colorFilter = if (Sticker.on || ChromeStyle.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
                             else if (k.done) Icon(MiloIcons.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
@@ -403,7 +411,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     // the heart pops when a song is liked
                     val heartPop = remember { androidx.compose.animation.core.Animatable(1f) }
                     LaunchedEffect(liked) { if (liked) { heartPop.snapTo(0.55f); heartPop.animateTo(1f, androidx.compose.animation.core.spring(0.32f, 420f)) } else heartPop.snapTo(1f) }
-                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", Modifier.graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }, tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { vm.toggleFav(t.id) }
+                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", Modifier.likeButtonTarget(likeBurst, LikeSlot.PLAYER).graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }, tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { likeBurst.likeFromButton(LikeSlot.PLAYER, liked) { vm.toggleFav(t.id) } }
                     if (t.uri.startsWith("yt:")) {
                         val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
                         RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true, label = if (savedNow) "Saved" else "Save") { vm.downloadTracks(listOf(t)) }
@@ -418,6 +426,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true, label = "Visual") { panel = Panel.Visual }
                     MoreMenu(vm, t, ui)
                 }
+                // the heart that flies from the Like button, thumps and dives back in (Mochy's like burst)
+                LikeBurstOverlay(likeBurst)
 
                 androidx.compose.animation.AnimatedContent(
                     targetState = t, contentKey = { it.id },
@@ -704,9 +714,18 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
             color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
         )
         MiloSlider(
-            value = tf, onValueChange = { tf = (it / 100f).roundToInt() * 100f; tfp.edit().putInt("tfade", tf.toInt()).apply() }, valueRange = 0f..1500f, steps = 14,
+            value = tf, onValueChange = { tf = (it / 100f).roundToInt() * 100f; tfp.edit().putInt("tfade", tf.toInt()).apply() }, valueRange = 0f..3000f, steps = 29,
             colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
         )
+        if (tf >= 50f) {
+            var tfx by remember { mutableStateOf(tfp.getInt("tfx", 0)) }
+            Text("Effect on pause, play and skip", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                com.ubayanda.milonative.crossmix.TransportEffect.values().forEachIndexed { i, e ->
+                    MiloChip(e.label, tfx == i) { tfx = i; tfp.edit().putInt("tfx", i).apply() }
+                }
+            }
+        }
 
         Label("Loudness matching")
         val fxp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
@@ -735,9 +754,13 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         MiloChip(if (fine) "Hide parametric EQ" else "Show parametric EQ", fine, Modifier.padding(horizontal = 20.dp)) { fine = !fine }
         if (fine) ParametricSection()
 
+        CoverStyleSection()
+
         CrossmixSection()
 
         ReverbSection()
+
+        HapticSection()
 
         if (fx.available) {
             Label("Effects")
@@ -803,6 +826,68 @@ private fun CrossmixSection() {
     }
     Row(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
         MiloChip("Try a mix now", false) { com.ubayanda.milonative.player.CrossmixLive.test.tryEmit(Unit) }
+    }
+}
+
+@Composable
+private fun CoverStyleSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val look by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Cover style")
+    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        com.ubayanda.milonative.ui.player.PlayerCoverStyle.values().filter { it != com.ubayanda.milonative.ui.player.PlayerCoverStyle.TURNTABLE }.forEach { st ->
+            MiloChip(st.label, look.style == st) { com.ubayanda.milonative.ui.player.CoverLook.set(ctx, look.copy(style = st)) }
+        }
+    }
+    if (look.style.isDisc) {
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Spin while playing", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            com.ubayanda.milonative.ui.components.MiloSwitch(checked = look.rotate, onCheckedChange = { com.ubayanda.milonative.ui.player.CoverLook.set(ctx, look.copy(rotate = it)) }, colors = sw)
+        }
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Realistic vinyl (grooves and shine)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            com.ubayanda.milonative.ui.components.MiloSwitch(checked = look.realistic, onCheckedChange = { com.ubayanda.milonative.ui.player.CoverLook.set(ctx, look.copy(realistic = it)) }, colors = sw)
+        }
+        Text("Text printed round the label (leave empty for none)", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        androidx.compose.foundation.text.BasicTextField(
+            value = look.name,
+            onValueChange = { com.ubayanda.milonative.ui.player.CoverLook.set(ctx, look.copy(name = it.take(24))) },
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = Milo.text, fontSize = 15.sp),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Milo.amber),
+            modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.08f)).padding(horizontal = 14.dp, vertical = 12.dp),
+        )
+    }
+}
+
+@Composable
+private fun HapticSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val fx = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+    var on by remember { mutableStateOf(fx.getBoolean("haptic_on", false)) }
+    var sens by remember { mutableStateOf(fx.getInt("haptic_sens", 1)) }
+    var focus by remember { mutableStateOf(fx.getInt("haptic_focus", 2)) }
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Haptics")
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Feel the music: the phone vibrates with the beat", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = on, onCheckedChange = { on = it; fx.edit().putBoolean("haptic_on", it).apply() }, colors = sw)
+    }
+    if (on) {
+        Text("Follows", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            com.ubayanda.milonative.player.audio.HapticFocus.values().forEachIndexed { i, f ->
+                MiloChip(f.label, focus == i) { focus = i; fx.edit().putInt("haptic_focus", i).apply() }
+            }
+        }
+        Text("Strength", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            com.ubayanda.milonative.player.audio.HapticSensitivity.values().forEachIndexed { i, h ->
+                MiloChip(h.label, sens == i) { sens = i; fx.edit().putInt("haptic_sens", i).apply() }
+            }
+        }
+        Text("Works best with the phone in your hand or on a table; Bluetooth speakers add a short delay.", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
     }
 }
 

@@ -89,6 +89,9 @@ class TransportTransitions(
 
     val isFading: Boolean get() = phase != Phase.Idle
 
+    /** what the service multiplies into the player's volume (its own volume ticks would otherwise undo a fade in progress): 1 whenever no fade runs */
+    val gain: Float get() = if (phase == Phase.Idle) 1f else level.coerceIn(0f, 1f)
+
     fun togglePlayPause() {
         val player = host.player
         val playing = if (phase == Phase.Pausing) false else player.playWhenReady && player.playbackState != Player.STATE_ENDED

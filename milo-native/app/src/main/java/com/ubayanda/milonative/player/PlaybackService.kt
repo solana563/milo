@@ -1,5 +1,6 @@
 package com.ubayanda.milonative.player
 
+import com.ubayanda.milonative.crossmix.TransportEffect
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -17,7 +18,7 @@ import kotlinx.coroutines.launch
  */
 class PlaybackService : MediaLibraryService() {
     private var session: MediaLibrarySession? = null
-    private var fading: FadingPlayer? = null
+    private var fading: Player? = null
     private var lastV = 1f
     private var exo: ExoPlayer? = null
     private var castBridge: CastBridge? = null
@@ -140,15 +141,69 @@ class PlaybackService : MediaLibraryService() {
             else buildEqSink(context, enableFloatOutput, enableAudioTrackPlaybackParams, xp)
     }
 
+    private val hapticProcs: MutableSet<com.ubayanda.milonative.player.audio.HapticAudioProcessor> =
+        java.util.Collections.synchronizedSet(java.util.Collections.newSetFromMap(java.util.WeakHashMap()))
+
+    private val hapticVibrator: android.os.Vibrator? by lazy {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 31) (getSystemService(VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
+            else @Suppress("DEPRECATION") (getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator)
+        } catch (_: Throwable) { null }
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun makeHaptic(xp: com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor): com.ubayanda.milonative.player.audio.HapticAudioProcessor {
+        val hp = com.ubayanda.milonative.player.audio.HapticAudioProcessor { amp, kick ->
+            if (exo?.let { crossmixProcessors[it] } === xp) {
+                // the buzz is timed to what is heard, which is a little after what the processor has just read
+                svcScope.launch(kotlinx.coroutines.Dispatchers.Default) { kotlinx.coroutines.delay(150); hapticBuzz(amp, kick) }
+            }
+        }
+        applyHaptic(hp)
+        hapticProcs.add(hp)
+        return hp
+    }
+
+    private fun applyHaptic(hp: com.ubayanda.milonative.player.audio.HapticAudioProcessor) {
+        val sens = com.ubayanda.milonative.player.audio.HapticSensitivity.values()
+        val focus = com.ubayanda.milonative.player.audio.HapticFocus.values()
+        hp.enabled = fxPrefs.getBoolean("haptic_on", false)
+        hp.sensitivity = sens.getOrElse(fxPrefs.getInt("haptic_sens", 1)) { sens[1] }
+        hp.focus = focus.getOrElse(fxPrefs.getInt("haptic_focus", 2)) { focus[2] }
+    }
+
+    private fun hapticBuzz(amplitude: Int, kick: Boolean) {
+        val v = hapticVibrator ?: return
+        try {
+            if (!v.hasVibrator()) return
+            val scale = (amplitude / 255f).coerceIn(0.01f, 1f)
+            val sdk = android.os.Build.VERSION.SDK_INT
+            if (sdk >= 30) {
+                val prim = when {
+                    kick && v.areAllPrimitivesSupported(android.os.VibrationEffect.Composition.PRIMITIVE_CLICK) -> android.os.VibrationEffect.Composition.PRIMITIVE_CLICK
+                    v.areAllPrimitivesSupported(android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK) -> android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK
+                    v.areAllPrimitivesSupported(android.os.VibrationEffect.Composition.PRIMITIVE_TICK) -> android.os.VibrationEffect.Composition.PRIMITIVE_TICK
+                    else -> -1
+                }
+                if (prim != -1) v.vibrate(android.os.VibrationEffect.startComposition().addPrimitive(prim, scale).compose())
+                else if (v.hasAmplitudeControl()) v.vibrate(android.os.VibrationEffect.createOneShot(20, amplitude.coerceIn(1, 255)))
+            } else if (sdk >= 26 && v.hasAmplitudeControl()) {
+                v.vibrate(android.os.VibrationEffect.createOneShot(20, amplitude.coerceIn(1, 255)))
+            }
+        } catch (_: Throwable) {}
+    }
+
     private fun btCompat() = getSharedPreferences("milo_fx", MODE_PRIVATE).getBoolean("btcompat", false)
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun buildEqSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean, xp: com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor? = null): androidx.media3.exoplayer.audio.AudioSink {
+        // vibration that follows the music; only the player that is playing may buzz, and the classic crossfade's tail player never does
+        val haptic = if (xp != null) makeHaptic(xp) else null
         val sink = androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             // Round 62: back to Media3's default audio buffer. The Round 48 bigger buffer (600 ms) did not help and matches the ~0.6 s freeze seen at every crossfade swap.
-            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(*listOfNotNull(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap(), xp).toTypedArray()))
+            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(*listOfNotNull(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap(), xp, haptic).toTypedArray()))
             .build()
         // Crossmix needs to know where in its song each buffer sits: the clock sink tells the processor
         return if (xp != null) com.ubayanda.milonative.player.audio.CrossmixClockSink(sink, xp) else sink
@@ -347,7 +402,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         lastV = v
-        val tv = v * rgScale * (fading?.gain ?: 1f)
+        val tv = v * rgScale * transport.gain
         if (p.volume != tv) p.volume = tv
     }
 
@@ -355,7 +410,7 @@ class PlaybackService : MediaLibraryService() {
         val p = exo ?: return
         // while two songs are crossfading the tick owns the volumes
         if (xfPhase != 0) return
-        val tv = lastV * rgScale * (fading?.gain ?: 1f)
+        val tv = lastV * rgScale * transport.gain
         if (p.volume != tv) p.volume = tv
     }
 
@@ -499,9 +554,31 @@ class PlaybackService : MediaLibraryService() {
     // a changed Crossmix choice (engine, length, tempo, style...) re-plans the next hand-over
     private val xPrefsWatch = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (_: Throwable) {} }
+        if (key.startsWith("haptic_")) handler.post { synchronized(hapticProcs) { hapticProcs.toList() }.forEach { applyHaptic(it) } }
+        if (key == "tfade" || key == "tfx") handler.post { try { syncTransport() } catch (_: Throwable) {} }
     }
 
-    private fun makeFading(p: ExoPlayer) = FadingPlayer(p, handler, { fxPrefs.getInt("tfade", 300).toLong() }, { xfPhase == 0 && session?.player === fading }, ::applyVolumeNow)
+    /** Mochy's pause / play / skip fades and effects (TransportTransitions); length from the "Soft pause & skip" slider, effect from the chips under it */
+    private val transport: TransportTransitions by lazy { TransportTransitions({ svcScope }, TransportHost()).also { syncTransport(it) } }
+
+    private fun syncTransport(t: TransportTransitions = transport) {
+        val ms = fxPrefs.getInt("tfade", 300)
+        t.lengthMs = ms.toFloat()
+        t.enabled = ms >= 50
+        t.effect = TransportEffect.values().getOrElse(fxPrefs.getInt("tfx", 0)) { TransportEffect.OFF }
+    }
+
+    private inner class TransportHost : TransportTransitions.Host {
+        override val player: ExoPlayer get() = cur()
+        override fun processorFor(player: ExoPlayer) = crossmixProcessors[player]
+        override fun targetVolume(): Float = lastV * rgScale
+        // not while a crossfade or a crossmix runs, nor while casting: those drive the volume themselves
+        override fun canFade(): Boolean = xfPhase == 0 && session?.player === fading && directorOrNull?.isTransitioning != true
+        override fun beatMsFor(mediaId: String?): Double? =
+            mediaId?.let { directorOrNull?.cachedBpm(it) }?.takeIf { it in 40f..240f }?.let { 60_000.0 / it }
+    }
+
+    private fun makeFading(p: ExoPlayer): Player = TransportFadingPlayer(p, transport)
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun newCrossmixPlayer(): ExoPlayer {
@@ -717,6 +794,7 @@ class PlaybackService : MediaLibraryService() {
         try { ghost?.release() } catch (_: Throwable) {}
         ghost = null
         try { getSharedPreferences("milo_fx", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(xPrefsWatch) } catch (_: Throwable) {}
+        try { transport.cancel() } catch (_: Throwable) {}
         try { directorOrNull?.release() } catch (_: Throwable) {}
         try { outgoingExo?.release() } catch (_: Throwable) {}
         outgoingExo = null

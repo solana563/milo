@@ -98,6 +98,9 @@ class CrossmixDirector(
 
     val isTransitioning: Boolean get() = running != null
 
+    /** the tempo already worked out for a song, if any; never starts an analysis */
+    fun cachedBpm(mediaId: String): Float? = analyses.cached(mediaId)?.bpm
+
     /**
      * every decision, as a line for the settings screen and for logcat. android.util.Log at info
      * level is kept in release builds (Timber is debug-only), so it can be read off a real phone.

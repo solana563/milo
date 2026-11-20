@@ -13,6 +13,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -37,7 +40,11 @@ class CrossmixAnalysisRepository(
 
     // one quiet thread: analysis must never compete with decoding the song that's playing
     private val dispatcher = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "crossmix-analysis").apply { priority = Thread.MIN_PRIORITY; isDaemon = true }
+        // nice +1 instead of Java's MIN_PRIORITY (which lands in the background group and starves on a busy phone, the A33 decoded under 1 s of audio per 2 s)
+        Thread({
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LESS_FAVORABLE) } catch (_: Throwable) {}
+            runnable.run()
+        }, "crossmix-analysis").apply { isDaemon = true }
     }.asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -52,14 +59,31 @@ class CrossmixAnalysisRepository(
         val job = inFlight.getOrPut(key) {
             scope.async(start = CoroutineStart.LAZY) {
                 val progress = Progress()
-                val timeoutMs = if (wholeTrack) 60_000L else 40_000L
+                // a hard cap, but a slow stream that keeps moving is let finish: give up on it only when it stalls
+                val timeoutMs = if (wholeTrack) 240_000L else 150_000L
                 try {
                     usable(read(mediaId), wholeTrack)?.also { memory[mediaId] = it; failures.remove(mediaId) }
                         ?: (
-                            withTimeoutOrNull(timeoutMs) { decodeAndAnalyze(uri, mediaId, wholeTrack, progress) }
+                            withTimeoutOrNull(timeoutMs) {
+                                coroutineScope {
+                                    val work = async { decodeAndAnalyze(uri, mediaId, wholeTrack, progress) }
+                                    val watchdog = launch {
+                                        while (true) {
+                                            delay(2_000)
+                                            if (System.currentTimeMillis() - progress.movedAt > StallMs) {
+                                                progress.stalled = true
+                                                work.cancel()
+                                                break
+                                            }
+                                        }
+                                    }
+                                    try { work.await() } catch (e: kotlinx.coroutines.CancellationException) { if (progress.stalled) null else throw e } finally { watchdog.cancel() }
+                                }
+                            }
                                 ?: null.also {
-                                    failures[mediaId] = "timed out after ${timeoutMs / 1_000} s with " +
-                                        "${progress.decodedUs / 1_000_000} s of audio decoded"
+                                    failures[mediaId] = (if (progress.stalled) "stalled for ${StallMs / 1_000} s" else "timed out after ${timeoutMs / 1_000} s") +
+                                        " with ${progress.decodedUs / 1_000_000} s of audio decoded in " +
+                                        "${(System.currentTimeMillis() - progress.startedAt) / 1_000} s"
                                 }
                             )?.also { analysis ->
                             failures.remove(mediaId)
@@ -96,6 +120,8 @@ class CrossmixAnalysisRepository(
     private class Progress {
         val startedAt = System.currentTimeMillis()
         @Volatile var decodedUs = 0L
+        @Volatile var movedAt = System.currentTimeMillis()
+        @Volatile var stalled = false
     }
 
     private fun usable(analysis: TrackAnalysis?, wholeTrack: Boolean): TrackAnalysis? =
@@ -108,6 +134,7 @@ class CrossmixAnalysisRepository(
         val outcome = StreamPcmDecoder.decode(dataSourceFactory(), uri, mediaId, limitUs) { pcm, channels, sampleRate, presentationUs ->
             resampler.push(pcm, channels, sampleRate, analyzer)
             progress.decodedUs = presentationUs
+            progress.movedAt = System.currentTimeMillis()
         }
         val lastPresentationUs = outcome.lastPresentationUs
         val durationUs = outcome.durationUs
@@ -210,6 +237,8 @@ class CrossmixAnalysisRepository(
         // 3: analyses cut short by a one-chunk stream were stored as whole ones. 4: the voice curve. 5: bars from chords and drums, and section starts
         const val CacheVersion = 5
         const val MaxCachedArray = 200_000
+        /** how long a decode may go without a new block of audio before it is dropped (first bytes of a stream can take a while to resolve) */
+        const val StallMs = 30_000L
         /** the next song: two minutes of possible entry points plus room for the blend after one */
         const val HeadMs = 150_000L
         const val MaxTrackMs = 15 * 60_000L
