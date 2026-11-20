@@ -98,3 +98,10 @@ Limit: merging is additive, so a deletion made on one device can reappear after 
 | Collaborative playlists | F | Round 36 |
 
 | Classic player mode (click-wheel UI: menu, Music, Search, Downloaded, Now Playing, Settings) | C | Round 68. Written, not compiled or tried on a device. Replaces the whole UI while on; only downloaded songs, phone songs and search results. Online search results play as normal; downloaded songs play offline. Volume on Now Playing uses the system music volume |
+
+## Where to find the newer features (Rounds 94-114)
+- Home > **Tools** row (right under the player): Identify song, Bedside clock, Car mode, iPod skin, Downloads. The same four also sit in Profile > Tools.
+- Player menu: floating lyrics, lyric cards, animated cover (pick or automatic), soft pause and skip (Sound panel), volume slider, song analysis switch.
+- Artist / album pages: About blurb from Wikipedia, glass Play pill.
+- Home screen widgets: player, pill, cover, turntable.
+- Android TV: opens the big-screen home automatically.

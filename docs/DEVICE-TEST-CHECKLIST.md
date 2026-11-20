@@ -219,3 +219,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R111: add the "Turntable" widget (2x2 up to 4x4); play something and check the cover shows inside the record, buttons work, it follows resize.
 - [ ] R112: Profile > Tools > iPod skin: circle a finger round the wheel (volume bar shows), press the middle (scrub, seeks in the song), tap ring top/left/right/bottom, tap the title bar to flip white/black, system Back closes.
 - [ ] R113: open an album/artist: wide glass Play pill + round shuffle/download, caps info line with minutes; Bedside clock buttons are glass and dim with brightness taps.
+- [ ] R114: on an Android TV (or emulator): milo shows in the launcher, opens the big-screen home, arrow keys move a white focus ring, OK plays an album/song, bottom bar buttons work. On a phone nothing changes.
+- [ ] R115: Home shows a Tools card under the player; each glass chip opens its screen (identify dialog, bedside, car mode, iPod, downloads).

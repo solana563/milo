@@ -493,3 +493,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 113 — UI brought in line with the features (iOS-style glass)
 - Detail (artist/album/playlist) header: a wide glass "Play" pill with round glass shuffle/download buttons, and a spaced-capitals line ("ALBUM · 10 SONGS · 30 MIN"), after the iOS music look the owner supplied.
 - Bedside clock: Close, Sleep and the transport buttons now use milo's own glass surface and dim together with the clock.
+
+## Round 114 — TV interface
+- On Android TV / leanback devices milo now opens a big-screen home made for the remote: shuffle and liked pills, rows of albums and songs with a focus ring, and a glass now-playing bar with previous/play/next. Idea from Mochy Music's TV interface (GPL-3.0); written fresh and much smaller (Mochy's is about 5,000 lines with its own activity). milo is added to the TV launcher (leanback category and banner, touchscreen and leanback features optional). Phones are unchanged.
+
+## Round 115 — Tools row on Home
+- The extras were only in Profile > Tools. Home now has a "Tools" card of glass chips (Identify song, Bedside clock, Car mode, iPod skin, Downloads) right under the player; FEATURE-INVENTORY.md lists where every newer feature lives.
