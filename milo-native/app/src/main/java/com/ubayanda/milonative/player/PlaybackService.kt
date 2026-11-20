@@ -148,7 +148,7 @@ class PlaybackService : MediaLibraryService() {
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             // Round 62: back to Media3's default audio buffer. The Round 48 bigger buffer (600 ms) did not help and matches the ~0.6 s freeze seen at every crossfade swap.
-            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Extras.Processor(), Spectrum.Tap()))
+            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap()))
             .build()
 
     private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this, eqRenderers())
@@ -404,6 +404,7 @@ class PlaybackService : MediaLibraryService() {
         ParamEq.init(this)
         Extras.init(this)
         GraphicEq.init(this)
+        Reverb.init(this)
         val player = ExoPlayer.Builder(this, eqRenderers())
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
             .setAudioAttributes(

@@ -222,3 +222,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R114: on an Android TV (or emulator): milo shows in the launcher, opens the big-screen home, arrow keys move a white focus ring, OK plays an album/song, bottom bar buttons work. On a phone nothing changes.
 - [ ] R115: Home shows a Tools card under the player; each glass chip opens its screen (identify dialog, bedside, car mode, iPod, downloads).
 - [ ] R116: CI build green again after the TvScreen fix (compile only).
+- [ ] R117: Now Playing > Sound > Reverb: switch on, pick Hall/Cathedral, move Amount (no clicks, no clipping on loud songs); off returns the dry sound; try with crossfade, headphones and speaker.
+- [ ] R118: build only: CI compiles the new crossmix/engine files (no behaviour change yet).

@@ -502,3 +502,12 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 116 — build fix
 - TvScreen.kt: `composed` is a Modifier extension and was called as a plain function (CI: "Unresolved reference 'composed'"). Fixed.
+
+## Round 117 — Reverb
+- New Reverb in the Sound sheet: on/off, eight rooms (Room, Studio, Bathroom, Plate, Hall, Cathedral, Stadium, Dreamy) and an Amount slider. The reverb design and presets come from Mochy Music (GPL-3.0, eq/ReverbSettings + eq/audio/ReverbAudioProcessor, itself after Jezar's freeverb); rewritten to plug into milo's own audio processor chain (16-bit and float, mono/stereo, soft-knee limiter).
+- docs/MOCHY-GAP.md lists everything from Mochy that is done, refused on purpose, or not built yet.
+
+## Round 118 — Mochy's crossmix engine brought in (not wired yet)
+- Copied from Mochy Music (GPL-3.0, github.com/realidkroo/Mochy-Music) with only the package names changed: crossmix/CrossmixPlanner, CrossmixStyles (all the mix styles and their effect maths), CrossmixSettings, TransportMoves; playback/CrossmixDirector (plans each hand-over, arms the incoming player, tempo ramp and beat lock), TransportTransitions (the pause/play/skip fades and the effects over them), TransportFadingPlayer, audio/CrossmixTransitionAudioProcessor (the DSP: echo, rewind, tape stop, spin back, filter sweep, bass swap...), audio/CrossmixClockSink, SilenceDetectorAudioProcessor, SincResampler.
+- Small changes: the planner reads timed lyrics with a small LRC reader of its own instead of Mochy's LyricsUtils; the clock sink and the fading player lose Mochy's Audio Lab / USB-DAC hooks; the enums (CrossmixMode, CrossmixLength, CrossmixTempoMatch, TransportEffect) sit in crossmix/CrossmixConstants.kt.
+- Nothing calls these yet, so playback is unchanged. Round 119 wires them into the playback service (second player for the blend, the audio chain, settings) in place of milo's older ghost crossfade.

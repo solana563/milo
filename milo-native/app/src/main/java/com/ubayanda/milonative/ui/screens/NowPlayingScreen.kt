@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -339,7 +340,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         }
                         // an animated cover the person chose for this song plays silently over the art
                         val canvasCtx = androidx.compose.ui.platform.LocalContext.current
-                        com.ubayanda.milonative.ui.components.CanvasStore.get(canvasCtx, k.id)?.let { cu ->
+                        val chosenCanvas = com.ubayanda.milonative.ui.components.CanvasStore.get(canvasCtx, k.id)
+                        // else, when the automatic mode is on, the official music video of a YouTube song plays instead
+                        val autoCanvas = if (chosenCanvas == null && k.id == t.id) com.ubayanda.milonative.ui.components.AutoCanvas.urlFor(canvasCtx, t.uri) else null
+                        (chosenCanvas ?: autoCanvas)?.let { cu ->
                             com.ubayanda.milonative.ui.components.CanvasLoop(cu, uiNow.isPlaying, Modifier.fillMaxSize())
                         }
                     }
@@ -598,7 +602,7 @@ private fun QueueContent(vm: MainViewModel, ui: PlayerUi) {
     val reorder = remember(listState) {
         ReorderState(
             listState, 1,
-            { f, t -> val l = local; if (f in l.indices && t in l.indices) local = l.toMutableList().also { it.add(t, it.removeAt(f)) } },
+            { f, t -> val l = local.toMutableList(); if (f in l.indices) { val it = l.removeAt(f); l.add(t.coerceIn(0, l.size), it); local = l } },
             { f, t -> vm.player.moveInQueue(f, t) },
         )
     }
@@ -731,6 +735,8 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         MiloChip(if (fine) "Hide parametric EQ" else "Show parametric EQ", fine, Modifier.padding(horizontal = 20.dp)) { fine = !fine }
         if (fine) ParametricSection()
 
+        ReverbSection()
+
         if (fx.available) {
             Label("Effects")
             Text("Bass boost", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -744,6 +750,26 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
                 colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun ReverbSection() {
+    val rv by com.ubayanda.milonative.player.Reverb.state.collectAsState()
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Reverb")
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Put the music in a room", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = rv.enabled, onCheckedChange = { com.ubayanda.milonative.player.Reverb.setEnabled(it) }, colors = sw)
+    }
+    if (rv.enabled) {
+        Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            com.ubayanda.milonative.player.Reverb.presets.forEachIndexed { i, p ->
+                MiloChip(p.name, rv.preset == i) { com.ubayanda.milonative.player.Reverb.setPreset(i) }
+            }
+        }
+        Text("Amount", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
+        MiloSlider(value = rv.mix, onValueChange = { com.ubayanda.milonative.player.Reverb.setMix(it) }, valueRange = 0f..1f, colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp))
     }
 }
 
@@ -1051,6 +1077,8 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
+            DropdownMenuItem(text = { Text("Animated cover from music video: " + com.ubayanda.milonative.ui.components.AutoCanvas.labels[com.ubayanda.milonative.ui.components.AutoCanvas.mode(canvasCtx)]) },
+                onClick = { com.ubayanda.milonative.ui.components.AutoCanvas.cycle(canvasCtx) })
             DropdownMenuItem(text = { Text("Animated cover: choose a video") }, onClick = { open = false; pickCanvas.launch(arrayOf("video/*")) })
             if (com.ubayanda.milonative.ui.components.CanvasStore.get(canvasCtx, t.id) != null)
                 DropdownMenuItem(text = { Text("Animated cover: remove") }, onClick = { open = false; com.ubayanda.milonative.ui.components.CanvasStore.set(canvasCtx, t.id, null) })
