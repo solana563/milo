@@ -547,3 +547,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - The reflection shows under the Squared cover style. Its blur is Mochy's three-pass box blur on milo's bitmap.
 - The burst runs from the Like button in the player dock (liking only; unliking stays quiet). The heart is milo's own heart glyph; Mochy's haptic cues use gentler Compose-compatible ones.
 - Left out for now: double-tap on the cover to like (milo's double-tap zones already seek/play), and Mochy's "Added to Library" label.
+
+## Round 126 — build fix for rounds 123–125
+- CI: PlaybackService.kt:557 (preference key is a nullable String: safe call), DiscCover.kt (GraphicsLayerScope has no colorFilter on this Compose version: the pause tint is now the Image's colorFilter; a leftover Mochy font reference removed).

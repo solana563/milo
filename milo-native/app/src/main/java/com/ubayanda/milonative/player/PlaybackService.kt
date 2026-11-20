@@ -554,7 +554,7 @@ class PlaybackService : MediaLibraryService() {
     // a changed Crossmix choice (engine, length, tempo, style...) re-plans the next hand-over
     private val xPrefsWatch = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (_: Throwable) {} }
-        if (key.startsWith("haptic_")) handler.post { synchronized(hapticProcs) { hapticProcs.toList() }.forEach { applyHaptic(it) } }
+        if (key?.startsWith("haptic_") == true) handler.post { synchronized(hapticProcs) { hapticProcs.toList() }.forEach { applyHaptic(it) } }
         if (key == "tfade" || key == "tfx") handler.post { try { syncTransport() } catch (_: Throwable) {} }
     }
 

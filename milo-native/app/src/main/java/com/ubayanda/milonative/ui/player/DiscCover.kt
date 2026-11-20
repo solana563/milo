@@ -281,9 +281,8 @@ fun DiscCover(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { colorFilter = pausedFilter(saturationProvider()) },
+                        colorFilter = pausedFilter(saturationProvider()),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
@@ -337,11 +336,11 @@ fun DiscCover(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
+                colorFilter = pausedFilter(saturationProvider()),
                 modifier = Modifier
                     .requiredSize(side.dp)
                     .offset { IntOffset(cardLeftPx.toInt(), cardTopPx.toInt()) }
-                    .clip(RoundedCornerShape(side.dp * 0.06f))
-                    .graphicsLayer { colorFilter = pausedFilter(saturationProvider()) },
+                    .clip(RoundedCornerShape(side.dp * 0.06f)),
             )
         }
     }
@@ -383,7 +382,6 @@ private fun BoxScope.DiscNamePlate(
     val band = (1f - geometry.art) / 2f * discSide
     val fontSize = (band * 0.30f).coerceIn(8f, 15f).sp
     val style = TextStyle(
-        fontFamily = com.mochyy.mochymusic.ui.theme.InterFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = fontSize,
         letterSpacing = 0.22.em,
