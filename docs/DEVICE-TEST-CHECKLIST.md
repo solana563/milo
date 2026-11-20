@@ -221,3 +221,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R113: open an album/artist: wide glass Play pill + round shuffle/download, caps info line with minutes; Bedside clock buttons are glass and dim with brightness taps.
 - [ ] R114: on an Android TV (or emulator): milo shows in the launcher, opens the big-screen home, arrow keys move a white focus ring, OK plays an album/song, bottom bar buttons work. On a phone nothing changes.
 - [ ] R115: Home shows a Tools card under the player; each glass chip opens its screen (identify dialog, bedside, car mode, iPod, downloads).
+- [ ] R116: CI build green again after the TvScreen fix (compile only).

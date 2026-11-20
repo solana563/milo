@@ -499,3 +499,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 115 — Tools row on Home
 - The extras were only in Profile > Tools. Home now has a "Tools" card of glass chips (Identify song, Bedside clock, Car mode, iPod skin, Downloads) right under the player; FEATURE-INVENTORY.md lists where every newer feature lives.
+
+## Round 116 — build fix
+- TvScreen.kt: `composed` is a Modifier extension and was called as a plain function (CI: "Unresolved reference 'composed'"). Fixed.

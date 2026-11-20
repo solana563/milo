@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
@@ -51,7 +52,7 @@ fun isTvDevice(ctx: android.content.Context): Boolean {
 }
 
 /** A white ring and a slight grow on whatever the remote is pointing at. */
-private fun Modifier.tvFocus(shape: Shape, onClick: () -> Unit): Modifier = androidx.compose.ui.composed {
+private fun Modifier.tvFocus(shape: Shape, onClick: () -> Unit): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     this.onFocusChanged { focused = it.isFocused }
         .scale(if (focused) 1.06f else 1f)
