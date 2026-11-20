@@ -1004,8 +1004,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun shareLoop() {
         var sig = ""; var at = 0L
+        // with no connection every try fails, so wait longer after each failure (8 s, 16 s ... up to 2 min) instead of knocking every 4 s
+        var fails = 0; var holdUntil = 0L
         while (true) {
             delay(4000)
+            if (System.currentTimeMillis() < holdUntil) continue
             val a = _account.value
             if (!a.signedIn || a.step.isNotEmpty() || cloud.session == null) continue
             val st = player.state.value
@@ -1019,7 +1022,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val s = if (np != null) np.optString("id").ifEmpty { np.optString("t") + "|" + np.optString("a") } else "off"
             if (s == sig && (np == null || System.currentTimeMillis() - at < 90_000)) continue
             sig = s; at = System.currentTimeMillis()
-            try { if (cloud.fresh()) social.pushNp(np) } catch (e: Exception) { sig = "" }
+            try { if (cloud.fresh()) social.pushNp(np); fails = 0 } catch (e: Exception) {
+                sig = ""; fails = (fails + 1).coerceAtMost(5)
+                holdUntil = System.currentTimeMillis() + (4000L shl fails).coerceAtMost(120_000L)
+            }
         }
     }
 

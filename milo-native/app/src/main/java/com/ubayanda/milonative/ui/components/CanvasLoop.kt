@@ -47,13 +47,52 @@ object CanvasStore {
     }
 }
 
+/** the automatic animated cover: 0 off, 1 on Wi-Fi / unmetered only, 2 on any network */
+object AutoCanvas {
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("milo_canvas", Context.MODE_PRIVATE)
+    fun mode(ctx: Context): Int { CanvasStore.version.intValue; return prefs(ctx).getInt("auto", 0) }
+    fun cycle(ctx: Context) { prefs(ctx).edit().putInt("auto", (mode(ctx) + 1) % 3).apply(); CanvasStore.version.intValue++ }
+    val labels = listOf("Off", "Wi-Fi only", "Any network")
+
+    fun allowed(ctx: Context): Boolean {
+        val m = mode(ctx)
+        if (m == 0) return false
+        if (m == 2) return true
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        return !cm.isActiveNetworkMetered
+    }
+
+    /** the link to this song's music video when the automatic mode is on and the song comes from YouTube; null otherwise */
+    @Composable
+    fun urlFor(ctx: Context, uri: String): String? {
+        val on = mode(ctx) != 0 && uri.startsWith("yt:") && uri.length == 14
+        val state = androidx.compose.runtime.produceState<String?>(null, uri, on) {
+            value = null
+            if (on && allowed(ctx)) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.ubayanda.milonative.data.YtMusic.musicVideoFor(uri.removePrefix("yt:"))?.url
+            }
+        }
+        return state.value
+    }
+}
+
 @OptIn(UnstableApi::class)
 @Composable
 fun CanvasLoop(uri: String, playing: Boolean, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     var ready by remember(uri) { mutableStateOf(false) }
     val player = remember(uri) {
-        ExoPlayer.Builder(ctx).build().apply {
+        val builder = ExoPlayer.Builder(ctx)
+        if (uri.startsWith("https://")) {
+            // a stream link from YouTube: it wants the same user agent the song streams use
+            builder.setMediaSourceFactory(
+                androidx.media3.exoplayer.source.DefaultMediaSourceFactory(
+                    androidx.media3.datasource.DefaultHttpDataSource.Factory().setUserAgent(com.ubayanda.milonative.data.YtMusic.STREAM_UA)
+                        .setConnectTimeoutMs(12_000).setReadTimeoutMs(20_000).setAllowCrossProtocolRedirects(true),
+                ),
+            )
+        }
+        builder.build().apply {
             volume = 0f
             repeatMode = Player.REPEAT_MODE_ONE
             // never touches the sound: no audio track, no audio focus

@@ -362,6 +362,14 @@ class StreamingTrackAnalyzer {
             if (score > bestScore) { bestScore = score; bestLag = lag }
         }
         if (bestLag <= 0 || bestScore <= 0f) return null
+        // milo's fix (not in Mochy's): dembow and reggaeton-style grooves pulse in dotted eighths, which sit at 4/3 of the real tempo
+        // ("Work" at 92 bpm read as 122.8). If the same pattern also repeats strongly one 4/3 longer, that longer lag is the beat.
+        run {
+            val center = (bestLag * 4f / 3f).roundToInt()
+            var alt = -1; var altV = 0f
+            for (l in (center - 1)..(center + 1)) if (l in (minLag + 1)..maxLag && acf[l] > altV) { altV = acf[l]; alt = l }
+            if (alt > 0 && altV >= 0.9f * acf[bestLag]) bestLag = alt
+        }
         // sub-frame peak, so 128 and 129 bpm don't round to the same lag
         val y0 = acf[bestLag - 1]; val y1 = acf[bestLag]; val y2 = acf[bestLag + 1]
         val curvature = y0 - 2 * y1 + y2

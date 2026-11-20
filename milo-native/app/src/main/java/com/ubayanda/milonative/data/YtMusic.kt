@@ -444,6 +444,64 @@ object YtMusic {
 
     fun forget(videoId: String) { streams.remove(videoId) }
 
+    // ---- music video as an animated cover ----
+    /** a short-lived link to a silent video-only stream of the song's official music video */
+    data class VideoLoop(val url: String, val expiresAt: Long)
+    private val videoLoops = ConcurrentHashMap<String, VideoLoop>()
+    private val noVideo = ConcurrentHashMap.newKeySet<String>()
+
+    private fun findCounterpart(o: Any?): String? {
+        when (o) {
+            is JSONObject -> {
+                o.optJSONArray("counterpart")?.let { a ->
+                    for (i in 0 until a.length()) {
+                        val id = a.optJSONObject(i)?.optJSONObject("counterpartRenderer")?.optJSONObject("playlistPanelVideoRenderer")?.optString("videoId").orEmpty()
+                        if (id.length == 11) return id
+                    }
+                }
+                for (k in o.keys()) findCounterpart(o.opt(k))?.let { return it }
+            }
+            is JSONArray -> for (i in 0 until o.length()) findCounterpart(o.opt(i))?.let { return it }
+        }
+        return null
+    }
+
+    private fun isOfficialVideo(j: JSONObject) = j.optJSONObject("videoDetails")?.optString("musicVideoType") == "MUSIC_VIDEO_TYPE_OMV"
+
+    /**
+     * The song's official music video, for the animated cover (Mochy Music does the same with its YouTube video background).
+     * A "song" on YouTube Music is usually audio over a still picture, so the video counterpart is looked up through the watch queue.
+     * Returns null when there is none. Smallest sensible size (about 360p, no sound) so a loop costs little data. Blocking.
+     */
+    fun musicVideoFor(videoId: String): VideoLoop? {
+        videoLoops[videoId]?.let { if (it.expiresAt > System.currentTimeMillis() + 90_000L) return it }
+        if (videoId in noVideo) return null
+        try {
+            var id = videoId
+            var j = post("player", JSONObject().put("videoId", id).put("contentCheckOk", true).put("racyCheckOk", true), vision)
+            if (!isOfficialVideo(j)) {
+                val other = findCounterpart(post("next", JSONObject().put("videoId", videoId), remix))
+                if (other == null) { noVideo.add(videoId); return null }
+                id = other
+                j = post("player", JSONObject().put("videoId", id).put("contentCheckOk", true).put("racyCheckOk", true), vision)
+                if (!isOfficialVideo(j)) { noVideo.add(videoId); return null }
+            }
+            if (j.optJSONObject("playabilityStatus")?.optString("status") != "OK") { noVideo.add(videoId); return null }
+            val sd = j.optJSONObject("streamingData") ?: run { noVideo.add(videoId); return null }
+            val arr = sd.optJSONArray("adaptiveFormats") ?: run { noVideo.add(videoId); return null }
+            val vids = (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.filter {
+                it.has("width") && it.has("url") && !it.has("signatureCipher") && !it.has("cipher") &&
+                    it.optString("mimeType").let { m -> m.startsWith("video/mp4") && m.contains("avc1") } && it.optInt("height") in 200..480
+            }
+            // the one closest to 360 p
+            val f = vids.minByOrNull { Math.abs(it.optInt("height") - 360) } ?: run { noVideo.add(videoId); return null }
+            val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
+            return VideoLoop(f.getString("url"), System.currentTimeMillis() + secs * 1000L).also { videoLoops[videoId] = it }
+        } catch (e: Exception) {
+            return null   // a network hiccup is not a "no video": try again next time
+        }
+    }
+
     /** How much louder than YouTube's reference this song is (dB, 0 when unknown). Used to even out volume between songs. */
     fun loudness(videoId: String): Double = streams[videoId]?.loudnessDb ?: 0.0
 

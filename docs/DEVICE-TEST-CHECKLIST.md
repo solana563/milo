@@ -224,3 +224,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R116: CI build green again after the TvScreen fix (compile only).
 - [ ] R117: Now Playing > Sound > Reverb: switch on, pick Hall/Cathedral, move Amount (no clicks, no clipping on loud songs); off returns the dry sound; try with crossfade, headphones and speaker.
 - [ ] R118: build only: CI compiles the new crossmix/engine files (no behaviour change yet).
+- [ ] R119: CI compiles after the catch-up pack (replace every file in it, none skipped).
