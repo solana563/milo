@@ -735,6 +735,8 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         MiloChip(if (fine) "Hide parametric EQ" else "Show parametric EQ", fine, Modifier.padding(horizontal = 20.dp)) { fine = !fine }
         if (fine) ParametricSection()
 
+        CrossmixSection()
+
         ReverbSection()
 
         if (fx.available) {
@@ -750,6 +752,57 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
                 colors = amberSlider(), modifier = Modifier.padding(horizontal = 20.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun CrossmixSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val fx = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+    var engine by remember { mutableStateOf(fx.getString(com.ubayanda.milonative.player.CrossmixLive.ENGINE, "classic") ?: "classic") }
+    var len by remember { mutableStateOf(fx.getInt(com.ubayanda.milonative.player.CrossmixLive.LENGTH, 1)) }
+    var tempo by remember { mutableStateOf(fx.getInt(com.ubayanda.milonative.player.CrossmixLive.TEMPO, 2)) }
+    var style by remember { mutableStateOf(fx.getInt(com.ubayanda.milonative.player.CrossmixLive.STYLE, -1)) }
+    var stunts by remember { mutableStateOf(fx.getBoolean(com.ubayanda.milonative.player.CrossmixLive.STUNTS, true)) }
+    var always by remember { mutableStateOf(fx.getBoolean(com.ubayanda.milonative.player.CrossmixLive.ALWAYS, true)) }
+    val status by com.ubayanda.milonative.player.CrossmixLive.status.collectAsState()
+    val mixing by com.ubayanda.milonative.player.CrossmixLive.mixing.collectAsState()
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    fun putI(k: String, v: Int) = fx.edit().putInt(k, v).apply()
+
+    Label("Transitions")
+    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MiloChip("Classic", engine == "classic") { engine = "classic"; fx.edit().putString(com.ubayanda.milonative.player.CrossmixLive.ENGINE, engine).apply() }
+        MiloChip("Crossmix", engine == "crossmix") { engine = "crossmix"; fx.edit().putString(com.ubayanda.milonative.player.CrossmixLive.ENGINE, engine).apply() }
+    }
+    if (engine != "crossmix") {
+        Text("Classic is milo's own crossfade (the Crossfade slider). Crossmix is Mochy Music's engine: it reads both songs' tempo, beats, key and where the vocals are, then blends them on the beat in a style that fits the pair.", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
+        return
+    }
+    Text((if (mixing) "Mixing now: " else "") + status, color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+    Text("Length", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Short", "Medium", "Long").forEachIndexed { i, n -> MiloChip(n, len == i) { len = i; putI(com.ubayanda.milonative.player.CrossmixLive.LENGTH, i) } }
+    }
+    Text("Tempo match", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Off", "Gentle", "Full").forEachIndexed { i, n -> MiloChip(n, tempo == i) { tempo = i; putI(com.ubayanda.milonative.player.CrossmixLive.TEMPO, i) } }
+    }
+    Text("Style", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MiloChip("Fits the pair", style == -1) { style = -1; putI(com.ubayanda.milonative.player.CrossmixLive.STYLE, -1) }
+        com.ubayanda.milonative.crossmix.CrossmixStyle.values().forEachIndexed { i, st -> MiloChip(st.label, style == i) { style = i; putI(com.ubayanda.milonative.player.CrossmixLive.STYLE, i) } }
+    }
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Backspins, tape stops and risers when the energy jumps", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = stunts, onCheckedChange = { stunts = it; fx.edit().putBoolean(com.ubayanda.milonative.player.CrossmixLive.STUNTS, it).apply() }, colors = sw)
+    }
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Always blend the two songs, never a plain fade", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = always, onCheckedChange = { always = it; fx.edit().putBoolean(com.ubayanda.milonative.player.CrossmixLive.ALWAYS, it).apply() }, colors = sw)
+    }
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+        MiloChip("Try a mix now", false) { com.ubayanda.milonative.player.CrossmixLive.test.tryEmit(Unit) }
     }
 }
 

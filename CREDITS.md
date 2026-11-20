@@ -514,3 +514,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 119 — catch-up pack
 - CI: "Unresolved reference 'AutoCanvas'" in NowPlayingScreen.kt. The cover-video helper (CanvasLoop.kt, YtMusic.kt from Round 108) was missing in the tree being built while the newer NowPlayingScreen.kt was in. No code change: a single zip with the current version of every file changed since Round 106 so the tree is consistent.
+
+## Round 120 — crossmix engine wired into playback
+- Source: Mochy Music (GPL-3.0), CrossmixDirector hand-over flow, now driven by milo's PlaybackService (second ExoPlayer for the incoming song, transition processor and clock sink in the audio chain, promote/swap of the session player).
+- New setting Now Playing > Sound > Transitions: Classic (milo's older crossfade, default, untouched) or Crossmix (length, tempo match, style, stunts, always blend, "Try a mix now", live status).
+- Crossmix stands down for repeat-one, Bluetooth compat mode, and while casting. YouTube download/offline path unchanged.
+- Not done yet: Mochy's pause/play/skip fades and effects (TransportTransitions) still use milo's own soft transport.

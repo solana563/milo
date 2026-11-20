@@ -76,7 +76,7 @@ class PlaybackService : MediaLibraryService() {
     private fun resyncAfterStall(p: Player) {
         try {
             if (!fxPrefs.getBoolean("resync", true)) return
-            if (xfPhase != 0 || xfWarm) return
+            if (xfPhase != 0 || xfWarm || directorOrNull?.isTransitioning == true) return
             val now = android.os.SystemClock.elapsedRealtime()
             if (now - lastResync < 8_000L) return
             if (!p.isPlaying || p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) return
@@ -134,22 +134,25 @@ class PlaybackService : MediaLibraryService() {
 
     /** Renderers whose audio goes through the parametric equaliser first. */
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun eqRenderers() = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+    private fun eqRenderers(xp: com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor? = null) = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
         override fun buildAudioSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): androidx.media3.exoplayer.audio.AudioSink =
             if (btCompat()) androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context).setEnableFloatOutput(false).setEnableAudioTrackPlaybackParams(false).build()
-            else buildEqSink(context, enableFloatOutput, enableAudioTrackPlaybackParams)
+            else buildEqSink(context, enableFloatOutput, enableAudioTrackPlaybackParams, xp)
     }
 
     private fun btCompat() = getSharedPreferences("milo_fx", MODE_PRIVATE).getBoolean("btcompat", false)
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun buildEqSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): androidx.media3.exoplayer.audio.AudioSink =
-        androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+    private fun buildEqSink(context: android.content.Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean, xp: com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor? = null): androidx.media3.exoplayer.audio.AudioSink {
+        val sink = androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             // Round 62: back to Media3's default audio buffer. The Round 48 bigger buffer (600 ms) did not help and matches the ~0.6 s freeze seen at every crossfade swap.
-            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap()))
+            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(*listOfNotNull(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap(), xp).toTypedArray()))
             .build()
+        // Crossmix needs to know where in its song each buffer sits: the clock sink tells the processor
+        return if (xp != null) com.ubayanda.milonative.player.audio.CrossmixClockSink(sink, xp) else sink
+    }
 
     private fun ghostPlayer(): ExoPlayer = ghost ?: ExoPlayer.Builder(this, eqRenderers())
         .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
@@ -206,7 +209,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun tick(p: ExoPlayer, now: Long, dt: Long) {
-        val x = fxPrefs.getInt("xfade", 0) * 1000L
+        val x = if (crossmixOn()) 0L else fxPrefs.getInt("xfade", 0) * 1000L
         var v = 1f
         val g = ghost
         if (xfPhase == 0) {
@@ -398,6 +401,255 @@ class PlaybackService : MediaLibraryService() {
         Thread { com.ubayanda.milonative.data.YtMusic.warm(vid) }.start()
     }
 
+    private val mainAnalytics = object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+            override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
+                com.ubayanda.milonative.util.ErrorLog.add("audio", "underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms speed=${cur().playbackParameters.speed} skipSilence=${cur().skipSilenceEnabled}")
+                resyncAfterStall(cur())
+            }
+        }
+
+    private val mainListener = object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                com.ubayanda.milonative.util.ErrorLog.add("player", error.errorCodeName + ": " + error.message + (error.cause?.let { " / " + it.javaClass.simpleName + ": " + it.message } ?: "") + " | " + cur().currentMediaItem?.localConfiguration?.uri)
+                // a YouTube link that expired or was refused: look up a fresh one and carry on from the same place, once per song
+                val u = cur().currentMediaItem?.localConfiguration?.uri
+                val vid = if (u?.scheme == "yt") u.schemeSpecificPart.orEmpty() else ""
+                if (vid.isNotEmpty() && ytRetried.add(vid)) {
+                    com.ubayanda.milonative.data.YtMusic.forget(vid)
+                    cur().prepare()
+                    return
+                }
+                // dead stream: drop it right here so the session never carries a broken timeline
+                endGhost(); cur().stop(); cur().clearMediaItems()
+            }
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_READY) xdir()?.schedule()
+                if (state == Player.STATE_READY) {
+                    val id = cur().currentMediaItem?.mediaId
+                    if (id != null && resumedFor != id) {
+                        resumedFor = id
+                        val d = cur().duration
+                        // arriving through a crossfade: start the song from its beginning; jumping to a saved spot would cut the fade
+                        if (d >= Resume.LONG_MS && xfPhase == 0) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
+                            if (pos > 10_000 && pos < d - 30_000) { cur().seekTo(pos); if (sp > 0f && sp != cur().playbackParameters.speed) cur().setPlaybackSpeed(sp) }
+                        }
+                    }
+                } else if (state == Player.STATE_ENDED) {
+                    cur().currentMediaItem?.mediaId?.let { Resume.drop(this@PlaybackService, it) }
+                }
+            }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                if (!promotingCrossmix) xdir()?.onItemChanged()
+                if (!crossmixOn()) try { com.ubayanda.milonative.crossmix.CrossmixLab.look(this@PlaybackService, mediaItem, if (cur().hasNextMediaItem()) cur().getMediaItemAt(cur().nextMediaItemIndex) else null) } catch (_: Throwable) {}
+                // the main cur() reached the end of the old song by itself during the fade: that is the hand-over
+                if (xfOwn) xfOwn = false
+                else if (xfPhase == 1 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && ghost != null) beginHandoff(cur(), ghost!!, android.os.SystemClock.elapsedRealtime())
+                else if (xfPhase != 0 || xfWarm || primedKey != null) {
+                    // the person skipped, or the queue changed, while the next song was being got ready or faded in: drop the second cur() at once
+                    if (xfPhase != 0) com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)")
+                    endGhost()
+                }
+                resumedFor = null
+                mediaItem?.mediaId?.let { RecentStore.add(this@PlaybackService, it) }
+                Extras.clearLoop()
+                rgPrev = rgScale
+                updateGain(cur())
+                warmNext(cur())
+                xdir()?.schedule()
+            }
+            override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+                if (reason == Player.DISCONTINUITY_REASON_SEEK) xdir()?.onUserSeek()
+            }
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) xdir()?.schedule()
+            }
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { updateGain(cur()) }
+            override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) ytRetried.clear() else BtOutput.saveVolume(this@PlaybackService) }
+            override fun onEvents(p: Player, events: Player.Events) {
+                if (events.containsAny(
+                        Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                        Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_MEDIA_METADATA_CHANGED,
+                    )
+                ) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, p)
+            }
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                AudioFx.attach(this@PlaybackService, audioSessionId)
+            }
+        }
+
+
+    // ======== Crossmix (Round 120): Mochy Music's engine plans and plays the hand-over on two real players ========
+    // The next song gets its own player (own audio chain, own crossmix processor); the director arms both sides, locks the beats and fades,
+    // and at the hand-over the new player becomes the session's player while the old one plays out and is released.
+    private val musicAttrs = AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build()
+    private val crossmixProcessors = HashMap<Player, com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor>()
+    private var outgoingExo: ExoPlayer? = null
+    private var promotingCrossmix = false
+    private var directorOrNull: CrossmixDirector? = null
+    private val director: CrossmixDirector
+        get() = directorOrNull ?: CrossmixDirector(
+            svcScope, CrossmixHost(),
+            com.ubayanda.milonative.crossmix.CrossmixAnalysisRepository(applicationContext) { YtSource.dataSourceFactory(applicationContext) },
+        ).also { directorOrNull = it }
+
+    private fun cur(): ExoPlayer = exo!!
+    private fun crossmixOn() = CrossmixLive.on(fxPrefs)
+    private fun xdir(): CrossmixDirector? = if (crossmixOn()) director else null
+
+    // a changed Crossmix choice (engine, length, tempo, style...) re-plans the next hand-over
+    private val xPrefsWatch = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (_: Throwable) {} }
+    }
+
+    private fun makeFading(p: ExoPlayer) = FadingPlayer(p, handler, { fxPrefs.getInt("tfade", 300).toLong() }, { xfPhase == 0 && session?.player === fading }, ::applyVolumeNow)
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun newCrossmixPlayer(): ExoPlayer {
+        val xp = com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor()
+        val p = ExoPlayer.Builder(this, eqRenderers(xp))
+            .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
+            .setAudioAttributes(musicAttrs, /* handleAudioFocus = */ false)
+            .setHandleAudioBecomingNoisy(false)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .build()
+        crossmixProcessors[p] = xp
+        // the player still waiting to take over only logs its dropouts: a stall here must not make the playing song restart
+        p.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+            override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
+                com.ubayanda.milonative.util.ErrorLog.add("crossmix", "second player underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms")
+            }
+        })
+        return p
+    }
+
+    private fun copyPlayOrder(from: Player, to: ExoPlayer) {
+        val timeline = from.currentTimeline
+        if (timeline.isEmpty || timeline.windowCount != to.mediaItemCount) return
+        val order = ArrayList<Int>(timeline.windowCount)
+        var index = timeline.getFirstWindowIndex(true)
+        while (index != C.INDEX_UNSET && order.size < timeline.windowCount) {
+            order += index
+            index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, true)
+        }
+        if (order.size != timeline.windowCount) return
+        to.setShuffleOrder(androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder(order.toIntArray(), System.currentTimeMillis()))
+    }
+
+    /** what the Crossmix director needs from the service: players, the session, the queue */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private inner class CrossmixHost : CrossmixDirector.Host {
+        override val currentPlayer: ExoPlayer get() = cur()
+
+        override fun processorFor(player: Player): com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor? = crossmixProcessors[player]
+
+        override fun createIncoming(index: Int, positionMs: Long, parameters: androidx.media3.common.PlaybackParameters): ExoPlayer {
+            val from = cur()
+            val incoming = newCrossmixPlayer()
+            incoming.setMediaItems((0 until from.mediaItemCount).map { from.getMediaItemAt(it) })
+            copyPlayOrder(from, incoming)
+            incoming.repeatMode = from.repeatMode
+            incoming.shuffleModeEnabled = from.shuffleModeEnabled
+            // the tempo is set before anything plays: changing it later drains and resets the audio chain, which would cut into the transition
+            incoming.playbackParameters = parameters
+            incoming.volume = from.volume
+            incoming.seekTo(index, positionMs)
+            incoming.playWhenReady = false
+            // not prepared here: the director arms its processor first
+            return incoming
+        }
+
+        override fun promote(incoming: ExoPlayer, outgoing: ExoPlayer) {
+            outgoingExo = outgoing
+            outgoing.removeListener(mainListener)
+            outgoing.removeAnalyticsListener(mainAnalytics)
+            // the outgoing player must never roll on into the next song itself, and lets go of audio focus and the headphones-unplugged pause
+            outgoing.pauseAtEndOfMediaItems = true
+            outgoing.setHandleAudioBecomingNoisy(false)
+            outgoing.setAudioAttributes(musicAttrs, false)
+
+            exo = incoming
+            incoming.setAudioAttributes(musicAttrs, true)
+            incoming.setHandleAudioBecomingNoisy(true)
+            incoming.skipSilenceEnabled = Extras.state.value.skipSilence
+            incoming.addListener(mainListener)
+            incoming.addAnalyticsListener(mainAnalytics)
+            // pause and resume both sides together; an outgoing side that has played out stays put
+            incoming.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    val out = outgoingExo
+                    if (!director.isTransitioning || out == null) { incoming.removeListener(this); return }
+                    if (isPlaying) {
+                        val finished = out.playbackState == Player.STATE_ENDED || (out.duration > 0 && out.currentPosition >= out.duration - 250)
+                        if (!finished) out.play()
+                    } else out.pause()
+                }
+            })
+            val fp = makeFading(incoming)
+            fading = fp
+            try { session?.player = fp } catch (e: Throwable) { com.ubayanda.milonative.util.ErrorLog.add("crossmix", "could not swap the session's player: " + e.message) }
+            AudioFx.attach(this@PlaybackService, incoming.audioSessionId)
+            // a cast bridge built on the old player would restore the queue onto a released one: build a new one on this player
+            try { castBridge?.release() } catch (_: Throwable) {}
+            castBridge = CastBridge(this@PlaybackService, { session }, incoming, fp).also { it.init() }
+
+            // the hooks a song change runs (loudness, recents, loop reset) for the song now playing, which this player reached by a seek before it was ours
+            promotingCrossmix = true
+            try { mainListener.onMediaItemTransition(incoming.currentMediaItem, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) } finally { promotingCrossmix = false }
+            resumedFor = incoming.currentMediaItem?.mediaId
+            applyVolumeNow()
+            com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, incoming)
+        }
+
+        override fun release(outgoing: ExoPlayer) {
+            runCatching { outgoing.stop(); outgoing.clearMediaItems(); outgoing.release() }
+            crossmixProcessors.remove(outgoing)
+            if (outgoingExo === outgoing) outgoingExo = null
+        }
+
+        override fun discard(incoming: ExoPlayer) {
+            runCatching { incoming.stop(); incoming.release() }
+            crossmixProcessors.remove(incoming)
+        }
+
+        override fun crossmixBlocker(): String? {
+            val p = cur()
+            return when {
+                !crossmixOn() -> "Transitions are set to Classic"
+                btCompat() -> "Bluetooth compatibility mode is on"
+                xfPhase != 0 || xfWarm -> "A classic crossfade is running"
+                p.repeatMode == Player.REPEAT_MODE_ONE -> "Repeat one plays the song straight round"
+                session?.player !== fading -> "Casting: Crossmix waits until you're back"
+                else -> null
+            }
+        }
+
+        override fun nextIndex(): Int = cur().let { if (it.repeatMode == Player.REPEAT_MODE_ONE) it.currentMediaItemIndex else it.nextMediaItemIndex }
+
+        // the next song's lyrics, when they've been fetched before or can be now: synced lines say exactly where its voice comes in
+        override suspend fun lyrics(item: androidx.media3.common.MediaItem): String? {
+            val id = item.mediaId.toLongOrNull() ?: return null
+            val md = item.mediaMetadata
+            val t = com.ubayanda.milonative.model.Track(id, item.localConfiguration?.uri?.toString().orEmpty(), md.title?.toString().orEmpty(), md.artist?.toString().orEmpty(), md.albumTitle?.toString().orEmpty(), 0L, 0L, 0, 0, 0L)
+            val l = kotlinx.coroutines.withTimeoutOrNull(8_000L) { com.ubayanda.milonative.data.LyricsRepo(applicationContext).get(t) } ?: return null
+            if (l.synced.isEmpty()) return null
+            return l.synced.joinToString("\n") { "[%02d:%02d.%02d]%s".format(it.timeMs / 60_000, (it.timeMs / 1000) % 60, (it.timeMs % 1000) / 10, it.text) }
+        }
+
+        override fun baseParameters(): androidx.media3.common.PlaybackParameters = cur().playbackParameters
+
+        override fun onMixingChanged(mixing: Boolean) { CrossmixLive.mixing.value = mixing }
+
+        override fun onStatus(status: String) { CrossmixLive.status.value = status }
+
+        override fun albumOf(index: Int): String? = null
+
+        override fun settings() = CrossmixLive.settings(fxPrefs)
+
+        override fun learnedStartLatencyMs(): Double? = if (fxPrefs.contains(CrossmixLive.LATENCY)) fxPrefs.getFloat(CrossmixLive.LATENCY, 0f).toDouble() else null
+
+        override fun onStartLatencyLearned(ms: Double) { fxPrefs.edit().putFloat(CrossmixLive.LATENCY, ms.toFloat()).apply() }
+    }
+
     override fun onCreate() {
         super.onCreate()
         com.ubayanda.milonative.util.ErrorLog.init(this)
@@ -405,19 +657,18 @@ class PlaybackService : MediaLibraryService() {
         Extras.init(this)
         GraphicEq.init(this)
         Reverb.init(this)
-        val player = ExoPlayer.Builder(this, eqRenderers())
+        val mainXp = com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor()
+        val player = ExoPlayer.Builder(this, eqRenderers(mainXp))
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(),
-                /* handleAudioFocus = */ true
-            )
+            .setAudioAttributes(musicAttrs, /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        crossmixProcessors[player] = mainXp
         exo = player
+        getSharedPreferences("milo_fx", MODE_PRIVATE).registerOnSharedPreferenceChangeListener(xPrefsWatch)
+        svcScope.launch { com.ubayanda.milonative.player.CrossmixLive.test.collect { xdir()?.testMix() } }
+        svcScope.launch { com.ubayanda.milonative.player.CrossmixLive.status.collect { if (it.isNotBlank() && crossmixOn()) com.ubayanda.milonative.util.ErrorLog.add("crossmix", it) } }
         if (btCompat()) {
             // let the phone's audio chip play the music: it keeps going while the app is busy or in the background
             player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
@@ -437,79 +688,16 @@ class PlaybackService : MediaLibraryService() {
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )
         // pause / play / skips ease the volume ("Soft pause & skip" in the Sound panel); 0 = off
-        val fp = FadingPlayer(player, handler, { fxPrefs.getInt("tfade", 300).toLong() }, { xfPhase == 0 && session?.player === fading }, ::applyVolumeNow)
+        val fp = makeFading(player)
         fading = fp
         session = MediaLibrarySession.Builder(this, fp, CarLibrary(this)).setSessionActivity(open).build()
         AudioFx.attach(this, player.audioSessionId)
         castBridge = CastBridge(this, { session }, player, fp).also { it.init() }
-        BtOutput.start(this, { player.isPlaying }, { player.play() })
-        svcScope.launch { Extras.state.collect { player.skipSilenceEnabled = it.skipSilence } }
+        BtOutput.start(this, { exo?.isPlaying == true }, { exo?.play() })
+        svcScope.launch { Extras.state.collect { exo?.skipSilenceEnabled = it.skipSilence } }
         svcScope.launch { BtOutput.now.collect { ParamEq.useDevice(if (it.kind == "speaker") "default" else it.name) } }
-        player.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
-            override fun onAudioUnderrun(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) {
-                com.ubayanda.milonative.util.ErrorLog.add("audio", "underrun buffer=${bufferSizeMs}ms gap=${elapsedSinceLastFeedMs}ms speed=${player.playbackParameters.speed} skipSilence=${player.skipSilenceEnabled}")
-                resyncAfterStall(player)
-            }
-        })
-        player.addListener(object : Player.Listener {
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                com.ubayanda.milonative.util.ErrorLog.add("player", error.errorCodeName + ": " + error.message + (error.cause?.let { " / " + it.javaClass.simpleName + ": " + it.message } ?: "") + " | " + player.currentMediaItem?.localConfiguration?.uri)
-                // a YouTube link that expired or was refused: look up a fresh one and carry on from the same place, once per song
-                val u = player.currentMediaItem?.localConfiguration?.uri
-                val vid = if (u?.scheme == "yt") u.schemeSpecificPart.orEmpty() else ""
-                if (vid.isNotEmpty() && ytRetried.add(vid)) {
-                    com.ubayanda.milonative.data.YtMusic.forget(vid)
-                    player.prepare()
-                    return
-                }
-                // dead stream: drop it right here so the session never carries a broken timeline
-                endGhost(); player.stop(); player.clearMediaItems()
-            }
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) {
-                    val id = player.currentMediaItem?.mediaId
-                    if (id != null && resumedFor != id) {
-                        resumedFor = id
-                        val d = player.duration
-                        // arriving through a crossfade: start the song from its beginning; jumping to a saved spot would cut the fade
-                        if (d >= Resume.LONG_MS && xfPhase == 0) Resume.get(this@PlaybackService, id)?.let { (pos, sp) ->
-                            if (pos > 10_000 && pos < d - 30_000) { player.seekTo(pos); if (sp > 0f && sp != player.playbackParameters.speed) player.setPlaybackSpeed(sp) }
-                        }
-                    }
-                } else if (state == Player.STATE_ENDED) {
-                    player.currentMediaItem?.mediaId?.let { Resume.drop(this@PlaybackService, it) }
-                }
-            }
-            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-                try { com.ubayanda.milonative.crossmix.CrossmixLab.look(this@PlaybackService, mediaItem, if (player.hasNextMediaItem()) player.getMediaItemAt(player.nextMediaItemIndex) else null) } catch (_: Throwable) {}
-                // the main player reached the end of the old song by itself during the fade: that is the hand-over
-                if (xfOwn) xfOwn = false
-                else if (xfPhase == 1 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && ghost != null) beginHandoff(player, ghost!!, android.os.SystemClock.elapsedRealtime())
-                else if (xfPhase != 0 || xfWarm || primedKey != null) {
-                    // the person skipped, or the queue changed, while the next song was being got ready or faded in: drop the second player at once
-                    if (xfPhase != 0) com.ubayanda.milonative.util.ErrorLog.add("xfade", "cut short by a song change (reason $reason)")
-                    endGhost()
-                }
-                resumedFor = null
-                mediaItem?.mediaId?.let { RecentStore.add(this@PlaybackService, it) }
-                Extras.clearLoop()
-                rgPrev = rgScale
-                updateGain(player)
-                warmNext(player)
-            }
-            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { updateGain(player) }
-            override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) ytRetried.clear() else BtOutput.saveVolume(this@PlaybackService) }
-            override fun onEvents(p: Player, events: Player.Events) {
-                if (events.containsAny(
-                        Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED,
-                        Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_MEDIA_METADATA_CHANGED,
-                    )
-                ) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, p)
-            }
-            override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                AudioFx.attach(this@PlaybackService, audioSessionId)
-            }
-        })
+        player.addAnalyticsListener(mainAnalytics)
+        player.addListener(mainListener)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
@@ -528,6 +716,10 @@ class PlaybackService : MediaLibraryService() {
         com.ubayanda.milonative.widget.WidgetUpdater.clear(this)
         try { ghost?.release() } catch (_: Throwable) {}
         ghost = null
+        try { getSharedPreferences("milo_fx", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(xPrefsWatch) } catch (_: Throwable) {}
+        try { directorOrNull?.release() } catch (_: Throwable) {}
+        try { outgoingExo?.release() } catch (_: Throwable) {}
+        outgoingExo = null
         exo = null
         AudioFx.release()
         session?.let {
