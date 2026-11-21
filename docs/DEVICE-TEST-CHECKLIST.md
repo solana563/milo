@@ -238,3 +238,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R130: CI resolves pinyin4j and unit tests run; Chinese lyrics show pinyin readings (e.g. 'ni hao').
 - [ ] R131: CI compiles the glow lyric line.
 - [ ] R132: CI builds the full debug APK (kuromoji packaging); Japanese lyrics get romaji readings.
+- R133: turn on Sound > Lyrics ticker; play a word-synced song: line should roll up per lyric, long lines slide with the sweep, gaps show dots; off = old preview line. Uncompiled, untested.

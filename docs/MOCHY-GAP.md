@@ -25,3 +25,5 @@ Soft transport fades, haptics (bass-following vibration), Crossmix analysis (tem
 - i18n (app languages), update/changelog sheets, donate/support, setup wizard.
 - Android Auto app screens (milo has a media-browser library, not Mochy's full Car App UI), phone ↔ TV link/remote.
 - Last.fm queue/worker polish (milo already scrobbles to Last.fm and ListenBrainz).
+
+- Lyrics ticker (MiniLyricsTicker): ported single-row card, opt-in on Now Playing. Tall mode (readings/upcoming list) not ported; mini-player placement intentionally not done.

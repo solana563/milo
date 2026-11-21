@@ -574,3 +574,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 132 — build fix: duplicate packaging notes
 - CI compiled Kotlin and passed unit tests, then stopped at "2 files found with path META-INF/CONTRIBUTORS.md" (kuromoji-ipadic and kuromoji-core both carry it). Those notes (CONTRIBUTORS.md, LICENSE.md, NOTICE.md under META-INF) are left out of the APK; licences stay in CREDITS.md.
+
+## Round 133 — lyrics ticker
+- `ui/lyrics/MiniLyricsTicker.kt`: port of Mochy Music's `MiniLyricsTicker` (GPL-3.0, github.com/realidkroo/Mochy-Music): slot logic, rolling line changes, sideways slide following the karaoke sweep, edge fades, interlude dots. Tall-card mode (readings + upcoming list) not ported.
+- Opt-in (Sound > "Lyrics ticker", off by default); replaces the one-line preview under the controls on Now Playing. Mini player unchanged.
