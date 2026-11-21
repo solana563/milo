@@ -565,3 +565,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 129 — build fix: TinyPinyin coordinates
 - CI: "Could not find com.github.promeg:tinypinyin:2.0.3". The group is spelled `promeG` (capital G) and the library was only published to JCenter, so it is read from the Aliyun public mirror (as Mochy does), limited to that one group. Maven Central stays the source for everything else.
+
+## Round 130 — build fix: Chinese readings use pinyin4j
+- TinyPinyin could not be fetched from any repository CI can reach (JCenter is gone, the mirror did not have it). Chinese readings now use pinyin4j (com.belerweb:pinyin4j:2.5.1, on Maven Central), set to toneless pinyin with v for ü, the shape Mochy's output had. The Aliyun mirror added in round 129 is removed again. Mochy's rules for Japanese, Korean, Cyrillic, Hindi and Punjabi are unchanged.

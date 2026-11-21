@@ -1,13 +1,17 @@
 package com.ubayanda.milonative.data
 
 import com.atilika.kuromoji.ipadic.Tokenizer
-import com.github.promeg.pinyinhelper.Pinyin
+import net.sourceforge.pinyin4j.PinyinHelper
+import net.sourceforge.pinyin4j.format.HanyuPinyinCaseType
+import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat
+import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
+import net.sourceforge.pinyin4j.format.HanyuPinyinVCharType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /**
- * Readings for lyrics in other scripts: Japanese (kuromoji), Chinese (pinyin), Korean, Russian / Ukrainian / Serbian / Bulgarian / Belarusian /
+ * Readings for lyrics in other scripts: Japanese (kuromoji), Chinese (pinyin4j), Korean, Russian / Ukrainian / Serbian / Bulgarian / Belarusian /
  * Kyrgyz / Macedonian, Hindi and Punjabi. The tables and the rules are Mochy Music's (GPL-3.0, github.com/realidkroo/Mochy-Music, LyricsUtils.kt),
  * moved out of its lyrics object into one file for milo.
  */
@@ -490,13 +494,20 @@ object Romanizer {
         romajaBuilder.toString()
     }
 
+    // toneless, ü as v: the same shape Mochy's TinyPinyin gave
+    private val pinyinFormat = HanyuPinyinOutputFormat().apply {
+        caseType = HanyuPinyinCaseType.LOWERCASE
+        toneType = HanyuPinyinToneType.WITHOUT_TONE
+        vCharType = HanyuPinyinVCharType.WITH_V
+    }
+
     suspend fun romanizeChinese(text: String): String = withContext(Dispatchers.Default) {
         if (text.isEmpty()) return@withContext ""
         val builder = StringBuilder(text.length * 2)
         for (ch in text) {
             if (ch in '\u4E00'..'\u9FFF') {
-                val py = Pinyin.toPinyin(ch).lowercase(Locale.getDefault())
-                builder.append(py).append(' ')
+                val py = try { PinyinHelper.toHanyuPinyinStringArray(ch, pinyinFormat)?.firstOrNull() } catch (_: Throwable) { null }
+                if (py != null) builder.append(py.lowercase(Locale.getDefault())).append(' ') else builder.append(ch)
             } else {
                 builder.append(ch)
             }
