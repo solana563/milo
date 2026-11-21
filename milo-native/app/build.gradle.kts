@@ -72,7 +72,7 @@ android {
         freeCompilerArgs += listOf("-opt-in=androidx.compose.ui.text.ExperimentalTextApi")
     }
     buildFeatures { compose = true; buildConfig = true }
-    packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    packaging { resources.excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/CONTRIBUTORS.md", "/META-INF/LICENSE.md", "/META-INF/NOTICE.md") }   // kuromoji's two jars both carry these notes
 }
 
 dependencies {

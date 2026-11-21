@@ -237,3 +237,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R129: CI resolves tinypinyin; Chinese lyrics get pinyin readings.
 - [ ] R130: CI resolves pinyin4j and unit tests run; Chinese lyrics show pinyin readings (e.g. 'ni hao').
 - [ ] R131: CI compiles the glow lyric line.
+- [ ] R132: CI builds the full debug APK (kuromoji packaging); Japanese lyrics get romaji readings.
