@@ -517,7 +517,29 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 ) {
                     Box(Modifier.width(80.dp).height(5.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
                     Spacer(Modifier.height(10.dp))
-                    Text(
+                    val tickerFx = remember(t.id) { npCtx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+                    val tickerOn = tickerFx.getBoolean("lyticker", false) && (lyrics?.synced?.isNotEmpty() == true || lyricsLoading)
+                    if (tickerOn) {
+                        // Mochy's lyric ticker (opt-in, Sound > Lyrics ticker): the sung line with the karaoke sweep
+                        val tickerLines = remember(lyrics) {
+                            (lyrics?.synced ?: emptyList()).mapIndexed { n, tl ->
+                                val nextLine = lyrics!!.synced.getOrNull(n + 1)?.timeMs ?: (tl.timeMs + 4000)
+                                com.ubayanda.milonative.ui.lyrics.LyricsEntry(
+                                    time = tl.timeMs, text = tl.text,
+                                    words = tl.words.takeIf { it.isNotEmpty() }?.mapIndexed { k, w ->
+                                        val end = tl.words.getOrNull(k + 1)?.timeMs ?: nextLine
+                                        com.ubayanda.milonative.ui.lyrics.WordTimestamp(w.text, w.timeMs / 1000.0, end / 1000.0)
+                                    },
+                                )
+                            }
+                        }
+                        val tickerOff = remember(t.id) { tickerFx.getLong("lyoff_" + t.id, 0L) }
+                        com.ubayanda.milonative.ui.lyrics.MiniLyricsTicker(
+                            lines = tickerLines, loaded = !lyricsLoading,
+                            positionProvider = { uiNow.positionMs - tickerOff },
+                            modifier = Modifier.padding(horizontal = Sp.x6),
+                        )
+                    } else Text(
                         if (lyricsLoading) "Lyrics" else preview, color = Milo.text.copy(alpha = 0.7f), style = Ty.body,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
                     )
@@ -756,6 +778,8 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
 
         CoverStyleSection()
 
+        LyricTickerToggle()
+
         CrossmixSection()
 
         ReverbSection()
@@ -858,6 +882,19 @@ private fun CoverStyleSection() {
             cursorBrush = androidx.compose.ui.graphics.SolidColor(Milo.amber),
             modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.08f)).padding(horizontal = 14.dp, vertical = 12.dp),
         )
+    }
+}
+
+@Composable
+private fun LyricTickerToggle() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val fx = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+    var on by remember { mutableStateOf(fx.getBoolean("lyticker", false)) }
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Lyrics ticker")
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Karaoke line under the controls (Mochy style)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = on, onCheckedChange = { on = it; fx.edit().putBoolean("lyticker", it).apply() }, colors = sw)
     }
 }
 
