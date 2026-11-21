@@ -562,3 +562,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Lyrics page > menu > "Lyric style: Glow (Mochy)" (off by default; Classic is milo's own line). With it on, the reading and the translation lines sit in the glow line's own slots; "Blur lines not sung" switches the blur.
 - Small changes: Mochy's app-wide animation settings are replaced by one small settings object; its repaint-boundary helper is a no-op in milo. Mochy builds on Compose 1.10, milo on 1.7, so some calls may need adjusting after CI.
 - Not yet: the mini-lyrics ticker (it uses this line's sweep), Mochy's ruby over words, glow style for unsynced lyrics.
+
+## Round 129 — build fix: TinyPinyin coordinates
+- CI: "Could not find com.github.promeg:tinypinyin:2.0.3". The group is spelled `promeG` (capital G) and the library was only published to JCenter, so it is read from the Aliyun public mirror (as Mochy does), limited to that one group. Maven Central stays the source for everything else.
