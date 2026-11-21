@@ -550,3 +550,15 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 126 — build fix for rounds 123–125
 - CI: PlaybackService.kt:557 (preference key is a nullable String: safe call), DiscCover.kt (GraphicsLayerScope has no colorFilter on this Compose version: the pause tint is now the Image's colorFilter; a leftover Mochy font reference removed).
+
+## Round 127 — lyric readings (romanisation)
+- Source: Mochy Music (GPL-3.0) LyricsUtils romanisers and tables: Japanese (kuromoji tokenizer, kana to romaji with small tsu and long vowels), Chinese (TinyPinyin), Korean (hangul rules with final-consonant linking), Russian, Ukrainian, Serbian, Bulgarian, Belarusian, Kyrgyz, Macedonian, Hindi and Punjabi. Moved into data/Romanizer.kt.
+- Lyrics page: a reading line under every line written in one of those scripts, above the translation line. Lyrics menu > "Readings (Latin letters)" turns it off. Latin lines get nothing.
+- New dependencies: com.atilika.kuromoji:kuromoji-ipadic:0.9.0 (the Japanese dictionary adds several MB to the app) and com.github.promeg:tinypinyin:2.0.3.
+- Not done: ruby (furigana) over words, per-word readings on the word-by-word highlight, per-language switches, the AI/DeepL translation providers.
+
+## Round 128 — Mochy's lyric line (glow style), first part of the lyrics engine
+- Source: Mochy Music (GPL-3.0) LyricsGlowLine (karaoke sweep along the sung letters, letter motion with rising words and swelling held notes, AGSL glow and wave on Android 13+, blur of lines not sung on Android 12+, duet alignment, ruby / sub-line / translation slots), its AGSL shader plumbing, lyric models (LyricsEntry, WordTimestamp, RubyToken) and the motion style enum. Files: ui/lyrics/LyricsGlowLine.kt, LyricsModels.kt, AgslShader.kt, LyricsGlowSupport.kt.
+- Lyrics page > menu > "Lyric style: Glow (Mochy)" (off by default; Classic is milo's own line). With it on, the reading and the translation lines sit in the glow line's own slots; "Blur lines not sung" switches the blur.
+- Small changes: Mochy's app-wide animation settings are replaced by one small settings object; its repaint-boundary helper is a no-op in milo. Mochy builds on Compose 1.10, milo on 1.7, so some calls may need adjusting after CI.
+- Not yet: the mini-lyrics ticker (it uses this line's sweep), Mochy's ruby over words, glow style for unsynced lyrics.

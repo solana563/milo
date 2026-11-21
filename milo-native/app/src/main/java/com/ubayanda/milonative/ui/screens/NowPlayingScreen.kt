@@ -984,6 +984,14 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
             value = r
         }
     }
+    // Mochy Music's lyric line (karaoke sweep, letter motion, glow, blur of the lines not sung); off = milo's own lines
+    var glow by remember { mutableStateOf(fx.getBoolean("lyglow", false)) }
+    var glowBlur by remember { mutableStateOf(fx.getBoolean("lyglowblur", true)) }
+    // readings: Japanese, Chinese, Korean, Cyrillic, Hindi and Punjabi lines written out in Latin letters under the line (Mochy Music's romaniser)
+    var roman by remember { mutableStateOf(fx.getBoolean("lyroman", true)) }
+    val rm by androidx.compose.runtime.produceState<List<String?>?>(null, lyrics, roman) {
+        value = if (roman && srcLines.isNotEmpty()) com.ubayanda.milonative.data.Romanizer.readAll(srcLines) else null
+    }
     val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 400)
     val tintNow = vm.tint.collectAsState().value
     fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
@@ -1056,6 +1064,9 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text("Lyric card shape: " + com.ubayanda.milonative.data.ShareCard.FORMATS[com.ubayanda.milonative.data.ShareCard.format(ctx)]) }, onClick = {
                             fx.edit().putInt("cardfmt", (com.ubayanda.milonative.data.ShareCard.format(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.FORMATS.size).apply(); moreMenu = false
                         })
+                        DropdownMenuItem(text = { Text("Lyric style: " + if (glow) "Glow (Mochy)" else "Classic") }, onClick = { glow = !glow; fx.edit().putBoolean("lyglow", glow).apply(); moreMenu = false })
+                        if (glow) DropdownMenuItem(text = { Text("Blur lines not sung: " + if (glowBlur) "on" else "off") }, onClick = { glowBlur = !glowBlur; fx.edit().putBoolean("lyglowblur", glowBlur).apply(); moreMenu = false })
+                        DropdownMenuItem(text = { Text("Readings (Latin letters): " + if (roman) "on" else "off") }, onClick = { roman = !roman; fx.edit().putBoolean("lyroman", roman).apply(); moreMenu = false })
                         DropdownMenuItem(text = { Text("Lyrics earlier (\u22120.5 s)") }, onClick = { lyOff -= 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         DropdownMenuItem(text = { Text("Lyrics later (+0.5 s)") }, onClick = { lyOff += 500; fx.edit().putLong("lyoff_" + t.id, lyOff).apply() })
                         if (lyOff != 0L) DropdownMenuItem(text = { Text("Reset timing (" + (if (lyOff > 0) "+" else "") + (lyOff / 1000.0) + " s)") }, onClick = { lyOff = 0; fx.edit().remove("lyoff_" + t.id).apply(); moreMenu = false })
@@ -1107,6 +1118,19 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                             if (info == null) state.scrollToItem(target)
                             else state.animateScrollBy((info.offset - state.layoutInfo.beforeContentPadding).toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 170f))
                         }
+                        val glowEntries = remember(lyrics) {
+                            lyrics.synced.mapIndexed { n, l ->
+                                val nextLine = lyrics.synced.getOrNull(n + 1)?.timeMs ?: (l.timeMs + 4000)
+                                com.ubayanda.milonative.ui.lyrics.LyricsEntry(
+                                    time = l.timeMs, text = l.text,
+                                    words = l.words.takeIf { it.isNotEmpty() }?.mapIndexed { k, w ->
+                                        val end = l.words.getOrNull(k + 1)?.timeMs ?: nextLine
+                                        com.ubayanda.milonative.ui.lyrics.WordTimestamp(w.text, w.timeMs / 1000.0, end / 1000.0)
+                                    },
+                                )
+                            }
+                        }
+                        val glowPos by androidx.compose.runtime.rememberUpdatedState(pos)
                         LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
                             // an instrumental opening: dots count it down until the first line
                             lyrics.synced.firstOrNull()?.let { f ->
@@ -1139,13 +1163,29 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                 )
                                 Column(
                                     Modifier.fillMaxWidth().cascadeIn(i - (idx - 2).coerceAtLeast(0), freshPage).graphicsLayer {
-                                        scaleX = sc; scaleY = sc; translationY = kick * dens + lag.value
+                                        if (!glow) { scaleX = sc; scaleY = sc }; translationY = kick * dens + lag.value
                                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                                     }.combinedClickable(
                                         onClick = { vm.player.seekTo(line.timeMs) },
                                         onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
                                     ).padding(vertical = 12.dp),
                                 ) {
+                                    if (glow) {
+                                        val entry = glowEntries[i]
+                                        val glowState = if (on) com.ubayanda.milonative.ui.lyrics.LyricsLineState.ACTIVE else if (i > idx) com.ubayanda.milonative.ui.lyrics.LyricsLineState.UPCOMING else com.ubayanda.milonative.ui.lyrics.LyricsLineState.PAST
+                                        com.ubayanda.milonative.ui.lyrics.LyricsGlowLine(
+                                            entry = entry,
+                                            state = glowState,
+                                            blurStage = if (!glowBlur || on) 0 else if (kotlin.math.abs(i - idx) <= 1) 1 else 2,
+                                            positionProvider = { glowPos },
+                                            accentColor = Milo.amber,
+                                            onClick = { vm.player.seekTo(line.timeMs) },
+                                            onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
+                                            subLine = rm?.getOrNull(i),
+                                            translation = tr?.getOrNull(i)?.takeIf { it.isNotBlank() && !it.equals(line.text, ignoreCase = true) },
+                                            translationLoading = lang.isNotEmpty() && tr == null,
+                                        )
+                                    } else {
                                     val words = if (on) line.words.ifEmpty { if (wordMode) estimateWords(line, lyrics.synced.getOrNull(i + 1)?.timeMs) else emptyList() } else emptyList()
                                     if (on && words.isNotEmpty()) {
                                         // word-by-word: each word fills in as it is sung (timed words when the lyrics have them, estimated from the line otherwise)
@@ -1166,9 +1206,13 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                         color = Color.White.copy(alpha = if (on) 1f else 0.38f),
                                         fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
                                     )
+                                    rm?.getOrNull(i)?.let { rd ->
+                                        Text(rd, color = Color.White.copy(alpha = if (on) 0.78f else 0.34f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 2.dp))
+                                    }
                                     val tl = tr?.getOrNull(i).orEmpty()
                                     if (tl.isNotBlank() && !tl.equals(line.text, ignoreCase = true)) {
                                         Text(tl, color = Milo.amber.copy(alpha = if (on) 1f else 0.5f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 4.dp))
+                                    }
                                     }
                                     // a long gap after this line (singing time guessed from its length) is an interlude: dots count it down
                                     val nextT = lyrics.synced.getOrNull(i + 1)?.timeMs
@@ -1186,6 +1230,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         ls.forEachIndexed { i, l ->
                             Text(l, color = Color.White, fontSize = 22.sp, lineHeight = 32.sp,
                                 modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = { card(ls.drop(i).take(3)) }))
+                            rm?.getOrNull(i)?.let { rd -> Text(rd, color = Color.White.copy(alpha = 0.78f), fontSize = 16.sp, lineHeight = 22.sp) }
                             val tl = tr?.getOrNull(i).orEmpty()
                             if (tl.isNotBlank() && !tl.equals(l, ignoreCase = true)) Text(tl, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp)
                         }

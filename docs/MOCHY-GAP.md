@@ -14,7 +14,7 @@ Soft transport fades, haptics (bass-following vibration), Crossmix analysis (tem
 ## Not built yet (rough size, Mochy side)
 - Crossmix planner + dual-deck beat lock + transitions (needs Diagnostics from a device first).
 - Player looks (done R124-125: cover styles, reflection, like burst): morphing cover/song info, cover reflection, disc/turntable cover styles, ring, player background styles, seam blur, flagship layouts, landscape, Player Studio (edit layout), module/skin system.
-- Lyrics: glow line, readings (romanisation), stagger, mini-lyrics ticker in the mini player, source footer, lyric video sync, full lyric share editor (word editor, backdrops, choreography).
+- Lyrics (readings done R127): glow line (R128, style switch in the lyrics menu), ruby over words, stagger, mini-lyrics ticker in the mini player, source footer, lyric video sync, full lyric share editor (word editor, backdrops, choreography).
 - Video mode (YouTube video with lyrics).
 - Audio Lab: AutoEQ profile search/fit, loudness, peak limiter, ReplayGain, spatial audio processor, output-device tuning, quality screen. (milo has graphic + parametric EQ, bass, spatial, reverb now.)
 - Gestures customisation screen.

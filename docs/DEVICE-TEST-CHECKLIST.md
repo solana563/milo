@@ -232,3 +232,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R124: Sound > Cover style: try Squared, Disc, Big disc with arm, Disc + album; spin on/off; pause greys the record and lifts the arm; swipe next/previous still glides; back to Full screen restores the old look; no jank on a long listen.
 - [ ] R125: Squared cover shows a soft mirror under it that fades out; like a song from the dock: heart flies up, thumps, bursts, dives back and the button bounces; unlike is quiet; like twice quickly (2 hearts).
 - [ ] R126: CI compiles (haptics, cover styles, reflection, like burst); a paused disc still greys.
+- [ ] R127: open lyrics of a Japanese / Korean / Chinese / Russian song: reading line under each line; Latin songs show none; Lyrics menu > Readings off hides it; translation line still shows below; CI resolves kuromoji + tinypinyin (APK grows several MB).
+- [ ] R128: CI compiles ui/lyrics/*; Lyrics menu > Lyric style: Glow: active line sweeps along the sung letters, words rise, lines not sung blur (Android 12+), glow on Android 13+; tapping a line seeks; readings and translation still show; switch back to Classic.
