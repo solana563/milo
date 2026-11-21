@@ -127,6 +127,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -169,6 +171,8 @@ private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
+    var morphArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var morphTitle by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val dragScope = androidx.compose.runtime.rememberCoroutineScope()
     val screenH = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() }
     // the lyrics page rises with your finger and springs open (or back down): lyY = its distance from the top, screenH = closed
@@ -258,7 +262,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f) }
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
-        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim }.pointerInput("lyrics-swipe-all") {
+        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim * (1f - 0.9f * ((drag / 320f).coerceIn(0f, 1f).let { it * it * (3f - 2f * it) })) }.pointerInput("lyrics-swipe-all") {
             // swipe up anywhere on the player (title, gaps, buttons area) that a child did not already use
             var up = false
             var decided = false
@@ -274,7 +278,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         }) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
+                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) morphArt = it.boundsInWindow() }.clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
                     detectTapGestures(onDoubleTap = { off ->
                         if (!npCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) return@detectTapGestures
                         val cur = uiNow
@@ -438,7 +442,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     },
                     label = "titles",
                 ) { tt ->
-                    Column(Modifier.padding(start = Sp.gutter, end = 68.dp, bottom = Sp.x6)) {
+                    Column(Modifier.padding(start = Sp.gutter, end = 68.dp, bottom = Sp.x6).onGloballyPositioned { if (drag <= 0f) morphTitle = it.boundsInWindow() }) {
                         Text(tt.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(tt.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
                         Text(
@@ -544,6 +548,17 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
                     )
                 }
+            }
+        }
+
+        // the cover and song info travel to the mini player while the player folds away (cancels this box's own offset + scale)
+        if (drag > 0f) {
+            val sc = 1f - 0.12f * (drag / 700f).coerceIn(0f, 1f)
+            Box(Modifier.fillMaxSize().offset { IntOffset(0, (-drag / sc).roundToInt()) }.graphicsLayer {
+                scaleX = 1f / sc; scaleY = 1f / sc
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+            }) {
+                com.ubayanda.milonative.ui.player.CoverMorphOverlay(cover?.asImageBitmap(), t.title, t.artist, morphArt, morphTitle, drag)
             }
         }
 

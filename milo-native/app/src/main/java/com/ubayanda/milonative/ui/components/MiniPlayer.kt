@@ -40,6 +40,8 @@ import com.ubayanda.milonative.ui.theme.Rad
 import com.ubayanda.milonative.ui.theme.Sp
 import com.ubayanda.milonative.ui.theme.Ty
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 
 /** Art-tinted glass bar: cover, title, a cream play/pause circle, thin progress line. */
 @Composable
@@ -59,7 +61,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {
-            Cover(vm, t, 52.dp, Rad.sm, px = 160)
+            Cover(vm, t, 52.dp, Rad.sm, px = 160, modifier = Modifier.androidx_report())
             Spacer(Modifier.width(Sp.x3))
             androidx.compose.animation.AnimatedContent(
                 targetState = t, contentKey = { it.id }, modifier = Modifier.weight(1f),
@@ -70,7 +72,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
                 },
                 label = "miniTitles",
             ) { tt ->
-                Column {
+                Column(Modifier.androidx_reportTitle()) {
                     Text(tt.title, color = Milo.text, style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(tt.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -107,3 +109,7 @@ fun NowPlayingPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
         Text("Now playing", color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }
 }
+
+// where the cover and title sit, for the player's fold-away morph (see ui/player/MorphCover.kt)
+private fun Modifier.androidx_report(): Modifier = this.onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniArt = it.boundsInWindow() }
+private fun Modifier.androidx_reportTitle(): Modifier = this.onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniTitle = it.boundsInWindow() }
