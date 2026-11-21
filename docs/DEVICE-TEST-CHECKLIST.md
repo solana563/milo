@@ -239,3 +239,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R131: CI compiles the glow lyric line.
 - [ ] R132: CI builds the full debug APK (kuromoji packaging); Japanese lyrics get romaji readings.
 - R133: turn on Sound > Lyrics ticker; play a word-synced song: line should roll up per lyric, long lines slide with the sweep, gaps show dots; off = old preview line. Uncompiled, untested.
+- R134: drag the player down slowly: the cover should fly into the mini player's art slot (rounded), title/artist slide toward the mini title and fade; release <220px springs back. Check it lands on the mini art (assumes edge-to-edge window). Uncompiled, untested.

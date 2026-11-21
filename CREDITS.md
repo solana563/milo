@@ -578,3 +578,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 133 — lyrics ticker
 - `ui/lyrics/MiniLyricsTicker.kt`: port of Mochy Music's `MiniLyricsTicker` (GPL-3.0, github.com/realidkroo/Mochy-Music): slot logic, rolling line changes, sideways slide following the karaoke sweep, edge fades, interlude dots. Tall-card mode (readings + upcoming list) not ported.
 - Opt-in (Sound > "Lyrics ticker", off by default); replaces the one-line preview under the controls on Now Playing. Mini player unchanged.
+
+## Round 134 — cover + song info morph
+- `ui/player/MorphCover.kt`: idea from Mochy Music's `MorphingCover` (GPL-3.0, github.com/realidkroo/Mochy-Music). As the player is dragged down, the cover and the title/artist travel to the mini player's measured art/title slots (MiniPlayer reports them) while the rest of the page fades. Mochy's full bottom-sheet morph (mini pill, backdrops, canvas layer) is not ported; milo's mini player stays as it was.

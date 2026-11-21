@@ -27,3 +27,4 @@ Soft transport fades, haptics (bass-following vibration), Crossmix analysis (tem
 - Last.fm queue/worker polish (milo already scrobbles to Last.fm and ListenBrainz).
 
 - Lyrics ticker (MiniLyricsTicker): ported single-row card, opt-in on Now Playing. Tall mode (readings/upcoming list) not ported; mini-player placement intentionally not done.
+- Morphing cover / song info: drag-down morph ported in spirit (cover + title to mini slots). Not ported: Mochy's full sheet morph incl. mini pill buttons, backdrop crossfade, canvas layer, liquid warp.
