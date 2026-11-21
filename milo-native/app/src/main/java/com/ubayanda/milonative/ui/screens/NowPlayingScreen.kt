@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.lazy.LazyColumn
@@ -564,6 +565,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         // the cover and the song info travel between the mini player and the open player with the sheet
         val lookNow by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
         SheetMorphLayer({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, cover?.asImageBitmap(), t.title, t.artist, morphArt, morphTitle, lookNow.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE, ui.isPlaying, morphPlay, morphNext)
+        // the cover on its way into the lyrics header, over the page
+        if (lyOpen) {
+            val lookFly by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
+            LyricsFlightLayer({ 1f - (lyY / screenH).coerceIn(0f, 1f) }, cover?.asImageBitmap(), morphArt, lookFly.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE)
+        }
 
         when (panel) {
             Panel.Queue -> Sheet(0.72f, soft, { panel = Panel.None }) { QueueContent(vm, ui) }
@@ -1176,6 +1182,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text("Lyric card shape: " + com.ubayanda.milonative.data.ShareCard.FORMATS[com.ubayanda.milonative.data.ShareCard.format(ctx)]) }, onClick = {
                             fx.edit().putInt("cardfmt", (com.ubayanda.milonative.data.ShareCard.format(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.FORMATS.size).apply(); moreMenu = false
                         })
+                        DropdownMenuItem(text = { Text("Player Studio (skins)") }, onClick = { com.ubayanda.milonative.ui.player.PlayerStudioRequest.open = true; moreMenu = false })
                         DropdownMenuItem(text = { Text("Lyric style: " + if (glow) "Glow (Mochy)" else "Classic") }, onClick = { glow = !glow; fx.edit().putBoolean("lyglow", glow).apply(); moreMenu = false })
                         if (glow) DropdownMenuItem(text = { Text("Blur lines not sung: " + if (glowBlur) "on" else "off") }, onClick = { glowBlur = !glowBlur; fx.edit().putBoolean("lyglowblur", glowBlur).apply(); moreMenu = false })
                         DropdownMenuItem(text = { Text("Readings (Latin letters): " + if (roman) "on" else "off") }, onClick = { roman = !roman; fx.edit().putBoolean("lyroman", roman).apply(); moreMenu = false })
@@ -1626,11 +1633,6 @@ private fun estimateWords(line: com.ubayanda.milonative.model.LyricLine, nextMs:
         val start = line.timeMs + (span * acc / total).toLong()
         acc += weights[i]
         com.ubayanda.milonative.model.LyricWord(start, w)
-        // the cover on its way into the lyrics header, over the page
-        if (lyOpen) {
-            val lookFly by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
-            LyricsFlightLayer({ 1f - (lyY / screenH).coerceIn(0f, 1f) }, cover?.asImageBitmap(), morphArt, lookFly.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE)
-        }
     }
 }
 

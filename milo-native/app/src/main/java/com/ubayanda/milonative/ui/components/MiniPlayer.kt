@@ -78,11 +78,11 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
                     Text(tt.artist, color = Color(0xFFD6D0C4), style = Ty.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Box(Modifier.size(48.dp).clip(CircleShape).pressable { vm.player.next() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniSkip = it.boundsInWindow() }.clip(CircleShape).pressable { vm.player.next() }, contentAlignment = Alignment.Center) {
                 Icon(MiloIcons.SkipNext, "Next", tint = Milo.text, modifier = Modifier.size(28.dp))
             }
             Box(
-                Modifier.size(48.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
+                Modifier.size(48.dp).onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniPlay = it.boundsInWindow() }.clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))

@@ -2,12 +2,20 @@
 // 1 = the open player) moves the cover, the song info and the sheet's own backdrop between the two, with Mochy's curves
 // (coverGrowth / coverTravel / smoothstep). Driven by the open spring, by dragging the player down, and by closing it, so the
 // player opens out of the mini player and folds back into it. The ends are measured rects, so it lands exactly on the mini
-// player's art, title and bar. Not ported yet: play/skip flying between the two, the video / canvas / liquid-warp layers,
-// the cover shrinking into the lyrics header.
+// player's art, title, play / next buttons and bar. The cover also flies into the lyrics page's header as it rises. Not ported:
+// Mochy's video / canvas layers and the reflection layout.
 package com.ubayanda.milonative.ui.player
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.ubayanda.milonative.ui.theme.Milo
+import com.ubayanda.milonative.ui.theme.MiloIcons
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.CornerRadius
@@ -44,6 +52,11 @@ object MorphTargets {
     var miniTitle by mutableStateOf<Rect?>(null)
     /** the whole mini player bar: the open player's sheet grows out of it */
     var miniBar by mutableStateOf<Rect?>(null)
+    var miniPlay by mutableStateOf<Rect?>(null)
+    var miniSkip by mutableStateOf<Rect?>(null)
+    /** the open player's cover box, and where the cover lands in the lyrics page's header (page offset removed) */
+    var fullArt by mutableStateOf<Rect?>(null)
+    var lyricsArt by mutableStateOf<Rect?>(null)
 }
 
 private fun mix(a: Float, b: Float, f: Float) = a + (b - a) * f
@@ -89,6 +102,9 @@ fun CoverMorphOverlay(
     fromTitle: Rect?,
     progress: Float,
     growLate: Boolean = false,
+    isPlaying: Boolean = false,
+    fromPlay: Rect? = null,
+    fromNext: Rect? = null,
 ) {
     val toArt = MorphTargets.miniArt
     val p = progress.coerceIn(0f, 1f)
@@ -138,5 +154,52 @@ fun CoverMorphOverlay(
                 }
             }
         }
+        // the play and next buttons travel between the mini player's and the open player's
+        val toPlay = MorphTargets.miniPlay
+        if (fromPlay != null && toPlay != null) {
+            val r = lerpRect(toPlay, fromPlay, p)
+            FlyingButton(r, Milo.cream, if (isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, Color.Black)
+        }
+        val toSkip = MorphTargets.miniSkip
+        if (fromNext != null && toSkip != null) {
+            val r = lerpRect(toSkip, fromNext, p)
+            FlyingButton(r, Milo.card2.copy(alpha = p), MiloIcons.SkipNext, Milo.text)
+        }
     }
+}
+
+private fun lerpRect(a: Rect, b: Rect, f: Float) = Rect(mix(a.left, b.left, f), mix(a.top, b.top, f), mix(a.right, b.right, f), mix(a.bottom, b.bottom, f))
+
+@Composable
+private fun FlyingButton(r: Rect, bg: Color, icon: ImageVector, tint: Color) {
+    val d = LocalDensity.current
+    Box(
+        Modifier
+            .offset { IntOffset(r.left.roundToInt(), r.top.roundToInt()) }
+            .then(with(d) { Modifier.size(r.width.toDp(), r.height.toDp()) })
+            .clip(CircleShape).background(bg),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, null, tint = tint, modifier = with(d) { Modifier.size((minOf(r.width, r.height) * 0.56f).toDp()) }) }
+}
+
+/**
+ * The cover on its way into the lyrics page's header while the page rises ([lp] 0 = closed, 1 = open), drawn over the page.
+ * Mochy's cover shrinks into the lyrics header the same way.
+ */
+@Composable
+fun LyricsCoverFlight(cover: ImageBitmap?, fromArt: Rect?, lp: Float, growLate: Boolean) {
+    val to = MorphTargets.lyricsArt
+    val f = lp.coerceIn(0f, 1f)
+    if (cover == null || fromArt == null || to == null || f <= 0.002f) return
+    val d = LocalDensity.current
+    val r = lerpRect(fromArt, to, f)
+    val topR = (if (growLate) 22.dp else 0.dp) * (1f - f) + 22.dp * f
+    val botR = (if (growLate) 22.dp else Rad.xl) * (1f - f) + 22.dp * f
+    Image(
+        cover, null, contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .offset { IntOffset(r.left.roundToInt(), r.top.roundToInt()) }
+            .then(with(d) { Modifier.width(r.width.toDp()).height(r.height.toDp()) })
+            .clip(RoundedCornerShape(topStart = topR, topEnd = topR, bottomStart = botR, bottomEnd = botR)),
+    )
 }

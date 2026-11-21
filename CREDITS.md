@@ -603,3 +603,20 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 139 — gapless albums
 - Mochy Music's "gapless albums" (GPL-3.0, github.com/realidkroo/Mochy-Music, `isNextItemGapless` / `albumOf`): when the next song is on the same album, the fixed crossfade stands down so the join plays as recorded, and Crossmix gets the album names so it can play tracks that already run into each other straight through (`PlaybackService.albumAt` / `nextIsSameAlbum`). Switch: Sound > Crossfade > "Keep albums gapless" (on by default, pref `gapless_albums`).
+
+## Round 140 — blend skips
+- Mochy Music's "blend skips" (GPL-3.0, github.com/realidkroo/Mochy-Music, `blendSkip` / `blendJump`): with the switch on (Sound > Fades > "Blend skips", pref `blend_skips`, off by default) a next/previous press, or a song picked from the queue, starts the target on the second player at once and the two cross over on a clock (length = the fade slider, 0.6 to 3 s), then the main player takes over using the existing hand-over. Back more than 3.5 s into a song still restarts it. Not while casting, mid-Crossmix, mid-crossfade or on repeat-one; if the second player doesn't make sound in 4 s it falls back to a plain jump. Not ported: prefetching the neighbouring songs' first seconds, blending a freshly picked list's first song.
+
+## Round 141 — interruptions: audio focus the Mochy way
+- Problem (from the user's tests, R59-R61): after a call or another app, music comes out fast and high-pitched. Cause found by comparing with Mochy Music's engine (GPL-3.0, github.com/realidkroo/Mochy-Music, `MusicService` handleAudioFocusChange / requestAudioFocus / callWatcher): milo handed focus to Media3, which resumes the instant focus returns, while the phone is still switching Bluetooth from call mode back to music mode; the crossmix player swap also re-requested focus each time.
+- `player/PlayerFocus.kt`: the service owns focus: pauses at once on a transient loss or a call, ducks to a fifth, and resumes only when the audio mode is normal and Bluetooth is off its call link for 300 ms in a row (max 6 s), after reopening the output (stop + prepare at the same place, so the audio track is made again on the route that exists now) when the pause was over 2 s or the route changed. Also reopens the output (debounced 600 ms) when Bluetooth/wired/USB output comes or goes while playing, never during a crossfade/crossmix or a call. Logs "focus lost", "resumed (...) audio mode N, bluetooth call link X", "reopening the output" to Diagnostics.
+- `PlaybackService`: ExoPlayer's own focus off on the main and promoted players while this is on; call watcher goes through it; ducking multiplies the fade volume. Profile: "Handle calls and audio focus myself (restart milo)", on by default; off = Media3's handling as before.
+
+## Round 142: Player Studio, stage 1 (player skins)
+- New `ui/player/PlayerSkins.kt`: `PlayerSkin` (Flagship, Poster, Timeline, Lyrics, iPod, Bedside), the saved choice (`pskin` in milo_fx), `PlayerSkinHost` (routes the open player to the chosen skin) and `PlayerStudio` (the picker sheet with a still card per skin).
+- Poster, Timeline and Lyrics are drawn for milo on its own player state; iPod and Bedside reuse milo's existing screens. Idea and names from Mochy Music's player styles and Player Studio (GPL-3.0, github.com/realidkroo/Mochy-Music, ui/player/styles, ui/player/studio). No Mochy drawing code was copied; the Studio editor (moving and restyling parts) is not ported yet.
+- `MiloApp.kt` opens the player through `PlayerSkinHost`; Now Playing's ••• menu has "Player Studio (skins)".
+
+## Round 143: build fix
+- NowPlayingScreen.kt: the lyrics-flight block had landed inside `estimateWords`; moved it next to `SheetMorphLayer` in the main body. Added the missing `statusBars` import.
+- MorphCover.kt (R138 version, with `fullArt`, `lyricsArt`, `LyricsCoverFlight` and the longer `CoverMorphOverlay`) resent with MiniPlayer.kt and MiloApp.kt: the CI log shows an older MorphCover.kt in the repo.
