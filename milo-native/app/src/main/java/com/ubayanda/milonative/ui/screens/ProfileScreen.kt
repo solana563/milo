@@ -333,6 +333,9 @@ private fun BtCompatCard() {
         var resync by remember { mutableStateOf(prefs.getBoolean("resync", true)) }
         Text("After a stall (switching apps, the notification shade, waking the phone) milo drops the audio that was queued up instead of letting it play back in a rush. The moment that was interrupted is simply skipped.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
         ShareRow("Skip interrupted moments, don't rush", resync) { resync = it; prefs.edit().putBoolean("resync", it).apply() }
+        var ownFocus by remember { mutableStateOf(prefs.getBoolean("own_focus", true)) }
+        Text("Calls and other apps: milo pauses the moment they take over and carries on only once the phone has switched Bluetooth back from call mode, on a freshly opened output, so music doesn't come out fast and high-pitched. Reopens the output too when headphones or Bluetooth come and go. (Mochy Music's way of handling audio focus.)", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        ShareRow("Handle calls and audio focus myself (restart milo)", ownFocus) { ownFocus = it; prefs.edit().putBoolean("own_focus", it).apply() }
     }
 }
 

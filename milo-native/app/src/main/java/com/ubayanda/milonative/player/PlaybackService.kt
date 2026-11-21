@@ -67,6 +67,11 @@ class PlaybackService : MediaLibraryService() {
     private var xfTrace = 0L
     /** Set just before the crossfade itself moves the main player to another song, so a skip by the person can be told apart. */
     private var xfOwn = false
+    // blend skips: a skip started the next song on the second player and the two cross over on a clock, not on the old song's own end
+    private var xfSkip = false
+    private var xfSkipAt = 0L
+    private var xfSkipLen = 0L
+    private var xfClockOnly = false
     private var xfWarm = false     // the next song is already running silently on the second player
     private var lastTick = 0L
 
@@ -101,6 +106,13 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    // Audio focus and interruptions are handled here, not by each ExoPlayer (Mochy's way, see PlayerFocus.kt); "own_focus" in Profile turns it back to Media3's
+    private fun ownFocus() = fxPrefs.getBoolean("own_focus", true)
+    private val focus: PlayerFocus by lazy {
+        PlayerFocus(this, handler, { exo }, { xfPhase == 0 && !xfWarm && directorOrNull?.isTransitioning != true }, { applyVolumeNow() })
+    }
+    private fun duckScale(): Float = if (ownFocus()) focus.duck else 1f
+
     // Phone calls: Bluetooth swaps from music mode to call mode, and music still playing across that swap comes out fast and high-pitched.
     // So like other players, pause when a call rings or starts (cell or app calls) and carry on when it ends.
     private var pausedByCall = 0L
@@ -116,7 +128,7 @@ class PlaybackService : MediaLibraryService() {
                         callClear = 0
                         if (p.playWhenReady && pausedByCall == 0L) {
                             pausedByCall = System.currentTimeMillis()
-                            p.pause()
+                            if (ownFocus()) focus.pausedForCall() else p.pause()
                             com.ubayanda.milonative.util.ErrorLog.add("audio", "paused for a call")
                         }
                     } else if (pausedByCall != 0L) {
@@ -124,7 +136,7 @@ class PlaybackService : MediaLibraryService() {
                         if (++callClear >= 3) {
                             val fresh = System.currentTimeMillis() - pausedByCall < 30 * 60_000L
                             pausedByCall = 0L; callClear = 0
-                            if (fresh && !p.playWhenReady) p.play()
+                            if (fresh && !p.playWhenReady) { if (ownFocus()) focus.callEnded() else p.play() }
                         }
                     }
                 }
@@ -234,6 +246,8 @@ class PlaybackService : MediaLibraryService() {
         xfLen = 0L
         xfWarm = false
         xfAudibleAt = 0L
+        xfSkip = false
+        xfClockOnly = false
         primedKey = null
         ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
     }
@@ -263,13 +277,45 @@ class PlaybackService : MediaLibraryService() {
         com.ubayanda.milonative.util.ErrorLog.add("xfade", "hand-over: new song at ${g.currentPosition}ms, main player asked for ${target}ms")
     }
 
+    /** the album of the song at [index], when "Keep albums gapless" is on (Sound > Crossfade, on by default) */
+    private fun albumAt(p: Player, index: Int): String? {
+        if (!fxPrefs.getBoolean("gapless_albums", true) || index < 0 || index >= p.mediaItemCount) return null
+        return p.getMediaItemAt(index).mediaMetadata.albumTitle?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    /** the next song is on the same album as this one, so a fixed crossfade would only break the join */
+    private fun nextIsSameAlbum(p: Player): Boolean {
+        val ni = p.nextMediaItemIndex
+        if (ni == C.INDEX_UNSET) return false
+        val a = albumAt(p, p.currentMediaItemIndex) ?: return false
+        return a == albumAt(p, ni)
+    }
+
     private fun tick(p: ExoPlayer, now: Long, dt: Long) {
-        val x = if (crossmixOn()) 0L else fxPrefs.getInt("xfade", 0) * 1000L
+        val x = if (crossmixOn() || nextIsSameAlbum(p)) 0L else fxPrefs.getInt("xfade", 0) * 1000L
         var v = 1f
         val g = ghost
         if (xfPhase == 0) {
             if (xfWarm && g != null && g.playWhenReady != p.playWhenReady) g.playWhenReady = p.playWhenReady
-            if (x > 0L && p.isPlaying && (session?.player === p || session?.player === fading) && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
+            if (xfSkip) {
+                // the song asked for is starting on the second player: cross over the moment it makes sound
+                if (g == null) { endGhost() } else {
+                    g.playWhenReady = p.playWhenReady
+                    if (xfAudibleAt == 0L && g.isPlaying && g.currentPosition > 60L) xfAudibleAt = now
+                    if (xfAudibleAt != 0L) {
+                        xfSkip = false
+                        xfPhase = 1; xfT0 = now; xfP0 = p.currentPosition; xfLen = xfSkipLen; xfF = 0f; xfTrace = 0L
+                        xfClockOnly = true
+                        xfRgNew = gainOf(g)
+                        com.ubayanda.milonative.util.ErrorLog.add("xfade", "blend skip: ${xfLen}ms, new song took ${now - xfSkipAt}ms to start, next=${g.currentMediaItem?.mediaId?.takeLast(6)}")
+                    } else if (now - xfSkipAt > 4000L) {
+                        val idx = xfNextIdx
+                        com.ubayanda.milonative.util.ErrorLog.add("xfade", "blend skip gave up: the song wasn't playing in time, plain jump")
+                        endGhost()
+                        if (idx in 0 until p.mediaItemCount) p.seekTo(idx, 0L)
+                    }
+                }
+            } else if (x > 0L && p.isPlaying && (session?.player === p || session?.player === fading) && p.repeatMode != Player.REPEAT_MODE_ONE && p.hasNextMediaItem()) {
                 val dur = p.duration
                 val item = p.currentMediaItem
                 if (item != null && dur != C.TIME_UNSET && dur > x * 3) {
@@ -343,7 +389,7 @@ class PlaybackService : MediaLibraryService() {
                 val byClock = ((now - xfT0).toFloat() / xfLen).coerceIn(0f, 1f)
                 // progress follows the old song's own position, so it reaches silence exactly where that song ends
                 val byPos = if (dur != C.TIME_UNSET && dur - xfP0 > 300L) ((p.currentPosition - xfP0).toFloat() / (dur - xfP0)).coerceIn(0f, 1f) else byClock
-                val f = maxOf(xfF, byPos)
+                val f = maxOf(xfF, if (xfClockOnly) byClock else byPos)
                 xfF = f
                 if (now - xfTrace >= 300L) {
                     xfTrace = now
@@ -402,7 +448,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         lastV = v
-        val tv = v * rgScale * transport.gain
+        val tv = v * rgScale * transport.gain * duckScale()
         if (p.volume != tv) p.volume = tv
     }
 
@@ -410,7 +456,7 @@ class PlaybackService : MediaLibraryService() {
         val p = exo ?: return
         // while two songs are crossfading the tick owns the volumes
         if (xfPhase != 0) return
-        val tv = lastV * rgScale * transport.gain
+        val tv = lastV * rgScale * transport.gain * duckScale()
         if (p.volume != tv) p.volume = tv
     }
 
@@ -535,6 +581,7 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) { updateGain(cur()) }
             override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) ytRetried.clear() else BtOutput.saveVolume(this@PlaybackService) }
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) { if (ownFocus()) focus.onPlayWhenReadyChanged(playWhenReady, reason) }
             override fun onEvents(p: Player, events: Player.Events) {
                 if (events.containsAny(
                         Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED,
@@ -591,8 +638,54 @@ class PlaybackService : MediaLibraryService() {
         override fun targetVolume(): Float = lastV * rgScale
         // not while a crossfade or a crossmix runs, nor while casting: those drive the volume themselves
         override fun canFade(): Boolean = xfPhase == 0 && session?.player === fading && directorOrNull?.isTransitioning != true
+        // blend skips (Mochy): the song asked for starts on the second player and the two cross over on the press
+        override fun blendsSkips(): Boolean = canBlend()
+        override fun blendSkip(previous: Boolean): Boolean {
+            val p = cur()
+            val target = when {
+                // back a few seconds in starts the song over, which stays a plain jump
+                previous && (p.currentPosition > 3_500L || !p.hasPreviousMediaItem()) -> return false
+                previous -> p.previousMediaItemIndex
+                !p.hasNextMediaItem() -> return false
+                else -> p.nextMediaItemIndex
+            }
+            return startBlend(target)
+        }
+        override fun blendJump(index: Int): Boolean = startBlend(index)
         override fun beatMsFor(mediaId: String?): Double? =
             mediaId?.let { directorOrNull?.cachedBpm(it) }?.takeIf { it in 40f..240f }?.let { 60_000.0 / it }
+    }
+
+    /** blend skips can cross over right now: it's on, a song is really playing, nothing else is mixing and we're not casting */
+    private fun canBlend(): Boolean {
+        val p = exo ?: return false
+        return fxPrefs.getBoolean("blend_skips", false) && xfPhase == 0 && !xfWarm && !xfSkip &&
+            session?.player === fading && directorOrNull?.isTransitioning != true &&
+            p.isPlaying && !p.isCurrentMediaItemLive && p.repeatMode != Player.REPEAT_MODE_ONE
+    }
+
+    private fun startBlend(target: Int): Boolean {
+        val p = cur()
+        if (!canBlend() || target == C.INDEX_UNSET || target < 0 || target >= p.mediaItemCount || target == p.currentMediaItemIndex) return false
+        return try {
+            val gp = ghostPlayer()
+            gp.stop()
+            gp.setMediaItem(p.getMediaItemAt(target), 0L)
+            gp.volume = 0f
+            gp.playWhenReady = p.playWhenReady
+            gp.setPlaybackSpeed(p.playbackParameters.speed)
+            gp.prepare()
+            val now = android.os.SystemClock.elapsedRealtime()
+            xfNextIdx = target
+            xfSkip = true
+            xfSkipAt = now
+            xfSkipLen = transport.lengthMs.toLong().coerceIn(600L, 3000L)
+            xfWarm = true
+            xfWarmAt = now
+            xfAudibleAt = 0L
+            primedKey = "skip#" + target
+            true
+        } catch (_: Throwable) { endGhost(); false }
     }
 
     private fun makeFading(p: ExoPlayer): Player = TransportFadingPlayer(p, transport)
@@ -662,7 +755,7 @@ class PlaybackService : MediaLibraryService() {
             outgoing.setAudioAttributes(musicAttrs, false)
 
             exo = incoming
-            incoming.setAudioAttributes(musicAttrs, true)
+            incoming.setAudioAttributes(musicAttrs, !ownFocus())
             incoming.setHandleAudioBecomingNoisy(true)
             incoming.skipSilenceEnabled = Extras.state.value.skipSilence
             incoming.addListener(mainListener)
@@ -735,7 +828,8 @@ class PlaybackService : MediaLibraryService() {
 
         override fun onStatus(status: String) { CrossmixLive.status.value = status }
 
-        override fun albumOf(index: Int): String? = null
+        // gapless albums (Mochy): songs of one album are checked for running into each other, and the director plays them straight through when their audio really does
+        override fun albumOf(index: Int): String? = albumAt(cur(), index)
 
         override fun settings() = CrossmixLive.settings(fxPrefs)
 
@@ -755,7 +849,7 @@ class PlaybackService : MediaLibraryService() {
         val mainXp = com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor()
         val player = ExoPlayer.Builder(this, eqRenderers(mainXp))
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))
-            .setAudioAttributes(musicAttrs, /* handleAudioFocus = */ true)
+            .setAudioAttributes(musicAttrs, /* handleAudioFocus = */ !ownFocus())
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
@@ -772,6 +866,7 @@ class PlaybackService : MediaLibraryService() {
                     .build())
                 .build()
         }
+        if (ownFocus()) focus.start()
         handler.post(fader)
         handler.post(callWatch)
         handler.post(widgetBeat)
@@ -805,6 +900,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         try { castBridge?.release() } catch (_: Throwable) {}
         castBridge = null
+        if (ownFocus()) try { focus.stop() } catch (_: Throwable) {}
         BtOutput.stop(this)
         svcScope.cancel()
         handler.removeCallbacksAndMessages(null)

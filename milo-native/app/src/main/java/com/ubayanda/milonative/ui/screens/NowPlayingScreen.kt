@@ -1176,7 +1176,6 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text("Lyric card shape: " + com.ubayanda.milonative.data.ShareCard.FORMATS[com.ubayanda.milonative.data.ShareCard.format(ctx)]) }, onClick = {
                             fx.edit().putInt("cardfmt", (com.ubayanda.milonative.data.ShareCard.format(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.FORMATS.size).apply(); moreMenu = false
                         })
-                        DropdownMenuItem(text = { Text("Player Studio (skins)") }, onClick = { com.ubayanda.milonative.ui.player.PlayerStudioRequest.open = true; moreMenu = false })
                         DropdownMenuItem(text = { Text("Lyric style: " + if (glow) "Glow (Mochy)" else "Classic") }, onClick = { glow = !glow; fx.edit().putBoolean("lyglow", glow).apply(); moreMenu = false })
                         if (glow) DropdownMenuItem(text = { Text("Blur lines not sung: " + if (glowBlur) "on" else "off") }, onClick = { glowBlur = !glowBlur; fx.edit().putBoolean("lyglowblur", glowBlur).apply(); moreMenu = false })
                         DropdownMenuItem(text = { Text("Readings (Latin letters): " + if (roman) "on" else "off") }, onClick = { roman = !roman; fx.edit().putBoolean("lyroman", roman).apply(); moreMenu = false })
