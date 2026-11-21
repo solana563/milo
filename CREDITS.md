@@ -600,3 +600,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Wordmark: the app's header, sign-in/gate screens, permission screen, TV screen and "milo. Sessions" title now use the text wordmark `MiloWordmark` (Figtree Black Italic, amber full stop) that Connect and the share card already had, instead of the old `logo_wordmark` drawable.
 - `ui/player/MorphCover.kt` (Mochy Music's MorphingCover, GPL-3.0): the play and next buttons now fly between the mini player and the open player; the cover flies into the lyrics page's header as the page rises (`LyricsCoverFlight`).
 - `ui/player/LiquidWarpBackdrop.kt`: port of Mochy's `CoverGradientBackdrop` liquid warp (one AGSL pass on API 33+, a zoomed still picture before). Opt-in: Sound > Backdrop. Off by default.
+
+## Round 139 — gapless albums
+- Mochy Music's "gapless albums" (GPL-3.0, github.com/realidkroo/Mochy-Music, `isNextItemGapless` / `albumOf`): when the next song is on the same album, the fixed crossfade stands down so the join plays as recorded, and Crossmix gets the album names so it can play tracks that already run into each other straight through (`PlaybackService.albumAt` / `nextIsSameAlbum`). Switch: Sound > Crossfade > "Keep albums gapless" (on by default, pref `gapless_albums`).

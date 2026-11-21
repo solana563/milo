@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ubayanda.milonative.R
 import com.ubayanda.milonative.model.Album
 import com.ubayanda.milonative.model.Artist
@@ -231,7 +232,7 @@ fun MiloApp(vm: MainViewModel) {
                 val logoTop by androidx.compose.animation.core.animateDpAsState(if (showLogo) 20.dp else 8.dp, androidx.compose.animation.core.spring(0.75f, 400f), label = "logoTop")
                 val logoBottom by androidx.compose.animation.core.animateDpAsState(if (showLogo) 37.dp else 4.dp, androidx.compose.animation.core.spring(0.75f, 400f), label = "logoBottom")
                 Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = logoTop.coerceAtLeast(0.dp), bottom = logoBottom.coerceAtLeast(0.dp)), contentAlignment = Alignment.Center) {
-                    if (logoH > 2.dp) Image(painterResource(R.drawable.logo_wordmark), "milo.", Modifier.height(logoH).graphicsLayer { alpha = (logoH.value / 42f).coerceIn(0f, 1f) })
+                    if (logoH > 2.dp) com.ubayanda.milonative.ui.theme.MiloWordmark((logoH.value * 0.9f).sp, Modifier.graphicsLayer { alpha = (logoH.value / 42f).coerceIn(0f, 1f) })
                 }
                 // like the web: solid cards, edge to edge. Other screens are one card with big top curves; Home draws its own two cards
                 val panelShape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)
@@ -382,7 +383,9 @@ fun MiloApp(vm: MainViewModel) {
                 exit = androidx.compose.animation.ExitTransition.None,
             ) {
                 if (current != null) {
-                    NowPlayingScreen(vm, current, ui, favs.contains(current.id)) { playerOpen = false }
+                    com.ubayanda.milonative.ui.player.PlayerSkinHost(vm, current, ui, onClose = { playerOpen = false }) {
+                        NowPlayingScreen(vm, current, ui, favs.contains(current.id)) { playerOpen = false }
+                    }
                 }
             }
 

@@ -5,6 +5,7 @@ import com.ubayanda.milonative.ui.player.LikeBurstState
 import com.ubayanda.milonative.ui.player.LikeSlot
 import com.ubayanda.milonative.ui.player.likeButtonTarget
 import com.ubayanda.milonative.ui.player.isDisc
+import com.ubayanda.milonative.ui.player.sheetReveal
 import com.ubayanda.milonative.ui.theme.MiloIcons
 import com.ubayanda.milonative.ui.components.MiloSlider
 import com.ubayanda.milonative.ui.components.pressable
@@ -171,8 +172,13 @@ private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
+    // 0 = folded into the mini player, 1 = open: the sheet grows out of the mini player and folds back into it (ui/player/MorphCover.kt)
+    val openP = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(Unit) { openP.animateTo(1f, androidx.compose.animation.core.spring(0.86f, 240f)) }
     var morphArt by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var morphTitle by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var morphPlay by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    var morphNext by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val dragScope = androidx.compose.runtime.rememberCoroutineScope()
     val screenH = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() }
     // the lyrics page rises with your finger and springs open (or back down): lyY = its distance from the top, screenH = closed
@@ -208,7 +214,14 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         if (shut) return
         shut = true
         val from = drag
-        dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(screenH, com.ubayanda.milonative.ui.components.Bounce.px()) { drag = value; if (value >= screenH) onClose() } }
+        // folds the rest of the way into the mini player (the cover lands on its art), then closes
+        dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(340f, androidx.compose.animation.core.spring(0.9f, 380f)) { drag = value }; onClose() }
+    }
+    /** close from the back button / arrow: the sheet folds into the mini player */
+    fun foldAway() {
+        if (shut) return
+        shut = true
+        dragScope.launch { openP.animateTo(0f, androidx.compose.animation.core.spring(0.9f, 300f)); onClose() }
     }
     var castOpen by remember { mutableStateOf(false) }
     if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
@@ -245,24 +258,21 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         else -> l.plain.lineSequence().firstOrNull { it.isNotBlank() } ?: "Lyrics"
     }
 
-    BackHandler { if (lyOpen) lyTo(screenH) else if (panel != Panel.None) panel = Panel.None else onClose() }
+    BackHandler { if (lyOpen) lyTo(screenH) else if (panel != Panel.None) panel = Panel.None else foldAway() }
 
-    Box(Modifier.fillMaxSize().offset { IntOffset(0, drag.roundToInt().coerceAtLeast(0)) }.graphicsLayer {
-        // dragging down shrinks the player toward the mini player at the bottom and rounds its corners, so it reads as folding into it
-        val p = (drag / 700f).coerceIn(0f, 1f)
-        val sc = 1f - 0.12f * p
-        scaleX = sc; scaleY = sc
-        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
-        shape = RoundedCornerShape(androidx.compose.foundation.shape.CornerSize(36f * p * density))
-        clip = p > 0f
-    }.background(Milo.bg)) {
+    val screenW = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    Box(Modifier.fillMaxSize().sheetReveal({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, screenW, screenH, 0f).background(Milo.bg)) {
         // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
         Box(Modifier.fillMaxSize()) {
+            val warpOn = remember(t.id) { npCtx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE).getBoolean("pbg_warp", false) }
+            if (warpOn && soft != null) com.ubayanda.milonative.ui.player.LiquidWarpBackdrop(soft, ui.isPlaying, Modifier.fillMaxSize())
+            else {
             com.ubayanda.milonative.ui.components.AuraBackdrop(vm.tint.collectAsState().value, ui.isPlaying, Modifier.fillMaxSize())
             soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f) }
+            }
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
-        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim * (1f - 0.9f * ((drag / 320f).coerceIn(0f, 1f).let { it * it * (3f - 2f * it) })) }.pointerInput("lyrics-swipe-all") {
+        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim * (1f - 0.9f * com.ubayanda.milonative.ui.player.smooth(1f - com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag))) }.pointerInput("lyrics-swipe-all") {
             // swipe up anywhere on the player (title, gaps, buttons area) that a child did not already use
             var up = false
             var decided = false
@@ -278,7 +288,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         }) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) morphArt = it.boundsInWindow() }.clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
+                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
                     detectTapGestures(onDoubleTap = { off ->
                         if (!npCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) return@detectTapGestures
                         val cur = uiNow
@@ -400,7 +410,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         }
                     }
                 }
-                RoundBtn(MiloIcons.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = onClose)
+                RoundBtn(MiloIcons.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = { foldAway() })
 
                 // one slim dock on the right edge instead of a stack of separate buttons (like the status-icon tab on the phone mock-up)
                 val dockShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
@@ -501,14 +511,14 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     IconTap(MiloIcons.Shuffle, "Shuffle", 28.dp, if (ui.shuffle) Milo.amber else Milo.text) { vm.player.toggleShuffle() }
                     RoundDark(MiloIcons.SkipPrevious, "Previous") { vm.player.previous() }
                     Box(
-                        Modifier.size(72.dp).clip(CircleShape)
+                        Modifier.size(72.dp).onGloballyPositioned { if (drag <= 0f) morphPlay = it.boundsInWindow() }.clip(CircleShape)
                             .background(if (Y2K.on) Brush.verticalGradient(listOf(Y2K.chromeLight, Y2K.chromeDark)) else androidx.compose.ui.graphics.SolidColor(Milo.cream))
                             .pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(38.dp))
                     }
-                    RoundDark(MiloIcons.SkipNext, "Next") { vm.player.next() }
+                    RoundDark(MiloIcons.SkipNext, "Next", Modifier.onGloballyPositioned { if (drag <= 0f) morphNext = it.boundsInWindow() }) { vm.player.next() }
                     IconTap(
                         if (ui.repeat == 1) MiloIcons.RepeatOne else MiloIcons.Repeat, "Repeat", 28.dp,
                         if (ui.repeat != 0) Milo.amber else Milo.text,
@@ -551,16 +561,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             }
         }
 
-        // the cover and song info travel to the mini player while the player folds away (cancels this box's own offset + scale)
-        if (drag > 0f) {
-            val sc = 1f - 0.12f * (drag / 700f).coerceIn(0f, 1f)
-            Box(Modifier.fillMaxSize().offset { IntOffset(0, (-drag / sc).roundToInt()) }.graphicsLayer {
-                scaleX = 1f / sc; scaleY = 1f / sc
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
-            }) {
-                com.ubayanda.milonative.ui.player.CoverMorphOverlay(cover?.asImageBitmap(), t.title, t.artist, morphArt, morphTitle, drag)
-            }
-        }
+        // the cover and the song info travel between the mini player and the open player with the sheet
+        val lookNow by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
+        SheetMorphLayer({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, cover?.asImageBitmap(), t.title, t.artist, morphArt, morphTitle, lookNow.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE, ui.isPlaying, morphPlay, morphNext)
 
         when (panel) {
             Panel.Queue -> Sheet(0.72f, soft, { panel = Panel.None }) { QueueContent(vm, ui) }
@@ -580,7 +583,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     shape = RoundedCornerShape(topStart = androidx.compose.foundation.shape.CornerSize(r), topEnd = androidx.compose.foundation.shape.CornerSize(r), bottomEnd = androidx.compose.foundation.shape.CornerSize(0f), bottomStart = androidx.compose.foundation.shape.CornerSize(0f))
                     clip = true
                 }) {
-                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading) { lyTo(screenH) }
+                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading, { lyY }) { lyTo(screenH) }
                     // grab this and pull down to close; it springs back if you let go early
                     Box(
                         Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp).width(140.dp).height(36.dp).pointerInput("lyrics-close") {
@@ -735,6 +738,14 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         )
         if (xf >= 1f) {
             val xfp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
+            var gapAlbums by remember { mutableStateOf(xfp.getBoolean("gapless_albums", true)) }
+            Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Keep albums gapless: songs from one album play straight through, no fade (Mochy)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                com.ubayanda.milonative.ui.components.MiloSwitch(
+                    checked = gapAlbums, onCheckedChange = { gapAlbums = it; xfp.edit().putBoolean("gapless_albums", it).apply() },
+                    colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber),
+                )
+            }
             var curve by remember { mutableStateOf(xfp.getInt("xfcurve", 0)) }
             LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(com.ubayanda.milonative.player.XFade.names.size) { i ->
@@ -762,6 +773,14 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
                     MiloChip(e.label, tfx == i) { tfx = i; tfp.edit().putInt("tfx", i).apply() }
                 }
             }
+        }
+        var blend by remember { mutableStateOf(tfp.getBoolean("blend_skips", false)) }
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Blend skips: the song you skip to starts at once and crosses over (length = the slider above, 0.6 to 3 s)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            com.ubayanda.milonative.ui.components.MiloSwitch(
+                checked = blend, onCheckedChange = { blend = it; tfp.edit().putBoolean("blend_skips", it).apply() },
+                colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber),
+            )
         }
 
         Label("Loudness matching")
@@ -794,6 +813,8 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         CoverStyleSection()
 
         LyricTickerToggle()
+
+        LoudnessSection()
 
         CrossmixSection()
 
@@ -873,6 +894,15 @@ private fun CoverStyleSection() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val look by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
     val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Backdrop")
+    run {
+        val fx = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+        var warp by remember { mutableStateOf(fx.getBoolean("pbg_warp", false)) }
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Liquid backdrop: the cover's colours drift slowly (Mochy). Applies from the next song.", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            com.ubayanda.milonative.ui.components.MiloSwitch(checked = warp, onCheckedChange = { warp = it; fx.edit().putBoolean("pbg_warp", it).apply() }, colors = sw)
+        }
+    }
     Label("Cover style")
     Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         com.ubayanda.milonative.ui.player.PlayerCoverStyle.values().forEach { st ->
@@ -911,6 +941,36 @@ private fun LyricTickerToggle() {
         Text("Karaoke line under the controls (Mochy style)", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
         com.ubayanda.milonative.ui.components.MiloSwitch(checked = on, onCheckedChange = { on = it; fx.edit().putBoolean("lyticker", it).apply() }, colors = sw)
     }
+}
+
+@Composable
+private fun LoudnessSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val fx = remember { ctx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
+    var on by remember { mutableStateOf(fx.getBoolean("loud_on", false)) }
+    var boost by remember { mutableStateOf(fx.getInt("loud_boost", 4).toFloat()) }
+    var comp by remember { mutableStateOf(fx.getInt("loud_comp", 30).toFloat()) }
+    var rgMode by remember { mutableStateOf(fx.getInt("rg_mode", 0)) }
+    var rgPre by remember { mutableStateOf(fx.getInt("rg_pre", 0).toFloat()) }
+    val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
+    Label("Loudness")
+    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Louder without breaking up: lifts quiet parts, then a peak limiter", color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        com.ubayanda.milonative.ui.components.MiloSwitch(checked = on, onCheckedChange = { on = it; fx.edit().putBoolean("loud_on", it).apply() }, colors = sw)
+    }
+    if (on) {
+        Text("Boost  +${boost.toInt()} dB", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        androidx.compose.material3.Slider(boost, { boost = it }, valueRange = 0f..12f, steps = 11, onValueChangeFinished = { fx.edit().putInt("loud_boost", boost.toInt()).apply() }, modifier = Modifier.padding(horizontal = 12.dp))
+        Text("Compression  ${comp.toInt()}%", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        androidx.compose.material3.Slider(comp, { comp = it }, valueRange = 0f..100f, onValueChangeFinished = { fx.edit().putInt("loud_comp", comp.toInt()).apply() }, modifier = Modifier.padding(horizontal = 12.dp))
+        Text("Gain reduction now: ${"%.1f".format(com.ubayanda.milonative.player.audio.LoudnessFx.reductionDb)} dB", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
+    }
+    Text("ReplayGain (files that carry it)", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Track", "Album").forEachIndexed { i, n -> MiloChip(n, rgMode == i) { rgMode = i; fx.edit().putInt("rg_mode", i).apply() } }
+    }
+    Text("Preamp  ${if (rgPre >= 0) "+" else ""}${rgPre.toInt()} dB (songs are only ever turned down)", color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    androidx.compose.material3.Slider(rgPre, { rgPre = it }, valueRange = -6f..6f, steps = 11, onValueChangeFinished = { fx.edit().putInt("rg_pre", rgPre.toInt()).apply() }, modifier = Modifier.padding(horizontal = 12.dp))
 }
 
 @Composable
@@ -1009,7 +1069,7 @@ private fun Label(text: String) {
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics0: Lyrics?, loading: Boolean, onBack: () -> Unit) {
+private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics0: Lyrics?, loading: Boolean, pageOffset: () -> Float = { 0f }, onBack: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val fx = remember { ctx.getSharedPreferences("milo_fx", 0) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -1116,6 +1176,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         DropdownMenuItem(text = { Text("Lyric card shape: " + com.ubayanda.milonative.data.ShareCard.FORMATS[com.ubayanda.milonative.data.ShareCard.format(ctx)]) }, onClick = {
                             fx.edit().putInt("cardfmt", (com.ubayanda.milonative.data.ShareCard.format(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.FORMATS.size).apply(); moreMenu = false
                         })
+                        DropdownMenuItem(text = { Text("Player Studio (skins)") }, onClick = { com.ubayanda.milonative.ui.player.PlayerStudioRequest.open = true; moreMenu = false })
                         DropdownMenuItem(text = { Text("Lyric style: " + if (glow) "Glow (Mochy)" else "Classic") }, onClick = { glow = !glow; fx.edit().putBoolean("lyglow", glow).apply(); moreMenu = false })
                         if (glow) DropdownMenuItem(text = { Text("Blur lines not sung: " + if (glowBlur) "on" else "off") }, onClick = { glowBlur = !glowBlur; fx.edit().putBoolean("lyglowblur", glowBlur).apply(); moreMenu = false })
                         DropdownMenuItem(text = { Text("Readings (Latin letters): " + if (roman) "on" else "off") }, onClick = { roman = !roman; fx.edit().putBoolean("lyroman", roman).apply(); moreMenu = false })
@@ -1132,7 +1193,10 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
             }
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300)
+                com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300, modifier = Modifier
+                    .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.lyricsArt = it.boundsInWindow().translate(0f, -pageOffset()) }
+                    // the cover flies in from the player (LyricsCoverFlight draws it over the page), so this one stays unseen once that has somewhere to start
+                    .graphicsLayer { alpha = if (com.ubayanda.milonative.ui.player.MorphTargets.fullArt != null) 0f else 1f })
                 Spacer(Modifier.width(18.dp))
                 Column(Modifier.weight(1f)) {
                     Text(t.title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1472,9 +1536,9 @@ private fun Scrubber(ui: PlayerUi, modifier: Modifier = Modifier, tint: Int = 0,
 }
 
 @Composable
-private fun RoundDark(icon: ImageVector, desc: String, onClick: () -> Unit) {
+private fun RoundDark(icon: ImageVector, desc: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        Modifier.size(58.dp).clip(CircleShape).background(Milo.card2).clickable(onClick = onClick),
+        modifier.size(58.dp).clip(CircleShape).background(Milo.card2).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, desc, tint = Milo.text, modifier = Modifier.size(28.dp)) }
 }
@@ -1563,5 +1627,36 @@ private fun estimateWords(line: com.ubayanda.milonative.model.LyricLine, nextMs:
         val start = line.timeMs + (span * acc / total).toLong()
         acc += weights[i]
         com.ubayanda.milonative.model.LyricWord(start, w)
+        // the cover on its way into the lyrics header, over the page
+        if (lyOpen) {
+            val lookFly by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
+            LyricsFlightLayer({ 1f - (lyY / screenH).coerceIn(0f, 1f) }, cover?.asImageBitmap(), morphArt, lookFly.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE)
+        }
     }
+}
+
+/** the open player's cover rect; every style but edge to edge shows its cover as a square stage under the status bar, not the whole art region */
+private fun morphFrom(art: androidx.compose.ui.geometry.Rect?, growLate: Boolean, d: androidx.compose.ui.unit.Density, top: Int): androidx.compose.ui.geometry.Rect? =
+    if (growLate && art != null) with(d) {
+        val side = art.width - 60.dp.toPx()
+        androidx.compose.ui.geometry.Rect(art.left + 30.dp.toPx(), art.top + top + 64.dp.toPx(), art.left + 30.dp.toPx() + side, art.top + top + 64.dp.toPx() + side)
+    } else art
+
+@Composable
+private fun SheetMorphLayer(
+    progress: () -> Float, cover: androidx.compose.ui.graphics.ImageBitmap?, title: String, artist: String,
+    art: androidx.compose.ui.geometry.Rect?, titleRect: androidx.compose.ui.geometry.Rect?, growLate: Boolean,
+    isPlaying: Boolean, playRect: androidx.compose.ui.geometry.Rect?, nextRect: androidx.compose.ui.geometry.Rect?,
+) {
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    val top = androidx.compose.foundation.layout.WindowInsets.statusBars.getTop(d)
+    // read here, so only this layer redraws while the sheet moves
+    com.ubayanda.milonative.ui.player.CoverMorphOverlay(cover, title, artist, morphFrom(art, growLate, d, top), titleRect, progress(), growLate, isPlaying, playRect, nextRect)
+}
+
+@Composable
+private fun LyricsFlightLayer(lp: () -> Float, cover: androidx.compose.ui.graphics.ImageBitmap?, art: androidx.compose.ui.geometry.Rect?, growLate: Boolean) {
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    val top = androidx.compose.foundation.layout.WindowInsets.statusBars.getTop(d)
+    com.ubayanda.milonative.ui.player.LyricsCoverFlight(cover, morphFrom(art, growLate, d, top), lp(), growLate)
 }
