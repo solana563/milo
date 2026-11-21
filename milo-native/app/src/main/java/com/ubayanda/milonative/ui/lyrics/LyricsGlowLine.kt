@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 // from Mochy Music (GPL-3.0, github.com/realidkroo/Mochy-Music): the lyric line with its karaoke sweep, letter motion, glow and wave
 package com.ubayanda.milonative.ui.lyrics
 

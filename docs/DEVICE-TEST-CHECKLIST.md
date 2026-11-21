@@ -236,3 +236,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R128: CI compiles ui/lyrics/*; Lyrics menu > Lyric style: Glow: active line sweeps along the sung letters, words rise, lines not sung blur (Android 12+), glow on Android 13+; tapping a line seeks; readings and translation still show; switch back to Classic.
 - [ ] R129: CI resolves tinypinyin; Chinese lyrics get pinyin readings.
 - [ ] R130: CI resolves pinyin4j and unit tests run; Chinese lyrics show pinyin readings (e.g. 'ni hao').
+- [ ] R131: CI compiles the glow lyric line.

@@ -568,3 +568,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 130 — build fix: Chinese readings use pinyin4j
 - TinyPinyin could not be fetched from any repository CI can reach (JCenter is gone, the mirror did not have it). Chinese readings now use pinyin4j (com.belerweb:pinyin4j:2.5.1, on Maven Central), set to toneless pinyin with v for ü, the shape Mochy's output had. The Aliyun mirror added in round 129 is removed again. Mochy's rules for Japanese, Korean, Cyrillic, Hindi and Punjabi are unchanged.
+
+## Round 131 — build fix: glow lyric line
+- CI: LyricsGlowLine.kt needed Mochy's LyricsSteadyWrap (the bold line-break helper, now ui/lyrics/LyricsSteadyWrap.kt) and an opt-in for combinedClickable on this Compose version; the "Unresolved reference 'it'" at line 429 came from the first one.
