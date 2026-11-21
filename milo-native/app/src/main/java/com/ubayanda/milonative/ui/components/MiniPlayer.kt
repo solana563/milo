@@ -58,6 +58,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
     Column(
         modifier.fillMaxWidth().padding(horizontal = Sp.x3)
             .lift(shape, 20f).then(glassMod)
+            .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniBar = it.boundsInWindow() }
             .clickable(onClick = onOpen)
     ) {
         Row(Modifier.padding(start = Sp.x3, end = Sp.x3, top = Sp.x3, bottom = Sp.x2), verticalAlignment = Alignment.CenterVertically) {

@@ -345,7 +345,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Y2K.navy.copy(alpha = 0.55f), Y2K.navy.copy(alpha = 0.85f)))))
                                 SpinningCd(b.asImageBitmap(), uiNow.isPlaying, Modifier.align(Alignment.Center).fillMaxWidth(0.72f))
                             }
-                            else if (b != null && coverLook.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE) com.ubayanda.milonative.ui.player.CoverStage(b, coverLook, uiNow.isPlaying)
+                            else if (b != null && coverLook.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE) com.ubayanda.milonative.ui.player.CoverStage(b, coverLook, uiNow.isPlaying, positionProvider = { uiNow.positionMs }, durationProvider = { uiNow.durationMs }, trackKey = t.id, onSeek = { vm.player.seekTo(it) })
                             else if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
                                 colorFilter = if (Sticker.on || ChromeStyle.on) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToSaturation(0f) }) else null)
                             else if (k.done) Icon(MiloIcons.MusicNote, null, tint = Milo.dim, modifier = Modifier.align(Alignment.Center).size(96.dp))
@@ -875,7 +875,7 @@ private fun CoverStyleSection() {
     val sw = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber)
     Label("Cover style")
     Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        com.ubayanda.milonative.ui.player.PlayerCoverStyle.values().filter { it != com.ubayanda.milonative.ui.player.PlayerCoverStyle.TURNTABLE }.forEach { st ->
+        com.ubayanda.milonative.ui.player.PlayerCoverStyle.values().forEach { st ->
             MiloChip(st.label, look.style == st) { com.ubayanda.milonative.ui.player.CoverLook.set(ctx, look.copy(style = st)) }
         }
     }

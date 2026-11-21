@@ -203,7 +203,7 @@ class PlaybackService : MediaLibraryService() {
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             // Round 62: back to Media3's default audio buffer. The Round 48 bigger buffer (600 ms) did not help and matches the ~0.6 s freeze seen at every crossfade swap.
-            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(*listOfNotNull(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), Spectrum.Tap(), xp, haptic).toTypedArray()))
+            .setAudioProcessorChain(androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(*listOfNotNull(ParamEq.Processor(), GraphicEq.Processor(), Reverb.Processor(), Extras.Processor(), com.ubayanda.milonative.player.audio.LoudnessAudioProcessor(), Spectrum.Tap(), xp, haptic).toTypedArray()))
             .build()
         // Crossmix needs to know where in its song each buffer sits: the clock sink tells the processor
         return if (xp != null) com.ubayanda.milonative.player.audio.CrossmixClockSink(sink, xp) else sink
@@ -428,6 +428,8 @@ class PlaybackService : MediaLibraryService() {
             val l = com.ubayanda.milonative.data.YtMusic.loudness(u.schemeSpecificPart.orEmpty())
             if (l != 0.0) db = -l
         } else {
+            // Mochy's ReplayGainTags rules: track or album gain (the other as fallback) + preamp, never boosted, never past the file's peak
+            var tg = Double.NaN; var tp = Double.NaN; var ag = Double.NaN; var ap = Double.NaN
             for (g in p.currentTracks.groups) {
                 if (g.type != C.TRACK_TYPE_AUDIO || !g.isSelected) continue
                 val md = g.getTrackFormat(0).metadata ?: continue
@@ -436,10 +438,23 @@ class PlaybackService : MediaLibraryService() {
                     var key = ""; var value = ""
                     if (e is androidx.media3.extractor.metadata.id3.TextInformationFrame) { key = e.description.orEmpty(); value = e.values.firstOrNull().orEmpty() }
                     else if (e is androidx.media3.extractor.metadata.vorbis.VorbisComment) { key = e.key; value = e.value }
-                    val num = Regex("-?\\d+(\\.\\d+)?").find(value)?.value?.toDoubleOrNull() ?: continue
-                    if (key.equals("REPLAYGAIN_TRACK_GAIN", true)) db = num
-                    else if (key.equals("R128_TRACK_GAIN", true) && db.isNaN()) db = num / 256.0 + 5.0
+                    val num = Regex("[-+]?\\d+(\\.\\d+)?").find(value)?.value?.toDoubleOrNull() ?: continue
+                    when (key.uppercase()) {
+                        "REPLAYGAIN_TRACK_GAIN" -> tg = num
+                        "REPLAYGAIN_TRACK_PEAK" -> tp = num
+                        "REPLAYGAIN_ALBUM_GAIN" -> ag = num
+                        "REPLAYGAIN_ALBUM_PEAK" -> ap = num
+                        "R128_TRACK_GAIN" -> if (tg.isNaN()) tg = num / 256.0 + 5.0
+                    }
                 }
+            }
+            val album = fxPrefs.getInt("rg_mode", 0) == 1
+            val gain = if (album) (if (!ag.isNaN()) ag else tg) else (if (!tg.isNaN()) tg else ag)
+            val peak = if (album) (if (!ap.isNaN()) ap else tp) else (if (!tp.isNaN()) tp else ap)
+            if (!gain.isNaN()) {
+                var f = Math.pow(10.0, (gain + fxPrefs.getInt("rg_pre", 0)) / 20.0)
+                if (!peak.isNaN() && peak > 0.0) f = minOf(f, 1.0 / peak)
+                return f.toFloat().coerceIn(0.03f, 1f)
             }
         }
         return if (db.isNaN()) 1f else Math.pow(10.0, minOf(db, 0.0) / 20.0).toFloat().coerceIn(0.05f, 1f)
@@ -554,6 +569,8 @@ class PlaybackService : MediaLibraryService() {
     // a changed Crossmix choice (engine, length, tempo, style...) re-plans the next hand-over
     private val xPrefsWatch = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (_: Throwable) {} }
+        if (key?.startsWith("loud_") == true) com.ubayanda.milonative.player.audio.LoudnessFx.load(fxPrefs)
+        if (key == "rg_mode" || key == "rg_pre" || key == "rg") handler.post { updateGain(cur()); applyVolumeNow() }
         if (key?.startsWith("haptic_") == true) handler.post { synchronized(hapticProcs) { hapticProcs.toList() }.forEach { applyHaptic(it) } }
         if (key == "tfade" || key == "tfx") handler.post { try { syncTransport() } catch (_: Throwable) {} }
     }
@@ -734,6 +751,7 @@ class PlaybackService : MediaLibraryService() {
         Extras.init(this)
         GraphicEq.init(this)
         Reverb.init(this)
+        com.ubayanda.milonative.player.audio.LoudnessFx.load(fxPrefs)
         val mainXp = com.ubayanda.milonative.player.audio.CrossmixTransitionAudioProcessor()
         val player = ExoPlayer.Builder(this, eqRenderers(mainXp))
             .setMediaSourceFactory(YtSource.mediaSourceFactory(this))

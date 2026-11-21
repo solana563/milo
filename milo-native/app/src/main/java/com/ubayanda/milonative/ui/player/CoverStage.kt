@@ -70,7 +70,12 @@ object CoverLook {
  * (small, big running off the edge, with a tonearm, or next to the album). The screen's usual controls sit over it as before.
  */
 @Composable
-fun CoverStage(bmp: Bitmap, look: CoverLook.State, playing: Boolean, modifier: Modifier = Modifier) {
+fun CoverStage(
+    bmp: Bitmap, look: CoverLook.State, playing: Boolean, modifier: Modifier = Modifier,
+    /** for the Turntable's arm, which follows the song and is its seek bar */
+    positionProvider: () -> Long = { 0L }, durationProvider: () -> Long = { 0L },
+    trackKey: Any? = null, onSeek: (Long) -> Unit = {},
+) {
     val art = remember(bmp) { bmp.asImageBitmap() }
     var angle by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(playing, look.rotate) {
@@ -100,6 +105,21 @@ fun CoverStage(bmp: Bitmap, look: CoverLook.State, playing: Boolean, modifier: M
                 )
                 // the cover mirrored under itself, blurred, spilling into the backdrop (Mochy's cover reflection)
                 CoverReflection(bmp, coverHeight = { coverPx }, magnify = { 1f }, alpha = { 0.55f }, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
+            }
+            look.style == PlayerCoverStyle.TURNTABLE -> {
+                // the record runs off the left edge with its arm reaching in from the top right; the slab goes under it
+                Box(Modifier.align(Alignment.TopCenter).statusBarsPadding().fillMaxWidth().aspectRatio(0.72f)) {
+                    TurntableBase(Modifier.fillMaxSize())
+                    DiscCover(
+                        style = look.style, artworkUrl = art, discName = look.name, realistic = look.realistic, editMode = false,
+                        rotationProvider = { angle }, modifier = Modifier.fillMaxSize(), saturationProvider = { colour },
+                    )
+                    TurntableArm(
+                        active = true, interactive = true, modifier = Modifier.fillMaxSize(),
+                        positionProvider = positionProvider, durationProvider = durationProvider,
+                        isPlaying = playing, trackKey = trackKey, onSeek = onSeek,
+                    )
+                }
             }
             else -> {
                 val big = look.style.isBigDisc

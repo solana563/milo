@@ -101,7 +101,7 @@ private fun Welcome(vm: MainViewModel, a: AccountUi) {
         Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 28.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Image(painterResource(R.drawable.logo_wordmark), null, Modifier.height(54.dp))
+        com.ubayanda.milonative.ui.theme.MiloWordmark(48.sp)
         Spacer(Modifier.height(22.dp))
         Text("Your music.\nYour people.", color = Milo.text, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, lineHeight = 42.sp)
         Spacer(Modifier.height(10.dp))
@@ -155,7 +155,7 @@ private fun Shell(title: String, sub: String, onBack: (() -> Unit)?, content: @C
                 Icon(MiloIcons.ArrowBackIosNew, "Back", tint = Milo.text)
             }
         } else Spacer(Modifier.height(44.dp))
-        Image(painterResource(R.drawable.logo_wordmark), null, Modifier.height(40.dp))
+        com.ubayanda.milonative.ui.theme.MiloWordmark(36.sp)
         Text(title, color = Milo.text, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
         Text(sub, color = Milo.dim, fontSize = 15.sp)
         content()

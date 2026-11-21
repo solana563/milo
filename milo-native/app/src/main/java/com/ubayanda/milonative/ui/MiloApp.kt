@@ -377,8 +377,9 @@ fun MiloApp(vm: MainViewModel) {
 
             AnimatedVisibility(
                 visible = playerOpen && current != null,
-                enter = slideInVertically(androidx.compose.animation.core.spring(0.8f, 350f, androidx.compose.ui.unit.IntOffset.VisibilityThreshold)) { it },
-                exit = slideOutVertically(com.ubayanda.milonative.ui.components.Bounce.offset()) { it },
+                // the player opens out of the mini player and folds back into it itself (ui/player/MorphCover.kt)
+                enter = androidx.compose.animation.EnterTransition.None,
+                exit = androidx.compose.animation.ExitTransition.None,
             ) {
                 if (current != null) {
                     NowPlayingScreen(vm, current, ui, favs.contains(current.id)) { playerOpen = false }

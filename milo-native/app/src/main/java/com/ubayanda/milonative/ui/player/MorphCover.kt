@@ -1,11 +1,16 @@
-// Idea from Mochy Music's MorphingCover (GPL-3.0, github.com/realidkroo/Mochy-Music): while the player folds away,
-// the cover and the song info travel to the mini player's own slots instead of the whole page just shrinking.
-// Mochy's version runs its whole bottom sheet (2k lines: mini pill, backdrops, canvas); this is the same
-// idea for milo's drag-down, driven by measured rects so it lands exactly on the mini player's art and title.
+// Ported from Mochy Music's MorphingCover (GPL-3.0, github.com/realidkroo/Mochy-Music): one sheet progress p (0 = the mini player,
+// 1 = the open player) moves the cover, the song info and the sheet's own backdrop between the two, with Mochy's curves
+// (coverGrowth / coverTravel / smoothstep). Driven by the open spring, by dragging the player down, and by closing it, so the
+// player opens out of the mini player and folds back into it. The ends are measured rects, so it lands exactly on the mini
+// player's art, title and bar. Not ported yet: play/skip flying between the two, the video / canvas / liquid-warp layers,
+// the cover shrinking into the lyrics header.
 package com.ubayanda.milonative.ui.player
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -37,14 +42,43 @@ import kotlin.math.roundToInt
 object MorphTargets {
     var miniArt by mutableStateOf<Rect?>(null)
     var miniTitle by mutableStateOf<Rect?>(null)
+    /** the whole mini player bar: the open player's sheet grows out of it */
+    var miniBar by mutableStateOf<Rect?>(null)
 }
 
 private fun mix(a: Float, b: Float, f: Float) = a + (b - a) * f
-private fun smooth(t: Float): Float { val x = t.coerceIn(0f, 1f); return x * x * (3f - 2f * x) }
+internal fun smooth(t: Float): Float { val x = t.coerceIn(0f, 1f); return x * x * (3f - 2f * x) }
+
+// a late-growing cover (every style but edge-to-edge) keeps its mini size until the sheet is this far open
+private const val LateGrowFrom = 0.7f
+private fun coverGrowth(p: Float, growLate: Boolean) = if (growLate) smooth((p - LateGrowFrom) / (1f - LateGrowFrom)) else p
+private fun coverTravel(p: Float, growLate: Boolean) = if (growLate) 1f - (1f - p) * (1f - p) else p
+
+/** sheet progress from the open spring (0..1) and the downward drag in px: 1 open, 0 folded into the mini player */
+fun sheetProgress(open: Float, dragPx: Float): Float = minOf(open, 1f - (dragPx / 320f).coerceIn(0f, 1f))
+
+/**
+ * The sheet's own backdrop: it grows out of the mini player's bar (its top edge, sides and corners) to the whole screen.
+ * [progress] is read in the layer, so it never recomposes.
+ */
+fun Modifier.sheetReveal(progress: () -> Float, screenW: Float, screenH: Float, openRadius: Float): Modifier =
+    this.graphicsLayer {
+        val p = progress()
+        if (p >= 0.999f) { clip = false; return@graphicsLayer }
+        val bar = MorphTargets.miniBar
+        val e = smooth(p)
+        val top = mix(bar?.top ?: screenH, 0f, e)
+        val left = mix(bar?.left ?: 0f, 0f, e)
+        val right = mix(bar?.right ?: screenW, screenW, e)
+        val bottom = mix(bar?.bottom ?: screenH, screenH, e)
+        val r = mix(bar?.let { 36f * density } ?: 0f, openRadius, e)
+        shape = GenericShape { _, _ -> addRoundRect(RoundRect(left, top, right, bottom, CornerRadius(r, r))) }
+        clip = true
+    }
 
 /**
  * Draws in screen space (the caller cancels the player's own offset and scale), over the player.
- * [fromArt] / [fromTitle] are the full player's rects measured at rest.
+ * [fromArt] / [fromTitle] are the open player's cover and title rects measured at rest; [growLate] is every cover style but edge to edge.
  */
 @Composable
 fun CoverMorphOverlay(
@@ -53,19 +87,27 @@ fun CoverMorphOverlay(
     artist: String,
     fromArt: Rect?,
     fromTitle: Rect?,
-    dragPx: Float,
+    progress: Float,
+    growLate: Boolean = false,
 ) {
     val toArt = MorphTargets.miniArt
-    if (cover == null || fromArt == null || toArt == null || dragPx <= 0f) return
-    val e = smooth(dragPx / 320f)
+    val p = progress.coerceIn(0f, 1f)
+    if (cover == null || fromArt == null || toArt == null || p >= 0.995f) return
     val d = LocalDensity.current
-    val l = mix(fromArt.left, toArt.left, e)
-    val t = mix(fromArt.top, toArt.top, e)
-    val w = mix(fromArt.width, toArt.width, e)
-    val h = mix(fromArt.height, toArt.height, e)
-    val topR = Rad.sm * e
-    val botR = Rad.xl * (1f - e) + Rad.sm * e
-    Box(Modifier.fillMaxSize()) {
+    val grow = coverGrowth(p, growLate)
+    val travel = coverTravel(p, growLate)
+    val w = mix(toArt.width, fromArt.width, grow)
+    val h = mix(toArt.height, fromArt.height, grow)
+    val cx = mix(toArt.center.x, fromArt.center.x, travel)
+    val cy = mix(toArt.center.y, fromArt.center.y, travel)
+    val l = cx - w / 2f
+    val t = cy - h / 2f
+    // the real cover is drawn under this one: hand over as it lands
+    val handOver = smooth((0.995f - p) / 0.06f)
+    val e = grow
+    val topR = Rad.sm * (1f - e) + (if (growLate) 22.dp else 0.dp) * e
+    val botR = Rad.sm * (1f - e) + (if (growLate) 22.dp else Rad.xl) * e
+    Box(Modifier.fillMaxSize().graphicsLayer { alpha = handOver }) {
         Image(
             cover, null, contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -75,18 +117,19 @@ fun CoverMorphOverlay(
         )
         val toTitle = MorphTargets.miniTitle
         if (fromTitle != null && toTitle != null) {
-            val a = (1f - e) * 3f
-            if (a > 0f) {
-                val tl = mix(fromTitle.left, toTitle.left, e)
-                val tt = mix(fromTitle.top, toTitle.top, e)
+            val tl = mix(toTitle.left, fromTitle.left, p)
+            val tt = mix(toTitle.top, fromTitle.top, p)
+            // the title is the real player's own text once it's open: this one carries it over and fades out
+            val ta = 1f - smooth((p - 0.2f) / 0.5f)
+            if (ta > 0.01f) {
                 Column(
                     Modifier
                         .offset { IntOffset(tl.roundToInt(), tt.roundToInt()) }
-                        .then(with(d) { Modifier.width(fromTitle.width.toDp()) })
+                        .then(with(d) { Modifier.width(mix(toTitle.width, fromTitle.width, p).toDp()) })
                         .graphicsLayer {
-                            alpha = a.coerceIn(0f, 1f)
-                            val s = mix(1f, 0.62f, e)
-                            scaleX = s; scaleY = s
+                            alpha = ta
+                            val sc = mix(0.62f, 1f, p)
+                            scaleX = sc; scaleY = sc
                             transformOrigin = TransformOrigin(0f, 0f)
                         },
                 ) {

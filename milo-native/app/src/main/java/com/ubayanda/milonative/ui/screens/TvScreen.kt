@@ -76,7 +76,7 @@ fun TvScreen(vm: MainViewModel) {
     val liked = remember(tracks, favs) { tracks.filter { it.id in favs } }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF0E0D0C)).padding(horizontal = 48.dp, vertical = 32.dp)) {
-        Text("milo.", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.ExtraBold)
+        com.ubayanda.milonative.ui.theme.MiloWordmark(40.sp, color = Color.White)
         Spacer(Modifier.height(16.dp))
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(28.dp)) {
             item {

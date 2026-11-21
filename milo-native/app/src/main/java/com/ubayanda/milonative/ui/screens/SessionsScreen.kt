@@ -109,7 +109,7 @@ private fun SessionsHome(vm: MainViewModel, onClose: () -> Unit) {
     LaunchedEffect(Unit) { while (true) { vm.refreshPublicRooms(); kotlinx.coroutines.delay(8000) } }
     val card = RoundedCornerShape(20.dp)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) { Pill("Back", null, false, compact = true, onClick = onClose); Spacer(Modifier.width(12.dp)); Text("milo. Sessions", color = Milo.text, style = Ty.title) } }
+        item { Row(verticalAlignment = Alignment.CenterVertically) { Pill("Back", null, false, compact = true, onClick = onClose); Spacer(Modifier.width(12.dp)); com.ubayanda.milonative.ui.theme.MiloWordmark(26.sp); Text(" Sessions", color = Milo.text, style = Ty.title) } }
         item { Text("Listen together in a room: one host plays, everyone hears the same song at the same time, and can suggest songs and react.", color = Milo.dim, style = Ty.caption) }
         if (!vm.signedIn) item { Text("Sign in first (Profile) to start or join a session.", color = Milo.amber, style = Ty.label) }
         if (msg.isNotEmpty()) item { Text(msg, color = Color(0xFFFF8A80), style = Ty.caption) }

@@ -51,7 +51,7 @@ fun PermissionScreen(blockedForever: Boolean, onAllow: () -> Unit, onOpenSetting
             Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 28.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(painterResource(R.drawable.logo_wordmark), null, Modifier.height(54.dp))
+            com.ubayanda.milonative.ui.theme.MiloWordmark(48.sp)
             Spacer(Modifier.height(22.dp))
             Text(
                 "Your music.\nYour phone.", color = Milo.text, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold,
