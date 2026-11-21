@@ -579,5 +579,24 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - `ui/lyrics/MiniLyricsTicker.kt`: port of Mochy Music's `MiniLyricsTicker` (GPL-3.0, github.com/realidkroo/Mochy-Music): slot logic, rolling line changes, sideways slide following the karaoke sweep, edge fades, interlude dots. Tall-card mode (readings + upcoming list) not ported.
 - Opt-in (Sound > "Lyrics ticker", off by default); replaces the one-line preview under the controls on Now Playing. Mini player unchanged.
 
-## Round 134 — cover + song info morph
-- `ui/player/MorphCover.kt`: idea from Mochy Music's `MorphingCover` (GPL-3.0, github.com/realidkroo/Mochy-Music). As the player is dragged down, the cover and the title/artist travel to the mini player's measured art/title slots (MiniPlayer reports them) while the rest of the page fades. Mochy's full bottom-sheet morph (mini pill, backdrops, canvas layer) is not ported; milo's mini player stays as it was.
+## Round 134 — cover + song info morph (superseded by Round 137)
+- First version, drag-down only.
+
+## Round 135 — Turntable style
+- `ui/player/TurntableArm.kt`: port of Mochy Music's `TurntableArm` (GPL-3.0, github.com/realidkroo/Mochy-Music): the tonearm follows the song along the record and is its seek bar (hold and swing it; arc + time labels; haptic ticks every 10 s). Player hooks replaced with providers; stream-failure arc colouring omitted.
+- `CoverStage.kt` gets the Turntable layout (slab, record running off the left edge, arm); style now offered in the cover picker.
+
+## Round 136 — loudness + ReplayGain rules
+- `player/audio/LoudnessAudioProcessor.kt`: port of Mochy Music's `LoudnessAudioProcessor` (GPL-3.0, github.com/realidkroo/Mochy-Music): stereo-linked compressor, boost, soft-knee peak limiter under -0.5 dBFS; settings in `LoudnessFx` (prefs loud_on/loud_boost/loud_comp). Last of the EQ/reverb effects in the chain.
+- `PlaybackService.gainOf`: Mochy's ReplayGainTags rules (track/album gain with fallback, preamp, never past the file's peak, never boosted). YouTube loudness matching unchanged.
+- Sound sheet: new "Loudness" section (switch, boost, compression, live gain-reduction readout, ReplayGain track/album + preamp).
+
+## Round 137 — sheet morph (Mochy's MorphingCover)
+- `ui/player/MorphCover.kt`: port of the core of Mochy Music's `MorphingCover` (GPL-3.0, github.com/realidkroo/Mochy-Music): one sheet progress p (0 mini player, 1 open) moves the cover (Mochy's coverGrowth / coverTravel late-grow for non-edge styles), the title and the sheet's own backdrop (grows out of the mini bar's top, sides and corners). Driven by the open spring, by dragging down, and by closing (back button/arrow/drag past the line), so the player opens out of the mini player and folds back into it.
+- `NowPlayingScreen` no longer slides/scales on drag; `MiloApp` no longer slides the player in/out; `MiniPlayer` reports its bar rect. User allowed changing the mini player for this.
+- Not ported yet: play/skip buttons flying between mini and full, video/canvas/liquid-warp layers, cover shrinking into the lyrics header, reflection layout.
+
+## Round 138 — wordmark everywhere + rest of MorphingCover
+- Wordmark: the app's header, sign-in/gate screens, permission screen, TV screen and "milo. Sessions" title now use the text wordmark `MiloWordmark` (Figtree Black Italic, amber full stop) that Connect and the share card already had, instead of the old `logo_wordmark` drawable.
+- `ui/player/MorphCover.kt` (Mochy Music's MorphingCover, GPL-3.0): the play and next buttons now fly between the mini player and the open player; the cover flies into the lyrics page's header as the page rises (`LyricsCoverFlight`).
+- `ui/player/LiquidWarpBackdrop.kt`: port of Mochy's `CoverGradientBackdrop` liquid warp (one AGSL pass on API 33+, a zoomed still picture before). Opt-in: Sound > Backdrop. Off by default.

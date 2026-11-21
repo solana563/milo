@@ -27,4 +27,6 @@ Soft transport fades, haptics (bass-following vibration), Crossmix analysis (tem
 - Last.fm queue/worker polish (milo already scrobbles to Last.fm and ListenBrainz).
 
 - Lyrics ticker (MiniLyricsTicker): ported single-row card, opt-in on Now Playing. Tall mode (readings/upcoming list) not ported; mini-player placement intentionally not done.
-- Morphing cover / song info: drag-down morph ported in spirit (cover + title to mini slots). Not ported: Mochy's full sheet morph incl. mini pill buttons, backdrop crossfade, canvas layer, liquid warp.
+- Morphing cover / song info / sheet: core ported (R137: sheet progress, cover + title + backdrop morph, open/close/drag). Play/next flying and the lyrics-header flight: ported (R138); liquid warp backdrop: ported (R138, opt-in). Not ported: Mochy's video-mode layer, canvas layer (declined: Spotify canvas scraping), reflection layout during the morph.
+- Turntable style + arm: ported (R135). Not ported: arm's stream-failure red arc, wide-screen (tablet) turntable stage, record carousel sliding.
+- Loudness processor + ReplayGain album/preamp/peak: ported (R136). Still not ported: AutoEQ / Audio Lab pages, PrecisionSink, gapless albums.
