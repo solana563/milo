@@ -678,3 +678,4 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 158 — Threads-style pull to refresh
 - New pull indicator (hand-drawn, no icon): a ring of dots that appear as you pull, turn with the finger, pop when armed, then chase round while loading. Idea inspired by how the Threads app feels; the mark is milo's own and copies nothing from it.
 - Pull to refresh added to the Library songs list (rescans the phone library). Home and Discover already had it and now use the new mark.
+- R158b: SongCover.set changed to a block body (CI: 'Returns are prohibited for functions with an expression body').

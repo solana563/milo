@@ -23,7 +23,8 @@ object SongCover {
     fun has(ctx: Context, id: Long) = file(ctx, id).exists()
 
     /** Saves the picture at [uri] (scaled down to at most 1200 px) as this song's cover. False if it can't be read as a picture. */
-    fun set(ctx: Context, id: Long, uri: Uri): Boolean = try {
+    fun set(ctx: Context, id: Long, uri: Uri): Boolean {
+    return try {
         val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return false
         val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o)
@@ -35,6 +36,7 @@ object SongCover {
         rev++
         true
     } catch (_: Exception) { false }
+    }
 
     fun remove(ctx: Context, id: Long) { try { file(ctx, id).delete() } catch (_: Exception) {}; rev++ }
 }
