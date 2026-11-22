@@ -1295,6 +1295,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- listening insights ----
     private val statsStore = com.ubayanda.milonative.data.StatsStore(app)
+    fun dayStats() = statsStore.days
     val tasteStore = com.ubayanda.milonative.data.TasteStore(app)
     private var mixSeed = 0L
     class StatsUi(val totalMs: Long = 0L, val plays: Int = 0, val songs: List<com.ubayanda.milonative.data.StatsStore.Row> = emptyList(), val artists: List<Pair<String, Int>> = emptyList())

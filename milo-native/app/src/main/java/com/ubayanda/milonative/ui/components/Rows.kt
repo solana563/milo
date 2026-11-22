@@ -238,7 +238,8 @@ fun TrackRow(
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(
+    if (PixelFont.supports(text)) PixelTextFit(text, Milo.text, 3.dp, 2.dp, modifier.fillMaxWidth().padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x6, bottom = Sp.x3))
+    else Text(
         text, color = Milo.text, style = Ty.title,
         modifier = modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x6, bottom = Sp.x2),
     )
@@ -246,7 +247,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun ScreenTitle(text: String) {
-    Text(
+    if (PixelFont.supports(text)) PixelTextFit(text, Milo.text, 5.dp, 2.dp, Modifier.fillMaxWidth().padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x3, bottom = Sp.x4))
+    else Text(
         text, color = Milo.text, style = Ty.display,
         modifier = Modifier.padding(start = Sp.gutter, end = Sp.gutter, top = Sp.x3, bottom = Sp.x4),
     )

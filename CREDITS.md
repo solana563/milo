@@ -679,3 +679,12 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - New pull indicator (hand-drawn, no icon): a ring of dots that appear as you pull, turn with the finger, pop when armed, then chase round while loading. Idea inspired by how the Threads app feels; the mark is milo's own and copies nothing from it.
 - Pull to refresh added to the Library songs list (rescans the phone library). Home and Discover already had it and now use the new mark.
 - R158b: SongCover.set changed to a block body (CI: 'Returns are prohibited for functions with an expression body').
+
+- CI status (2026-11-23): `assembleFullDebug` is green with Rounds 148–158 and the 158b SongCover fix. Compile only; device behaviour of those rounds is still tested via docs/DEVICE-TEST-CHECKLIST.md.
+
+## Round 159 — Mosaic Home and pixel headings
+- Direction taken from a mockup of a phone home screen (wide widget, two big colour tiles, a grid of small tiles on black). Layout and colour-block idea only: all icons, colours and lettering here are milo's own, nothing copied from it.
+- Home: weekday in pixel lettering with search/friends/you; a stats widget (today's minutes, day streak, last seven days as pixel columns; tap opens Profile); two big tiles (Liked, Saved); a PINNED grid of 4-up tiles (shortcuts and playlists, chosen with Edit) and a RECENT grid (last played albums). The player card and the shelves below are unchanged.
+- The Tools shelf lives in Profile (R157) and is now also pinnable on Home as Identify, Car mode, Bedside, iPod.
+- PixelText: a 5x7 font drawn in code (no font file). Screen titles and shelf titles use it; titles with letters it doesn't have (other scripts) stay in normal type.
+- DayStats records listening time per day (starts from first run of this version); HomePins stores the pinned tiles.

@@ -11,6 +11,7 @@ class StatsStore(ctx: Context) {
 
     private val p = ctx.getSharedPreferences("milo_stats", Context.MODE_PRIVATE)
     private val songs = LinkedHashMap<String, Row>()
+    val days = DayStats(ctx.applicationContext)
 
     /** The same numbers kept per calendar year, so there can be a real yearly recap. They start from when this version was installed. */
     class Year(var ms: Long = 0L, val songs: LinkedHashMap<String, Row> = LinkedHashMap())
@@ -40,6 +41,7 @@ class StatsStore(ctx: Context) {
     /** Add [ms] of listening to [t]; [play] marks that this song just counted as one play. */
     fun add(t: Track, ms: Long, play: Boolean) {
         totalMs += ms
+        days.add(ms)
         val yb = yrs.getOrPut(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) { Year() }
         yb.ms += ms
         if (t.durationMs == 0L && t.uri.startsWith("http")) return // radio: counts as time only

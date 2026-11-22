@@ -119,47 +119,19 @@ fun HomeScreen(
     BouncyRefresh(refreshing = ytLoading, onRefresh = { vm.refreshHome() }, modifier = Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize(), state = homeState, contentPadding = PaddingValues(bottom = bottomPad)) {
         item {
-            Column(Modifier.fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 20.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()).uppercase(),
-                    color = Milo.dim, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onSearch),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(MiloIcons.Search, "Search", tint = Milo.text, modifier = Modifier.size(24.dp)) }
-                Spacer(Modifier.width(8.dp))
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f), CircleShape).border(1.dp, Milo.line, CircleShape).clickable(onClick = onFriends),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(MiloIcons.People, "Friends", tint = Milo.text, modifier = Modifier.size(24.dp)) }
-                Spacer(Modifier.width(8.dp))
-                val me by vm.account.collectAsState()
-                com.ubayanda.milonative.ui.components.UserAvatar(
-                    name.ifEmpty { initial }, me.avatar, 44.dp,
-                    Modifier.clip(CircleShape).clickable(onClick = onProfile),
-                )
-            }
-            Text(
-                greeting(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) + if (name.isNotEmpty()) ", $name" else "",
-                color = Milo.text, style = com.ubayanda.milonative.ui.theme.Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+            HomeMosaic(
+                vm, name, initial, albums, playlists, byId, likedCount, savedSongs.size,
+                onSearch = onSearch, onFriends = onFriends, onProfile = onProfile, onDownloads = onDownloads, onLiked = onLiked,
+                onOpenAlbum = onOpenAlbum, onOpenPlaylist = onOpenPlaylist,
             )
+        }
+        item {
+            Column(Modifier.padding(top = 14.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
                 PlayerCard(vm, tracks, ui, scanning, liked)
                 if (tracks.isEmpty() && !scanning) EmptyNote(
                     "No music found",
                     "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
                 )
-                if (!hideLocal) Column(Modifier.padding(horizontal = 14.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    tiles.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            row.forEach { t -> Tile(vm, t, Modifier.weight(1f)) }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                    }
-                }
             }
         }
         // saved songs: first when you're offline, after the streaming shelves when you're online

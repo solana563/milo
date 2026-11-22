@@ -264,3 +264,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R156 What's new: install over an older build -> the What's new dialog shows once; fresh install doesn't show it; Profile > About shows version/build and reopens it
 - [ ] R157: Home has no Tools shelf; Profile shows category rows; each opens a page, back returns to the list; Tools page launches Identify/Car/Bedside/iPod; Connections page has shared playlists + QR; Account row only when signed in.
 - [ ] R158: pull down on Home, Discover and Library songs: dots draw in, tick when armed, spin while loading, bounce back. Library pull rescans songs.
+- CI: Rounds 148–158 compile green (2026-11-23). Device checks above still open unless ticked.
+- [ ] R159: Home shows weekday in pixels, stats widget (minutes today / streak / 7 bars; tap = Profile), Liked + Saved big tiles, PINNED grid (Edit adds/removes shortcuts and playlists, Reset restores), RECENT albums grid; screen and shelf titles are pixel lettering; a title in another script (Japanese, Arabic) stays normal text; player card + shelves still work.
