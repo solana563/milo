@@ -1195,6 +1195,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         return ids.distinct().size to entries.size
     }
 
+    /**
+     * Make a playlist from a pasted YouTube / YouTube Music playlist link. Returns (songs saved, playlist name), or throws with a plain message.
+     * The songs stay YouTube songs (they stream, or play from a download), so nothing needs to be on the phone.
+     */
+    suspend fun importPlaylistLink(link: String): Pair<Int, String> {
+        val id = com.ubayanda.milonative.util.PlaylistLink.pageId(link) ?: throw IllegalArgumentException("That isn't a public YouTube playlist link.")
+        val page = youtube.page(id)
+        val tracks = page.songs.map { com.ubayanda.milonative.data.YtMusic.toTrack(it, page.cover, if (page.kind == "album") page.subtitle.substringAfter(" \u00b7 ", "").substringBefore(" \u00b7 ") else "") }
+        if (tracks.isEmpty()) throw IllegalStateException("No songs found. The playlist may be private.")
+        rememberRemote(tracks)
+        createPlaylistWith(page.title, tracks.map { it.id })
+        return tracks.size to page.title
+    }
+
     fun createPlaylistWith(name: String, ids: List<Long>): String {
         ids.forEach { ensureSaved(it) }
         val pid = "p" + System.currentTimeMillis()

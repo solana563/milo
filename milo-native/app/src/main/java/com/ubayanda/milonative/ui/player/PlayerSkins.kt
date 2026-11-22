@@ -140,6 +140,8 @@ object SkinStyle {
         private set
     var centred by mutableStateOf(false)
         private set
+    var info by mutableStateOf(true)
+        private set
     private var loaded = false
 
     fun load(ctx: Context) {
@@ -148,7 +150,7 @@ object SkinStyle {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         textScale = p.getFloat("sk_text", 1f); circleScale = p.getFloat("sk_circle", 1f)
         accent = p.getInt("sk_accent", 0); backdrop = p.getInt("sk_bg", 0)
-        seek = p.getBoolean("sk_seek", true); controls = p.getBoolean("sk_controls", true); centred = p.getBoolean("sk_centred", false)
+        seek = p.getBoolean("sk_seek", true); controls = p.getBoolean("sk_controls", true); centred = p.getBoolean("sk_centred", false); info = p.getBoolean("sk_info", true)
     }
 
     fun setText(ctx: Context, v: Float) { textScale = v; put(ctx) { putFloat("sk_text", v) } }
@@ -158,9 +160,20 @@ object SkinStyle {
     fun setSeek(ctx: Context, v: Boolean) { seek = v; put(ctx) { putBoolean("sk_seek", v) } }
     fun setControls(ctx: Context, v: Boolean) { controls = v; put(ctx) { putBoolean("sk_controls", v) } }
     fun setCentred(ctx: Context, v: Boolean) { centred = v; put(ctx) { putBoolean("sk_centred", v) } }
+    fun setInfo(ctx: Context, v: Boolean) { info = v; put(ctx) { putBoolean("sk_info", v) } }
+
+    /** a ready-made combination of the options above */
+    fun preset(ctx: Context, name: String) {
+        when (name) {
+            "Midnight" -> { setText(ctx, 1f); setCircle(ctx, 1f); setAccent(ctx, 0); setBackdrop(ctx, 0); setSeek(ctx, true); setControls(ctx, true); setCentred(ctx, false); setInfo(ctx, true) }
+            "Mono" -> { setText(ctx, 1f); setCircle(ctx, 0.9f); setAccent(ctx, 2); setBackdrop(ctx, 1); setSeek(ctx, true); setControls(ctx, true); setCentred(ctx, false); setInfo(ctx, true) }
+            "Loud" -> { setText(ctx, 1.4f); setCircle(ctx, 1.2f); setAccent(ctx, 1); setBackdrop(ctx, 0); setSeek(ctx, false); setControls(ctx, false); setCentred(ctx, true); setInfo(ctx, false) }
+            "Quiet" -> { setText(ctx, 0.8f); setCircle(ctx, 0.7f); setAccent(ctx, 0); setBackdrop(ctx, 1); setSeek(ctx, true); setControls(ctx, true); setCentred(ctx, true); setInfo(ctx, true) }
+        }
+    }
     fun reset(ctx: Context) {
-        textScale = 1f; circleScale = 1f; accent = 0; backdrop = 0; seek = true; controls = true; centred = false
-        put(ctx) { remove("sk_text"); remove("sk_circle"); remove("sk_accent"); remove("sk_bg"); remove("sk_seek"); remove("sk_controls"); remove("sk_centred") }
+        textScale = 1f; circleScale = 1f; accent = 0; backdrop = 0; seek = true; controls = true; centred = false; info = true
+        put(ctx) { remove("sk_text"); remove("sk_circle"); remove("sk_accent"); remove("sk_bg"); remove("sk_seek"); remove("sk_controls"); remove("sk_centred"); remove("sk_info") }
     }
 
     private fun put(ctx: Context, f: android.content.SharedPreferences.Editor.() -> Unit) {
@@ -218,10 +231,11 @@ fun PlayerSkinHost(
                 PlayerSkin.FLAGSHIP -> Unit
             }
         }
-        // the Studio button; the Bedside clock is meant to stay dark and quiet, so it hides there
-        if (skin != PlayerSkin.BEDSIDE && !studio) {
+        // the Studio button, on every skin so you can always change skin; on the dim Bedside clock it is faint
+        if (!studio) {
             Box(
                 Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 12.dp, top = 8.dp).size(40.dp)
+                    .graphicsLayer { alpha = if (skin == PlayerSkin.BEDSIDE) 0.45f else 1f }
                     .clip(CircleShape).background(Color.Black.copy(alpha = 0.38f))
                     .clickable { studio = true },
                 contentAlignment = Alignment.Center,
@@ -284,6 +298,10 @@ private fun CustomizeTab(skin: PlayerSkin) {
             )
             return@Column
         }
+        Text("Presets", color = Milo.text, fontSize = 14.sp)
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Midnight", "Mono", "Loud", "Quiet").forEach { n -> MiloChip(n, false) { SkinStyle.preset(ctx, n) } }
+        }
         Text("Text size", color = Milo.text, fontSize = 14.sp)
         MiloSlider(value = SkinStyle.textScale, valueRange = 0.7f..1.4f, onValueChange = { SkinStyle.setText(ctx, (it * 20).toInt() / 20f) })
         if (skin == PlayerSkin.POSTER) {
@@ -300,6 +318,7 @@ private fun CustomizeTab(skin: PlayerSkin) {
             MiloChip("Gradient backdrop", SkinStyle.backdrop == 0) { SkinStyle.setBackdrop(ctx, 0) }
             MiloChip("Plain black", SkinStyle.backdrop == 1) { SkinStyle.setBackdrop(ctx, 1) }
         }
+        if (skin != PlayerSkin.TIMELINE) SkinToggle("Song title and artist", SkinStyle.info) { SkinStyle.setInfo(ctx, it) }
         SkinToggle("Seek bar", SkinStyle.seek) { SkinStyle.setSeek(ctx, it) }
         SkinToggle("Play, previous and next", SkinStyle.controls) { SkinStyle.setControls(ctx, it) }
         if (skin == PlayerSkin.POSTER) SkinToggle("Centre the words", SkinStyle.centred) { SkinStyle.setCentred(ctx, it) }
@@ -517,9 +536,11 @@ private fun PosterSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
                     textAlign = if (SkinStyle.centred) TextAlign.Center else TextAlign.Start, modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Spacer(Modifier.height(14.dp))
-            Text(t.artist, color = Color.White.copy(alpha = 0.85f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(t.title, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (SkinStyle.info) {
+                Spacer(Modifier.height(14.dp))
+                Text(t.artist, color = Color.White.copy(alpha = 0.85f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (SkinStyle.centred) TextAlign.Center else TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                Text(t.title, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (SkinStyle.centred) TextAlign.Center else TextAlign.Start, modifier = Modifier.fillMaxWidth())
+            }
             if (!loaded) Text("Looking for lyrics…", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
             Spacer(Modifier.height(10.dp))
             if (SkinStyle.seek) SkinSeek(ui, accent, { vm.player.seekTo(it) })
@@ -605,9 +626,11 @@ private fun LyricsSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 SkinBack(onClose)
                 Spacer(Modifier.width(12.dp))
+                if (SkinStyle.info) {
                 Column(Modifier.weight(1f).padding(end = 52.dp)) {
                     Text(t.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(t.artist, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 }
             }
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {

@@ -624,3 +624,22 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 144: Player Studio, stage 2 (Customize tab)
 - PlayerSkins.kt: `SkinStyle` (saved, live) and a Skins/Customize switch in the Studio sheet. Customize changes Poster, Timeline and Lyrics: text size, cover circle size (Poster), colour (cover/amber/white), gradient or black backdrop, seek bar on/off, controls on/off, centred words (Poster), Reset. The sheet's dark scrim is removed on this tab so changes show behind it.
 - Idea from Mochy Music's Player Studio edit mode (GPL-3.0); this is a much smaller milo-side editor, not a port of its drag-and-arrange editor.
+
+## Round 145: Player Studio, stage 3 (presets)
+- PlayerSkins.kt: four presets (Midnight, Mono, Loud, Quiet) that set every Customize option at once, and a "Song title and artist" switch for Poster and Lyrics.
+
+## Round 146: Gestures settings
+- New `ui/player/PlayerGestures.kt` and a Gestures card in Profile: double-tap on/off, middle double-tap (play/pause or nothing), side double-tap jump (5/10/15/30 s), swipe-to-skip on/off and swipe distance. NowPlayingScreen reads these when a gesture happens. milo's own settings; Mochy has no standalone gestures screen, only adjustable gestures through its components, so this is not a port of a specific file.
+
+## Round 147: playlist covers and the Downloads arrangement
+- New `ui/components/CoverCollage.kt`: a playlist's cover made from its songs' art (1, 2 side by side, or a 2 x 2 grid; one cover per album). Used on the Library > Playlists list. Idea from Mochy Music's playlist covers (GPL-3.0); written for milo.
+- New `ui/screens/DownloadsScreen.kt`: Library > Downloads now keeps saved songs the way they were downloaded: Playlists, Albums, Artists (each with a collage cover, song count and size; tap to open just those songs) and Singles (songs saved one by one). Tabs show only the kinds you have. The Download Manager already grouped the same way; Home's Downloaded card and Library's Downloads row now say what is inside ("2 playlists · 3 albums · 5 singles", from the new `OfflineStore.summary()`).
+- Songs downloaded before groups existed have no origin and show under Singles.
+
+## Round 148: importers (CSV and link)
+- New `util/CsvPlaylist.kt`: reads a playlist exported as .csv (finds song/artist columns by header name, handles quotes, `,` or `;`); Library > Playlists > Import a playlist now takes .m3u or .csv and matches songs on the phone by title and artist.
+- New `util/PlaylistLink.kt` + `MainViewModel.importPlaylistLink`: "Import from a link" takes a public YouTube / YouTube Music playlist (or album playlist) link and makes a milo playlist of its songs. Radio mixes, Liked music and Watch later need sign-in and are refused with a message. No sign-in or session is used.
+- Idea from Mochy Music's CSV and link importers (GPL-3.0); written separately for milo. Spotify links are not handled (Spotify's playlist API needs a login; see docs/MOCHY-GAP.md).
+
+## Round 149: fix, stuck on the Bedside skin
+- PlayerSkins.kt: the Studio button was hidden on the Bedside skin, so once it was chosen there was no way back to another skin. It now shows there too (faint, top right).

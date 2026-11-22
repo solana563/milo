@@ -195,19 +195,23 @@ private fun PlaylistsList(
     onOpen: (Playlist) -> Unit, onLiked: () -> Unit, onSmart: (String) -> Unit,
 ) {
     var creating by remember { mutableStateOf(false) }
+    var linking by remember { mutableStateOf(false) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val linkScope = rememberCoroutineScope()
     val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val text = try { ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: "" } catch (e: Exception) { "" }
             val name = (ctx.contentResolver.query(uri, null, null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(c.getColumnIndexOrThrow("_display_name")) else null } ?: "Imported playlist").substringBeforeLast('.')
-            val (found, total) = vm.importM3u(name, com.ubayanda.milonative.util.M3u.parse(text))
+            val isCsv = name.isNotEmpty() && (ctx.contentResolver.query(uri, null, null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(c.getColumnIndexOrThrow("_display_name")).orEmpty().endsWith(".csv", true) else false } ?: false)
+            val (found, total) = vm.importM3u(name, if (isCsv) com.ubayanda.milonative.util.CsvPlaylist.parse(text) else com.ubayanda.milonative.util.M3u.parse(text))
             android.widget.Toast.makeText(ctx, if (found == 0) "None of those songs are on this phone." else "Imported $found of $total songs.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
     val byId = remember(allTracks) { allTracks.associateBy { it.id } }
     LazyColumn(state = vm.mem.list("lib-playlists"), contentPadding = PaddingValues(bottom = bottomPad)) {
         item { IconRow(MiloIcons.Add, false, "New playlist", "Make your own mix", { creating = true }) }
-        item { IconRow(MiloIcons.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
+        item { IconRow(MiloIcons.Add, false, "Import a playlist", "From an .m3u or .csv file", { picker.launch(arrayOf("*/*")) }) }
+        item { IconRow(MiloIcons.Add, false, "Import from a link", "A public YouTube Music playlist", { linking = true }) }
         item { IconRow(MiloIcons.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
         item { IconRow(MiloIcons.QueueMusic, false, "Most played", "Built from your listening", { onSmart("most") }) }
         item { IconRow(MiloIcons.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
@@ -224,6 +228,18 @@ private fun PlaylistsList(
             }
         }
         if (playlists.isEmpty()) item { EmptyNote("No playlists yet", "Tap New playlist, or use the ⋮ menu on any song and choose Add to playlist.") }
+    }
+    if (linking) {
+        NameDialog("Paste a playlist link", "", "Import", { link ->
+            linking = false
+            android.widget.Toast.makeText(ctx, "Importing\u2026", android.widget.Toast.LENGTH_SHORT).show()
+            linkScope.launch {
+                val msg = try { val (n, name) = vm.importPlaylistLink(link); "Imported $n songs into \"$name\"" }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { e.message ?: "Couldn't import that link." }
+                android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }, { linking = false })
     }
     if (creating) {
         NameDialog("New playlist", "", "Create", { n -> vm.createPlaylist(n); creating = false }, { creating = false })

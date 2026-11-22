@@ -41,3 +41,15 @@ Player skins: Poster, Timeline, Lyrics (milo-drawn), iPod and Bedside (existing)
 
 ## Update R144
 Studio now has a Customize tab (text size, circle size, colour, backdrop, show/hide seek and controls, centred words) for Poster, Timeline and Lyrics. Still missing: Mochy's drag-to-arrange editor, per-part editors (cover/middle/bar), and per-skin presets.
+
+
+## Update R145-R146
+Studio presets shipped in R145 (the R144 note above that lists presets as missing is out of date). R146: Gestures settings in Profile (milo's own; Mochy has no standalone gestures screen). Next in line: playlist covers, importers.
+
+
+## Update R147
+Playlist covers (collage): ported for phone-song playlists in Library > Playlists. Not yet: collage on the playlist detail header, playlist descriptions/transition. Downloads arranged by origin (milo's own feature).
+
+
+## Update R148
+Importers: CSV (to songs on the phone) and public YouTube playlist link: ported. Not built: import history, local-file tag/artwork import, importing CSV songs that aren't on the phone by searching YouTube, Spotify links (declined: needs a harvested session).
