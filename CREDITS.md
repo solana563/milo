@@ -643,3 +643,10 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 149: fix, stuck on the Bedside skin
 - PlayerSkins.kt: the Studio button was hidden on the Bedside skin, so once it was chosen there was no way back to another skin. It now shows there too (faint, top right).
+
+## Round 150: importers find missing songs on YouTube Music
+- `MainViewModel.importEntries` (+ `ImportResult`): playlist files (.m3u or .csv) now match songs on the phone first, then look up the rest on YouTube Music (up to 200, four at a time). A result is only used when its title matches closely (75% of its words) and its artist agrees when the file gave one, so a wrong song isn't slipped in. The toast says how many came from the phone, from YouTube, and how many weren't found. With no connection the look-ups fail quietly and those songs count as not found.
+- Works with Spotify playlists exported to CSV by a tool such as Exportify: no Spotify login or session is used inside milo.
+
+## Round 151: import history
+- New `data/ImportLog.kt`: the last 15 imports (file or link) with where the songs came from and the songs not found (first 100). Library > Playlists > Import history shows them, with Clear. Kept on the phone only.

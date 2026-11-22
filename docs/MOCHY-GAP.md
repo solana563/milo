@@ -53,3 +53,11 @@ Playlist covers (collage): ported for phone-song playlists in Library > Playlist
 
 ## Update R148
 Importers: CSV (to songs on the phone) and public YouTube playlist link: ported. Not built: import history, local-file tag/artwork import, importing CSV songs that aren't on the phone by searching YouTube, Spotify links (declined: needs a harvested session).
+
+
+## Update R150
+Importers now find songs missing from the phone on YouTube Music (so a Spotify playlist exported to CSV imports in full). Still missing: import history, a review step for uncertain matches, local-file tag/artwork import.
+
+
+## Update R151
+Import history shipped. Still missing: a review step to fix uncertain matches by hand, local-file tag and artwork import.

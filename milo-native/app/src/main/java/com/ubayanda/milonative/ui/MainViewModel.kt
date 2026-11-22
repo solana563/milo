@@ -30,6 +30,7 @@ import com.ubayanda.milonative.player.PlayerHolder
 import com.ubayanda.milonative.util.ColorMath
 import com.ubayanda.milonative.util.NaturalOrder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1206,7 +1207,68 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (tracks.isEmpty()) throw IllegalStateException("No songs found. The playlist may be private.")
         rememberRemote(tracks)
         createPlaylistWith(page.title, tracks.map { it.id })
+        com.ubayanda.milonative.data.ImportLog.add(getApplication<Application>(), com.ubayanda.milonative.data.ImportLog.Entry(page.title, System.currentTimeMillis(), 0, tracks.size, emptyList()))
         return tracks.size to page.title
+    }
+
+    /** What an import found: songs already on the phone, songs matched on YouTube Music, songs not found, and the playlist's size. */
+    data class ImportResult(val onPhone: Int, val fromYoutube: Int, val missing: Int, val total: Int)
+
+    /**
+     * Make a playlist from (title, artist) pairs: songs on the phone are used first; the rest are looked up on YouTube Music, and a result is
+     * only taken when its title matches closely (and its artist, when the file gave one), so a wrong song isn't slipped in. Works with no
+     * connection too: the songs that can't be looked up are just counted as not found. [progress] gets (done, total) as the look-ups finish.
+     */
+    suspend fun importEntries(name: String, entries: List<Pair<String, String>>, progress: (Int, Int) -> Unit = { _, _ -> }): ImportResult {
+        val all = _tracks.value
+        val byKey = HashMap<String, Track>(); val byTitle = HashMap<String, Track>()
+        all.forEach { byKey.putIfAbsent(LibrarySync.key(it.title, it.artist), it); byTitle.putIfAbsent(it.title.trim().lowercase(), it) }
+        val found = arrayOfNulls<Track>(entries.size)
+        var local = 0
+        entries.forEachIndexed { i, (t, a) ->
+            val m = (if (a.isNotEmpty()) byKey[LibrarySync.key(t, a)] else null) ?: byTitle[t.trim().lowercase()]
+            if (m != null) { found[i] = m; local++ }
+        }
+        val todo = entries.indices.filter { found[it] == null }.take(200)
+        var online = 0
+        var done = 0
+        val gate = kotlinx.coroutines.sync.Semaphore(4)
+        kotlinx.coroutines.coroutineScope {
+            todo.map { idx ->
+                async(kotlinx.coroutines.Dispatchers.IO) {
+                    gate.acquire()
+                    try {
+                        val (t, a) = entries[idx]
+                        val hit = try { pickSong(t, a, com.ubayanda.milonative.data.YtMusic.searchSongs((t + " " + a).trim())) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
+                        if (hit != null) synchronized(found) { found[idx] = com.ubayanda.milonative.data.YtMusic.toTrack(hit); online++ }
+                    } finally { gate.release(); progress(synchronized(found) { ++done }, todo.size) }
+                }
+            }.forEach { it.await() }
+        }
+        val tracks = found.filterNotNull()
+        rememberRemote(tracks.filter { it.id < 0 })
+        if (tracks.isNotEmpty()) createPlaylistWith(name, tracks.map { it.id })
+        val missingNames = entries.indices.filter { found[it] == null }.map { entries[it].let { (t, a) -> if (a.isEmpty()) t else "$a - $t" } }
+        com.ubayanda.milonative.data.ImportLog.add(getApplication<Application>(), com.ubayanda.milonative.data.ImportLog.Entry(name, System.currentTimeMillis(), local, online, missingNames))
+        return ImportResult(local, online, entries.size - tracks.size, entries.size)
+    }
+    private fun normSong(s: String): List<String> =
+        s.lowercase().replace(Regex("\\(.*?\\)|\\[.*?\\]"), " ").replace(Regex("(feat|ft)\\.?\\s.*"), " ")
+            .replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim().split(' ').filter { it.isNotEmpty() }
+
+    /** the first search result whose title is a close match, and whose artist agrees when we know it; null if none is convincing */
+    private fun pickSong(title: String, artist: String, results: List<com.ubayanda.milonative.data.YtMusic.Song>): com.ubayanda.milonative.data.YtMusic.Song? {
+        val wt = normSong(title).toSet()
+        if (wt.isEmpty()) return null
+        val wa = normSong(artist).toSet()
+        for (r in results.take(6)) {
+            val rt = normSong(r.title).toSet()
+            if (rt.isEmpty()) continue
+            val score = wt.intersect(rt).size.toFloat() / maxOf(wt.size, rt.size)
+            val artistOk = wa.isEmpty() || wa.intersect(normSong(r.artist).toSet()).isNotEmpty()
+            if (score >= 0.75f && artistOk) return r
+        }
+        return null
     }
 
     fun createPlaylistWith(name: String, ids: List<Long>): String {
