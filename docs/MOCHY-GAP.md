@@ -31,3 +31,13 @@ Soft transport fades, haptics (bass-following vibration), Crossmix analysis (tem
 - Turntable style + arm: ported (R135). Not ported: arm's stream-failure red arc, wide-screen (tablet) turntable stage, record carousel sliding.
 - Loudness processor + ReplayGain album/preamp/peak: ported (R136). Gapless albums: ported (R139). Still not ported: AutoEQ / Audio Lab pages, PrecisionSink.
 - Gapless albums: ported (R139).
+- Blend skips: ported (R140) for skip/previous/queue pick. Not ported: neighbour prefetch, blend into a freshly picked list.
+- Mochy's audio-focus / call handling: ported as PlayerFocus (R141). Not ported: its PrecisionSink / PassSink output layer (USB/exclusive output, resampling, dither), mixing with other apps.
+
+
+## Update R142
+Player skins: Poster, Timeline, Lyrics (milo-drawn), iPod and Bedside (existing) now switch through a Player Studio picker. Still not ported: the Studio editor (arrange/restyle parts, cover/middle/bar editors), Mochy's exact iPod (click-wheel menus, cover flow), poster variants, Video and Module styles, per-skin settings, reflection during morph.
+
+
+## Update R144
+Studio now has a Customize tab (text size, circle size, colour, backdrop, show/hide seek and controls, centred words) for Poster, Timeline and Lyrics. Still missing: Mochy's drag-to-arrange editor, per-part editors (cover/middle/bar), and per-skin presets.

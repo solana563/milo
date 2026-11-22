@@ -284,6 +284,21 @@ object OfflineStore {
         albumId = 4_000_000_000_000L + (it.album.hashCode().toLong() and 0x7fffffffL), durationMs = it.durationMs, trackNo = 0, year = 0, addedSec = it.at / 1000, artUrl = it.art,
     )
 
+    /** "2 playlists · 3 albums · 5 singles": what the saved songs came from (artists count with albums' neighbours). */
+    fun summary(): String {
+        val l = _items.value
+        val pl = l.filter { it.gKind == "playlist" }.map { it.gName }.toSet().size
+        val al = l.filter { it.gKind == "album" }.map { it.gName }.toSet().size
+        val ar = l.filter { it.gKind == "artist" }.map { it.gName }.toSet().size
+        val si = l.count { it.gKind.isEmpty() }
+        val parts = ArrayList<String>()
+        if (pl > 0) parts.add(if (pl == 1) "1 playlist" else "$pl playlists")
+        if (al > 0) parts.add(if (al == 1) "1 album" else "$al albums")
+        if (ar > 0) parts.add(if (ar == 1) "1 artist" else "$ar artists")
+        if (si > 0) parts.add(if (si == 1) "1 single" else "$si singles")
+        return parts.joinToString(" \u00b7 ")
+    }
+
     /** The saved songs of one playlist / album / artist (or the singles when [kind] is empty), in the order they were saved. */
     fun tracksOf(kind: String, name: String): List<Track> =
         _items.value.filter { it.gKind == kind && it.gName == name }.sortedBy { it.at }.map { asTrack(it) }

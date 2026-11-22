@@ -134,6 +134,8 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         }
         Spacer(Modifier.height(16.dp))
         ClassicCard()
+        Spacer(Modifier.height(Sp.x6))
+        GesturesCard()
         Spacer(Modifier.height(16.dp))
         HomeLocalCard()
         Spacer(Modifier.height(16.dp))
@@ -783,6 +785,42 @@ private fun BroughtByCard() {
             Pill("Instagram  @ubayanda.rsa", null, false) { open("https://instagram.com/ubayanda.rsa") }
             Pill("WhatsApp channel", null, false) { open("https://whatsapp.com/channel/0029Vb8fzZ76hENyyzsta30d") }
             Pill("ubayanda563@gmail.com", null, false) { open("mailto:ubayanda563@gmail.com", true) }
+        }
+    }
+}
+
+@Composable
+private fun GesturesCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    val g = com.ubayanda.milonative.ui.player.PlayerGestures
+    var dtap by remember { mutableStateOf(g.doubleTap(ctx)) }
+    var centre by remember { mutableStateOf(g.centreAction(ctx)) }
+    var secs by remember { mutableStateOf(g.seekSeconds(ctx)) }
+    var swipe by remember { mutableStateOf(g.swipeSkip(ctx)) }
+    var dist by remember { mutableStateOf(g.swipeDistance(ctx)) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Gestures", color = Milo.text, style = Ty.title)
+        Text("What touching the cover on the open player does.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 4.dp))
+        ShareRow("Double-tap the cover", dtap) { dtap = it; g.setDoubleTap(ctx, it) }
+        if (dtap) {
+            Text("Double-tap in the middle", color = Milo.text, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+            Row(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                com.ubayanda.milonative.ui.components.MiloChip("Play or pause", centre == 0) { centre = 0; g.setCentre(ctx, 0) }
+                com.ubayanda.milonative.ui.components.MiloChip("Nothing", centre == 1) { centre = 1; g.setCentre(ctx, 1) }
+            }
+            Text("Double-tap on the sides jumps", color = Milo.text, fontSize = 14.sp)
+            Row(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(5, 10, 15, 30).forEach { n -> com.ubayanda.milonative.ui.components.MiloChip("$n s", secs == n) { secs = n; g.setSeek(ctx, n) } }
+            }
+        }
+        ShareRow("Swipe the cover sideways to skip", swipe) { swipe = it; g.setSwipeSkip(ctx, it) }
+        if (swipe) {
+            Text("How far to swipe: " + (if (dist < 130f) "short" else if (dist > 200f) "long" else "normal"), color = Milo.text, fontSize = 14.sp)
+            MiloSlider(value = dist, valueRange = 80f..320f, onValueChange = { dist = (it / 10f).toInt() * 10f; g.setSwipeDistance(ctx, dist.toInt()) })
+        }
+        com.ubayanda.milonative.ui.components.MiloChip("Reset gestures", false, Modifier.padding(top = 6.dp)) {
+            g.reset(ctx); dtap = true; centre = 0; secs = 10; swipe = true; dist = 160f
         }
     }
 }

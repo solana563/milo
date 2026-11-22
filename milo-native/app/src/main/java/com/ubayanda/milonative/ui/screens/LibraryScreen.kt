@@ -84,9 +84,9 @@ fun LibraryScreen(
         if (likedCount > 0 && section != 3) LikedBanner(likedCount, onLiked, { onPlayLiked(false) }, { onPlayLiked(true) })
         com.ubayanda.milonative.ui.components.GlassSegmented(listOf("Songs", "Albums", "Artists", "Playlists"), section, onSection, Modifier.padding(horizontal = 18.dp))
         Spacer(Modifier.padding(top = 10.dp))
-        if (savedCount > 0) IconRow(MiloIcons.Download, true, "Downloads", plural(savedCount, "song") + " · play with no connection", { onSmart("downloads") })
+        if (savedCount > 0) IconRow(MiloIcons.Download, true, "Downloads", com.ubayanda.milonative.data.OfflineStore.summary().ifEmpty { plural(savedCount, "song") } + " · play with no connection", { onSmart("downloads") })
         when {
-            section == 3 -> PlaylistsList(vm, playlists, likedCount, bottomPad, onOpenPlaylist, onLiked, onSmart)
+            section == 3 -> PlaylistsList(vm, playlists, tracks, likedCount, bottomPad, onOpenPlaylist, onLiked, onSmart)
             tracks.isEmpty() -> EmptyNote("No music found", "Songs on your phone, SD card or USB drive show up here automatically.")
             section == 0 -> SongsList(vm, tracks, ui, bottomPad)
             section == 1 -> LazyVerticalGrid(
@@ -191,7 +191,7 @@ private fun IconRow(icon: ImageVector, hot: Boolean, title: String, sub: String,
 
 @Composable
 private fun PlaylistsList(
-    vm: MainViewModel, playlists: List<Playlist>, likedCount: Int, bottomPad: Dp,
+    vm: MainViewModel, playlists: List<Playlist>, allTracks: List<Track>, likedCount: Int, bottomPad: Dp,
     onOpen: (Playlist) -> Unit, onLiked: () -> Unit, onSmart: (String) -> Unit,
 ) {
     var creating by remember { mutableStateOf(false) }
@@ -204,6 +204,7 @@ private fun PlaylistsList(
             android.widget.Toast.makeText(ctx, if (found == 0) "None of those songs are on this phone." else "Imported $found of $total songs.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
+    val byId = remember(allTracks) { allTracks.associateBy { it.id } }
     LazyColumn(state = vm.mem.list("lib-playlists"), contentPadding = PaddingValues(bottom = bottomPad)) {
         item { IconRow(MiloIcons.Add, false, "New playlist", "Make your own mix", { creating = true }) }
         item { IconRow(MiloIcons.Add, false, "Import a playlist", "From an .m3u file", { picker.launch(arrayOf("*/*")) }) }
@@ -212,7 +213,15 @@ private fun PlaylistsList(
         item { IconRow(MiloIcons.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
         item { IconRow(MiloIcons.QueueMusic, false, "Never played", "Songs waiting for you", { onSmart("never") }) }
         items(playlists, key = { it.id }) { p ->
-            IconRow(MiloIcons.QueueMusic, false, p.name, plural(p.trackIds.size, "song")) { onOpen(p) }
+            val covers = remember(p.trackIds, byId) { p.trackIds.mapNotNull { byId[it] } }
+            Row(Modifier.fillMaxWidth().clickable { onOpen(p) }.padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                com.ubayanda.milonative.ui.components.CoverCollage(vm, covers, 52.dp, 14.dp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(p.name, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(plural(p.trackIds.size, "song"), color = Milo.dim, fontSize = 13.sp, maxLines = 1)
+                }
+            }
         }
         if (playlists.isEmpty()) item { EmptyNote("No playlists yet", "Tap New playlist, or use the ⋮ menu on any song and choose Add to playlist.") }
     }

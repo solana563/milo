@@ -620,3 +620,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 143: build fix
 - NowPlayingScreen.kt: the lyrics-flight block had landed inside `estimateWords`; moved it next to `SheetMorphLayer` in the main body. Added the missing `statusBars` import.
 - MorphCover.kt (R138 version, with `fullArt`, `lyricsArt`, `LyricsCoverFlight` and the longer `CoverMorphOverlay`) resent with MiniPlayer.kt and MiloApp.kt: the CI log shows an older MorphCover.kt in the repo.
+
+## Round 144: Player Studio, stage 2 (Customize tab)
+- PlayerSkins.kt: `SkinStyle` (saved, live) and a Skins/Customize switch in the Studio sheet. Customize changes Poster, Timeline and Lyrics: text size, cover circle size (Poster), colour (cover/amber/white), gradient or black backdrop, seek bar on/off, controls on/off, centred words (Poster), Reset. The sheet's dark scrim is removed on this tab so changes show behind it.
+- Idea from Mochy Music's Player Studio edit mode (GPL-3.0); this is a much smaller milo-side editor, not a port of its drag-and-arrange editor.

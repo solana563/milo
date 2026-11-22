@@ -275,7 +275,9 @@ fun MiloApp(vm: MainViewModel) {
                         is Detail.Liked -> DetailScreen(vm, "Liked songs", "Your favourites", likedTracks, ui, bottomPad, { detail = null }, downloadGroup = com.ubayanda.milonative.data.OfflineStore.Group("playlist", "Liked songs"), rowExtra = { t ->
                             listOf(RowAction("Remove from Liked songs") { vm.toggleFav(t.id) })
                         })
-                        is Detail.Smart -> {
+                        is Detail.Smart -> if (d.kind == "downloads") {
+                            com.ubayanda.milonative.ui.screens.DownloadsScreen(vm, ui, bottomPad) { detail = null }
+                        } else {
                             val saved = vm.offline.collectAsState().value
                             DetailScreen(
                                 vm, when (d.kind) { "most" -> "Most played"; "recent" -> "Recently added"; "downloads" -> "Downloads"; else -> "Never played" },

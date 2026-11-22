@@ -416,7 +416,7 @@ private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compo
     val list = remember(vm.offline.collectAsState().value) { com.ubayanda.milonative.data.OfflineStore.tracks() }
     Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
         SectionTitle("Downloaded")
-        Text("${list.size} song" + (if (list.size == 1) "" else "s") + " that play with no connection", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp))
+        Text("${list.size} song" + (if (list.size == 1) "" else "s") + " that play with no connection" + com.ubayanda.milonative.data.OfflineStore.summary().let { if (it.isEmpty()) "" else " \u00b7 $it" }, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Pill("Play all", MiloIcons.PlayArrow, true, compact = true) { vm.rememberRemote(list); vm.player.playQueue(list, 0) }
             Pill("Shuffle", MiloIcons.Shuffle, false, compact = true) { vm.rememberRemote(list); vm.player.playShuffled(list) }

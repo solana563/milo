@@ -58,6 +58,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +72,9 @@ import com.ubayanda.milonative.model.PlayerUi
 import com.ubayanda.milonative.model.Track
 import com.ubayanda.milonative.ui.MainViewModel
 import com.ubayanda.milonative.ui.components.Cover
+import com.ubayanda.milonative.ui.components.MiloChip
+import com.ubayanda.milonative.ui.components.MiloSlider
+import com.ubayanda.milonative.ui.components.MiloSwitch
 import com.ubayanda.milonative.ui.lyrics.LyricsEntry
 import com.ubayanda.milonative.ui.lyrics.WordTimestamp
 import com.ubayanda.milonative.ui.screens.BedsideScreen
@@ -116,6 +120,56 @@ object PlayerSkins {
     }
 }
 
+/**
+ * What the Studio's Customize tab changes on the drawn skins (Poster, Timeline, Lyrics). Each value is saved on its own and applies live.
+ * [accent] 0 = the cover's colour, 1 = milo's amber, 2 = white. [backdrop] 0 = a gradient of that colour, 1 = plain black.
+ */
+object SkinStyle {
+    private const val PREFS = "milo_fx"
+    var textScale by mutableFloatStateOf(1f)
+        private set
+    var circleScale by mutableFloatStateOf(1f)
+        private set
+    var accent by mutableStateOf(0)
+        private set
+    var backdrop by mutableStateOf(0)
+        private set
+    var seek by mutableStateOf(true)
+        private set
+    var controls by mutableStateOf(true)
+        private set
+    var centred by mutableStateOf(false)
+        private set
+    private var loaded = false
+
+    fun load(ctx: Context) {
+        if (loaded) return
+        loaded = true
+        val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        textScale = p.getFloat("sk_text", 1f); circleScale = p.getFloat("sk_circle", 1f)
+        accent = p.getInt("sk_accent", 0); backdrop = p.getInt("sk_bg", 0)
+        seek = p.getBoolean("sk_seek", true); controls = p.getBoolean("sk_controls", true); centred = p.getBoolean("sk_centred", false)
+    }
+
+    fun setText(ctx: Context, v: Float) { textScale = v; put(ctx) { putFloat("sk_text", v) } }
+    fun setCircle(ctx: Context, v: Float) { circleScale = v; put(ctx) { putFloat("sk_circle", v) } }
+    fun setAccent(ctx: Context, v: Int) { accent = v; put(ctx) { putInt("sk_accent", v) } }
+    fun setBackdrop(ctx: Context, v: Int) { backdrop = v; put(ctx) { putInt("sk_bg", v) } }
+    fun setSeek(ctx: Context, v: Boolean) { seek = v; put(ctx) { putBoolean("sk_seek", v) } }
+    fun setControls(ctx: Context, v: Boolean) { controls = v; put(ctx) { putBoolean("sk_controls", v) } }
+    fun setCentred(ctx: Context, v: Boolean) { centred = v; put(ctx) { putBoolean("sk_centred", v) } }
+    fun reset(ctx: Context) {
+        textScale = 1f; circleScale = 1f; accent = 0; backdrop = 0; seek = true; controls = true; centred = false
+        put(ctx) { remove("sk_text"); remove("sk_circle"); remove("sk_accent"); remove("sk_bg"); remove("sk_seek"); remove("sk_controls"); remove("sk_centred") }
+    }
+
+    private fun put(ctx: Context, f: android.content.SharedPreferences.Editor.() -> Unit) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply(f).apply()
+    }
+}
+
+private fun skinBrush(b: Brush): Brush = if (SkinStyle.backdrop == 1) SolidColor(Color.Black) else b
+
 /** Lets the flagship's menu ask the host for Player Studio without passing callbacks through the whole screen. */
 object PlayerStudioRequest {
     var open by mutableStateOf(false)
@@ -134,7 +188,7 @@ fun PlayerSkinHost(
     flagship: @Composable () -> Unit,
 ) {
     val ctx = LocalContext.current
-    remember { PlayerSkins.load(ctx) }
+    remember { PlayerSkins.load(ctx); SkinStyle.load(ctx) }
     val skin = PlayerSkins.current
     var studio by remember { mutableStateOf(false) }
     val asked = PlayerStudioRequest.open
@@ -185,8 +239,9 @@ fun PlayerStudio(vm: MainViewModel, t: Track, onDone: () -> Unit) {
     val ctx = LocalContext.current
     val chosen = PlayerSkins.current
     BackHandler { onDone() }
+    var tab by remember { mutableStateOf(0) }
     Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (tab == 0) 0.55f else 0f))
             .pointerInput(Unit) { detectTapGestures { onDone() } },
         contentAlignment = Alignment.BottomCenter,
     ) {
@@ -194,18 +249,69 @@ fun PlayerStudio(vm: MainViewModel, t: Track, onDone: () -> Unit) {
             Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)).background(Milo.panel)
                 .pointerInput(Unit) { detectTapGestures { } }.navigationBarsPadding().padding(top = 14.dp, bottom = 16.dp),
         ) {
-            Text("Player Studio", color = Milo.text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(horizontal = 20.dp))
-            Text("Pick how the player looks. milo keeps your choice.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                PlayerSkin.values().forEach { s ->
-                    SkinCard(vm, t, s, s == chosen) { PlayerSkins.set(ctx, s); onDone() }
-                }
+            Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Player Studio", color = Milo.text, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                MiloChip("Skins", tab == 0) { tab = 0 }
+                MiloChip("Customize", tab == 1) { tab = 1 }
             }
-            Text(chosen.blurb, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
+            if (tab == 0) {
+                Text("Pick how the player looks. milo keeps your choice.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PlayerSkin.values().forEach { s ->
+                        SkinCard(vm, t, s, s == chosen) { PlayerSkins.set(ctx, s); onDone() }
+                    }
+                }
+                Text(chosen.blurb, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
+            } else CustomizeTab(chosen)
         }
+    }
+}
+
+/** The Studio's editor for the drawn skins: changes show on the player above the sheet as you make them. */
+@Composable
+private fun CustomizeTab(skin: PlayerSkin) {
+    val ctx = LocalContext.current
+    val drawn = skin == PlayerSkin.POSTER || skin == PlayerSkin.TIMELINE || skin == PlayerSkin.LYRICS
+    Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+        if (!drawn) {
+            Text(
+                if (skin == PlayerSkin.FLAGSHIP) "The flagship has its own settings in Now Playing: cover style, backdrop, sound and lyrics."
+                else "${skin.label} has no options yet. Choose Poster, Timeline or Lyrics to change their look.",
+                color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 10.dp),
+            )
+            return@Column
+        }
+        Text("Text size", color = Milo.text, fontSize = 14.sp)
+        MiloSlider(value = SkinStyle.textScale, valueRange = 0.7f..1.4f, onValueChange = { SkinStyle.setText(ctx, (it * 20).toInt() / 20f) })
+        if (skin == PlayerSkin.POSTER) {
+            Text("Cover circle size", color = Milo.text, fontSize = 14.sp)
+            MiloSlider(value = SkinStyle.circleScale, valueRange = 0.6f..1.3f, onValueChange = { SkinStyle.setCircle(ctx, (it * 20).toInt() / 20f) })
+        }
+        Text("Colour", color = Milo.text, fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp))
+        Row(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MiloChip("From the cover", SkinStyle.accent == 0) { SkinStyle.setAccent(ctx, 0) }
+            MiloChip("Amber", SkinStyle.accent == 1) { SkinStyle.setAccent(ctx, 1) }
+            MiloChip("White", SkinStyle.accent == 2) { SkinStyle.setAccent(ctx, 2) }
+        }
+        Row(Modifier.padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MiloChip("Gradient backdrop", SkinStyle.backdrop == 0) { SkinStyle.setBackdrop(ctx, 0) }
+            MiloChip("Plain black", SkinStyle.backdrop == 1) { SkinStyle.setBackdrop(ctx, 1) }
+        }
+        SkinToggle("Seek bar", SkinStyle.seek) { SkinStyle.setSeek(ctx, it) }
+        SkinToggle("Play, previous and next", SkinStyle.controls) { SkinStyle.setControls(ctx, it) }
+        if (skin == PlayerSkin.POSTER) SkinToggle("Centre the words", SkinStyle.centred) { SkinStyle.setCentred(ctx, it) }
+        MiloChip("Reset", false, Modifier.padding(top = 6.dp)) { SkinStyle.reset(ctx) }
+    }
+}
+
+@Composable
+private fun SkinToggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Milo.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        MiloSwitch(checked = on, onCheckedChange = onChange)
     }
 }
 
@@ -360,7 +466,7 @@ private fun SkinControls(vm: MainViewModel, ui: PlayerUi, modifier: Modifier = M
 @Composable
 private fun rememberSkinAccent(vm: MainViewModel): Color {
     val tint by vm.tint.collectAsState()
-    return if (tint == 0) Milo.amber else Color(tint).copy(alpha = 1f)
+    return when (SkinStyle.accent) { 1 -> Milo.amber; 2 -> Color.White; else -> if (tint == 0) Milo.amber else Color(tint).copy(alpha = 1f) }
 }
 
 @Composable
@@ -385,7 +491,7 @@ private fun PosterSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
     val words = if (lines.isNotEmpty() && idx >= 0) lines[idx].text else t.title
     var hx by remember { mutableFloatStateOf(0f) }
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black)))
+        Modifier.fillMaxSize().background(skinBrush(Brush.verticalGradient(listOf(accent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))))
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = { if (hx < -160f) vm.player.next() else if (hx > 160f) vm.player.previous(); hx = 0f },
@@ -394,7 +500,7 @@ private fun PosterSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
                 )
             },
     ) {
-        val circle = maxWidth * 1.15f
+        val circle = maxWidth * 1.15f * SkinStyle.circleScale
         Box(
             Modifier.offset(x = -(circle * 0.28f), y = -(circle * 0.22f)).size(circle).clip(CircleShape)
                 .pointerInput(Unit) { detectTapGestures { vm.player.toggle() } },
@@ -404,9 +510,11 @@ private fun PosterSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
             verticalArrangement = Arrangement.Bottom,
         ) {
             AnimatedContent(targetState = words, transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(160)) }, label = "poster-words") { w ->
+                val k = SkinStyle.textScale
                 Text(
-                    w.ifBlank { "♪" }, color = Color.White, fontSize = if (w.length > 40) 30.sp else 40.sp, lineHeight = if (w.length > 40) 34.sp else 44.sp,
+                    w.ifBlank { "♪" }, color = Color.White, fontSize = (if (w.length > 40) 30f else 40f).sp * k, lineHeight = (if (w.length > 40) 34f else 44f).sp * k,
                     fontWeight = FontWeight.Black, maxLines = 4, overflow = TextOverflow.Ellipsis,
+                    textAlign = if (SkinStyle.centred) TextAlign.Center else TextAlign.Start, modifier = Modifier.fillMaxWidth(),
                 )
             }
             Spacer(Modifier.height(14.dp))
@@ -414,9 +522,9 @@ private fun PosterSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
             Text(t.title, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (!loaded) Text("Looking for lyrics…", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
             Spacer(Modifier.height(10.dp))
-            SkinSeek(ui, accent, { vm.player.seekTo(it) })
+            if (SkinStyle.seek) SkinSeek(ui, accent, { vm.player.seekTo(it) })
             Spacer(Modifier.height(4.dp))
-            SkinControls(vm, ui)
+            if (SkinStyle.controls) SkinControls(vm, ui)
         }
         SkinBack(onClose, Modifier.statusBarsPadding().padding(start = 12.dp, top = 8.dp))
     }
@@ -433,7 +541,7 @@ private fun TimelineSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () 
     val idx by remember(lines) { derivedStateOf { currentIndex(lines, pos) } }
     val list = rememberLazyListState()
     LaunchedEffect(idx) { if (idx >= 0) runCatching { list.animateScrollToItem(max(0, idx - 2)) } }
-    Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.35f), Color.Black))).statusBarsPadding().navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().background(skinBrush(Brush.verticalGradient(listOf(accent.copy(alpha = 0.35f), Color.Black)))).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 64.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             SkinBack(onClose)
             Spacer(Modifier.width(10.dp))
@@ -468,7 +576,7 @@ private fun TimelineSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () 
                         Text(
                             line.text.ifBlank { "♪" },
                             color = Color.White.copy(alpha = if (state == 2) 1f else if (state == 0) 0.55f else 0.4f),
-                            fontSize = if (state == 2) 24.sp else 18.sp, lineHeight = if (state == 2) 30.sp else 24.sp,
+                            fontSize = (if (state == 2) 24f else 18f).sp * SkinStyle.textScale, lineHeight = (if (state == 2) 30f else 24f).sp * SkinStyle.textScale,
                             fontWeight = if (state == 2) FontWeight.ExtraBold else FontWeight.SemiBold,
                             modifier = Modifier.weight(1f).padding(bottom = 16.dp),
                         )
@@ -477,8 +585,8 @@ private fun TimelineSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () 
             }
         }
         Column(Modifier.padding(horizontal = 24.dp)) {
-            SkinSeek(ui, accent, { vm.player.seekTo(it) })
-            SkinControls(vm, ui, Modifier.padding(bottom = 10.dp), 56.dp)
+            if (SkinStyle.seek) SkinSeek(ui, accent, { vm.player.seekTo(it) })
+            if (SkinStyle.controls) SkinControls(vm, ui, Modifier.padding(bottom = 10.dp), 56.dp)
         }
     }
 }
@@ -492,7 +600,7 @@ private fun LyricsSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
     val accent = rememberSkinAccent(vm)
     val pos by rememberUpdatedState(ui.positionMs)
     val idx by remember(lines) { derivedStateOf { currentIndex(lines, pos) } }
-    Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(accent.copy(alpha = 0.5f), Color.Black), center = Offset(300f, 300f), radius = 1400f))) {
+    Box(Modifier.fillMaxSize().background(skinBrush(Brush.radialGradient(listOf(accent.copy(alpha = 0.5f), Color.Black), center = Offset(300f, 300f), radius = 1400f)))) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 26.dp)) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 SkinBack(onClose)
@@ -505,7 +613,7 @@ private fun LyricsSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (lines.isEmpty()) {
                     Text(
-                        if (loaded) t.title else "Looking for lyrics…", color = Color.White, fontSize = 34.sp, lineHeight = 40.sp,
+                        if (loaded) t.title else "Looking for lyrics…", color = Color.White, fontSize = 34.sp * SkinStyle.textScale, lineHeight = 40.sp * SkinStyle.textScale,
                         fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
                     )
                     if (loaded) Text("No synced lyrics for this song", color = Color.White.copy(alpha = 0.45f), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
@@ -515,7 +623,7 @@ private fun LyricsSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
                             Text(lines.getOrNull(i - 1)?.text.orEmpty(), color = Color.White.copy(alpha = 0.3f), fontSize = 18.sp, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Spacer(Modifier.height(18.dp))
                             Text(
-                                (if (i >= 0) lines[i].text else "").ifBlank { "♪" }, color = Color.White, fontSize = 34.sp, lineHeight = 40.sp,
+                                (if (i >= 0) lines[i].text else "").ifBlank { "♪" }, color = Color.White, fontSize = 34.sp * SkinStyle.textScale, lineHeight = 40.sp * SkinStyle.textScale,
                                 fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
                             )
                             Spacer(Modifier.height(18.dp))
@@ -524,8 +632,8 @@ private fun LyricsSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () ->
                     }
                 }
             }
-            SkinSeek(ui, accent, { vm.player.seekTo(it) })
-            SkinControls(vm, ui, Modifier.padding(bottom = 10.dp), 52.dp)
+            if (SkinStyle.seek) SkinSeek(ui, accent, { vm.player.seekTo(it) })
+            if (SkinStyle.controls) SkinControls(vm, ui, Modifier.padding(bottom = 10.dp), 52.dp)
         }
     }
 }

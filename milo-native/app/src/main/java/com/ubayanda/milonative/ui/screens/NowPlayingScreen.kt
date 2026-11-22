@@ -291,15 +291,15 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             Box(
                 Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
                     detectTapGestures(onDoubleTap = { off ->
-                        if (!npCtx.getSharedPreferences("milo_fx", 0).getBoolean("dtap", true)) return@detectTapGestures
+                        if (!com.ubayanda.milonative.ui.player.PlayerGestures.doubleTap(npCtx)) return@detectTapGestures
                         val cur = uiNow
                         val zone = if (off.x < size.width / 3f) -1 else if (off.x > size.width * 2f / 3f) 1 else 0
                         val prev = tapFlash
                         // taps in a row on the same side add up (+10 s, +20 s ...) like video players
                         val n = if (zone != 0 && prev != null && prev.zone == zone) prev.count + 1 else 1
                         when (zone) {
-                            0 -> vm.player.toggle()
-                            else -> vm.player.seekTo((cur.positionMs + zone * 10_000L).coerceIn(0L, if (cur.durationMs > 0) cur.durationMs else Long.MAX_VALUE))
+                            0 -> if (com.ubayanda.milonative.ui.player.PlayerGestures.centreAction(npCtx) == 0) vm.player.toggle()
+                            else -> vm.player.seekTo((cur.positionMs + zone * com.ubayanda.milonative.ui.player.PlayerGestures.seekSeconds(npCtx) * 1_000L).coerceIn(0L, if (cur.durationMs > 0) cur.durationMs else Long.MAX_VALUE))
                         }
                         tapFlash = TapFlash(zone, if (zone == 0) 1 else n, System.nanoTime(), playing = zone == 0 && !cur.isPlaying)
                     })
@@ -309,7 +309,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     detectHorizontalDragGestures(
                         onDragStart = { hx = 0f },
                         onHorizontalDrag = { _, d -> hx += d },
-                        onDragEnd = { if (hx < -160f) vm.player.next() else if (hx > 160f) vm.player.previous(); hx = 0f },
+                        onDragEnd = {
+                            val need = com.ubayanda.milonative.ui.player.PlayerGestures.swipeDistance(npCtx)
+                            if (com.ubayanda.milonative.ui.player.PlayerGestures.swipeSkip(npCtx)) { if (hx < -need) vm.player.next() else if (hx > need) vm.player.previous() }
+                            hx = 0f
+                        },
                         onDragCancel = { hx = 0f },
                     )
                 }.pointerInput(Unit) {
