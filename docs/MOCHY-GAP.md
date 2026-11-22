@@ -82,4 +82,4 @@ Recap story shipped from milo's own stats (no genre/mood/time-of-day pages: milo
 ## Update R156
 What's new sheet shipped (bundled list). Not ported: Mochy's in-app update check/download (milo has no update server; builds arrive through the store or test channel). The list must be edited by hand each release.
 - R157: Home Tools shelf moved into Profile > Tools; Profile reorganised into categories (UI only, uncompiled, untested on device).
-- R159: Home restyled as a colour-block mosaic with pixel headings, inspired by a user mockup; original assets (UI only, uncompiled).
+- R159/R160: Home restyled as a mosaic of glass tiles on black (R159 colour blocks and pixel text were dropped in R160 on feedback). UI only, uncompiled.

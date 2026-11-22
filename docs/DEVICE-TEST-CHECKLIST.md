@@ -266,3 +266,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R158: pull down on Home, Discover and Library songs: dots draw in, tick when armed, spin while loading, bounce back. Library pull rescans songs.
 - CI: Rounds 148–158 compile green (2026-11-23). Device checks above still open unless ticked.
 - [ ] R159: Home shows weekday in pixels, stats widget (minutes today / streak / 7 bars; tap = Profile), Liked + Saved big tiles, PINNED grid (Edit adds/removes shortcuts and playlists, Reset restores), RECENT albums grid; screen and shelf titles are pixel lettering; a title in another script (Japanese, Arabic) stays normal text; player card + shelves still work.
+- [ ] R160: Home is on plain black (no panel cards); Now playing tile is first under the header; glass tiles in amber/white only; titles are normal type again; Quick access Edit/Reset still work.

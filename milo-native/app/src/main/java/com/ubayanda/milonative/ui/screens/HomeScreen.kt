@@ -123,23 +123,21 @@ fun HomeScreen(
                 vm, name, initial, albums, playlists, byId, likedCount, savedSongs.size,
                 onSearch = onSearch, onFriends = onFriends, onProfile = onProfile, onDownloads = onDownloads, onLiked = onLiked,
                 onOpenAlbum = onOpenAlbum, onOpenPlaylist = onOpenPlaylist,
+                player = {
+                    PlayerCard(vm, tracks, ui, scanning, liked)
+                    if (tracks.isEmpty() && !scanning) EmptyNote(
+                        "No music found",
+                        "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
+                    )
+                },
             )
-        }
-        item {
-            Column(Modifier.padding(top = 14.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 6.dp)) {
-                PlayerCard(vm, tracks, ui, scanning, liked)
-                if (tracks.isEmpty() && !scanning) EmptyNote(
-                    "No music found",
-                    "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
-                )
-            }
         }
         // saved songs: first when you're offline, after the streaming shelves when you're online
         if (savedSongs.isNotEmpty() && offlineNow) item(key = "dl-top") { DownloadedCard(vm, ui, card, onDownloads) }
         // online: YouTube Music leads right under the player (recommended playlists, trending artists, charts). Offline: only your own music below.
         if (ytShelves.isEmpty() && ytLoading) {
             item(key = "ysk") {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 14.dp)) {
                     com.ubayanda.milonative.ui.components.SkeletonShelf()
                     com.ubayanda.milonative.ui.components.SkeletonShelf()
                 }
@@ -148,7 +146,7 @@ fun HomeScreen(
         if (ytShelves.isNotEmpty()) {
             items(ytShelves.size, key = { "ys" + ytShelves[it].title }) { i ->
                 val sh = ytShelves[i]
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 14.dp)) {
                     YtShelf(sh.title, sh.cards, vm) { c -> if (c.kind == "song") vm.playYtCard(c) else onYtPage(c.id) }
                 }
             }
@@ -157,7 +155,7 @@ fun HomeScreen(
         val shownMixes = if (hideLocal) mixes.filter { it.remote } else mixes
         if (shownMixes.isNotEmpty()) {
             item(key = "mixes") {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 14.dp)) {
                     SectionTitle("Made for you")
                     LazyRow(state = vm.mem.list("home-mixes"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(shownMixes.size, key = { "mx$it" + shownMixes[it].title }) { i ->
@@ -178,7 +176,7 @@ fun HomeScreen(
         }
         if (artists.isNotEmpty() && !hideLocal) {
             item {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(top = 6.dp, bottom = 6.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(top = 6.dp, bottom = 6.dp)) {
                 if (artists.isNotEmpty()) {
                     SectionTitle("Your artists")
                     LazyRow(state = vm.mem.list("home-artists"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -201,7 +199,7 @@ fun HomeScreen(
                 com.ubayanda.milonative.player.RecentStore.ids(rctx).mapNotNull { vm.trackById(it) }.take(20)
             }
             if (played.isNotEmpty()) {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 10.dp)) {
                     SectionTitle("Recently played")
                     LazyRow(state = vm.mem.list("home-played"), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(played, key = { "rp" + it.id }) { t ->
@@ -220,7 +218,7 @@ fun HomeScreen(
         }
         if (tracks.isNotEmpty() && !hideLocal) {
             item {
-                Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+                Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 10.dp)) {
                     SectionTitle("Recently added")
                     recent.forEach { t ->
                         TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.player.playQueue(recent, recent.indexOf(t)) }
@@ -267,7 +265,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
     val cover = rememberCover(vm, lead, 600).value
     val dark = Color(0xFF050505)
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
-    Box(Modifier.fillMaxWidth().padding(horizontal = 17.dp).height(252.dp).lift(shape, 16f).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(252.dp).lift(shape, 16f).clip(shape).background(dark).border(1.dp, Milo.line, shape)) {
         if (lead != null && cover != null) {
             Box(Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
                 Image(remember(cover) { cover.asImageBitmap() }, null, Modifier.fillMaxHeight().fillMaxWidth(0.75f), contentScale = ContentScale.Crop)
@@ -356,7 +354,7 @@ fun Pill(label: String, icon: ImageVector?, filled: Boolean, enabled: Boolean = 
 @Composable
 private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compose.ui.graphics.Shape, onAll: () -> Unit) {
     val list = remember(vm.offline.collectAsState().value) { com.ubayanda.milonative.data.OfflineStore.tracks() }
-    Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 10.dp)) {
+    Column(Modifier.padding(top = 10.dp).fillMaxWidth().padding(bottom = 10.dp)) {
         SectionTitle("Downloaded")
         Text("${list.size} song" + (if (list.size == 1) "" else "s") + " that play with no connection" + com.ubayanda.milonative.data.OfflineStore.summary().let { if (it.isEmpty()) "" else " \u00b7 $it" }, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp))
         Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -688,3 +688,8 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - The Tools shelf lives in Profile (R157) and is now also pinnable on Home as Identify, Car mode, Bedside, iPod.
 - PixelText: a 5x7 font drawn in code (no font file). Screen titles and shelf titles use it; titles with letters it doesn't have (other scripts) stay in normal type.
 - DayStats records listening time per day (starts from first run of this version); HomePins stores the pinned tiles.
+
+## Round 160 — Mosaic Home, clean version
+- Feedback on R159: no colour blocks, no pixel lettering. Removed the pixel font (PixelText.kt deleted; delete it from your repo too) and restored normal screen/shelf titles (Rows.kt back to its R158 form).
+- Home keeps the mosaic layout in milo's own glass style: slim header, Now playing tile first, listening widget (minutes today, streak, 7 slim bars), Liked songs / Saved offline tiles, Quick access grid (pin with Edit), Jump back in (recent albums).
+- Every Home block now sits straight on the black background; the rounded panel cards behind the shelves are gone.
