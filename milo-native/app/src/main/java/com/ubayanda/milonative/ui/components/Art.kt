@@ -41,17 +41,17 @@ import kotlin.math.roundToInt
 
 @Composable
 fun rememberCover(vm: MainViewModel, t: Track?, px: Int = 480): State<Bitmap?> =
-    produceState<Bitmap?>(null, t?.id, px) { value = if (t == null) null else vm.art.cover(t, px) }
+    produceState<Bitmap?>(null, t?.id, px, com.ubayanda.milonative.data.SongCover.rev) { value = if (t == null) null else vm.art.cover(t, px) }
 
 @Composable
 fun rememberSoft(vm: MainViewModel, t: Track?): State<Bitmap?> =
-    produceState<Bitmap?>(null, t?.id) { value = if (t == null) null else vm.art.soft(t) }
+    produceState<Bitmap?>(null, t?.id, com.ubayanda.milonative.data.SongCover.rev) { value = if (t == null) null else vm.art.soft(t) }
 
 /** Square cover with a quiet placeholder when the song has no art. */
 @Composable
 fun Cover(vm: MainViewModel, t: Track?, size: Dp, radius: Dp = 10.dp, px: Int = 360, modifier: Modifier = Modifier) {
     var done by remember(t?.id, px) { mutableStateOf(false) }
-    val bmp by produceState<Bitmap?>(null, t?.id, px) { value = if (t == null) null else vm.art.cover(t, px); done = true }
+    val bmp by produceState<Bitmap?>(null, t?.id, px, com.ubayanda.milonative.data.SongCover.rev) { value = if (t == null) null else vm.art.cover(t, px); done = true }
     val shape = RoundedCornerShape(radius)
     Box(modifier.size(size).clip(shape).background(Milo.card2), contentAlignment = Alignment.Center) {
         val b = bmp

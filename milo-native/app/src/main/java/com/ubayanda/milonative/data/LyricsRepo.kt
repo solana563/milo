@@ -17,7 +17,24 @@ import java.net.URLEncoder
 class LyricsRepo(private val context: Context) {
     private val dir = File(context.cacheDir, "lyrics").also { it.mkdirs() }
 
-    suspend fun get(t: Track): Lyrics? = withContext(Dispatchers.IO) {
+    /** The lyrics for [t] with this song's own fixes applied: your lyrics file if you gave one, and the timing offset. */
+    suspend fun get(t: Track): Lyrics? = withContext(Dispatchers.IO) { fixed(t, base(t)) }
+
+    private fun customLyrics(t: Track): Lyrics? {
+        val text = SongLyricFx.custom(context, t.id) ?: return null
+        val timed = Regex("""\[\d+:\d+""").containsMatchIn(text)
+        return parse(JSONObject().put("syncedLyrics", if (timed) text else "").put("plainLyrics", if (timed) "" else text).toString())
+    }
+
+    private fun fixed(t: Track, l: Lyrics?): Lyrics? {
+        val lyr = customLyrics(t) ?: l ?: return null
+        val off = SongLyricFx.offset(context, t.id)
+        if (off == 0L || lyr.synced.isEmpty()) return lyr
+        return lyr.copy(synced = lyr.synced.map { ln -> ln.copy(timeMs = (ln.timeMs + off).coerceAtLeast(0L), words = ln.words.map { w -> w.copy(timeMs = (w.timeMs + off).coerceAtLeast(0L)) }) })
+    }
+
+    private suspend fun base(t: Track): Lyrics? = withContext(Dispatchers.IO) {
+        if (SongLyricFx.hasCustom(context, t.id)) return@withContext null
         val f = File(dir, "${t.id}.json")
         val cached = try { if (f.exists()) f.readText() else null } catch (e: Exception) { null }
         // lyrics saved together with a downloaded song, so they work with no connection
@@ -52,8 +69,8 @@ class LyricsRepo(private val context: Context) {
     /** Throws away the saved copy and looks the song up again (the Rescan button). */
     suspend fun rescan(t: Track): Lyrics? = withContext(Dispatchers.IO) {
         try { File(dir, "${t.id}.json").delete() } catch (_: Exception) {}
-        val body = fetch(t)?.also { try { File(dir, "${t.id}.json").writeText(it) } catch (_: Exception) {} }
-        body?.let { parse(it) }
+        val body = if (SongLyricFx.hasCustom(context, t.id)) null else fetch(t)?.also { try { File(dir, "${t.id}.json").writeText(it) } catch (_: Exception) {} }
+        fixed(t, body?.let { parse(it) })
     }
 
     private val tags = Regex("""\s*[\(\[][^)\]]*\b(official|music video|lyric|lyrics|video|audio|visuali[sz]er|live|hd|hq|4k|remaster(ed)?|explicit|clip|performance)\b[^)\]]*[\)\]]""", RegexOption.IGNORE_CASE)

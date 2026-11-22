@@ -257,3 +257,6 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R149 Bedside escape: choose Bedside in Player Studio; the faint Studio button (top right) opens the picker and you can pick another skin
 - [ ] R150 import matching: import a .csv whose songs are not on the phone; the toast says 'Matching N songs…' then 'Imported X of N (A on this phone, B from YouTube Music)'; the new playlist plays the YouTube songs; a song with a wrong/unclear match is counted as not found, not added; airplane mode: finds only phone songs and does not crash
 - [ ] R151 import history: after an import, Library > Playlists > Import history lists it with counts and the 'Not found' songs; Clear empties it
+- [ ] R152 playlist header: open one of your playlists; the top shows a collage of its songs' covers (one cover if all one album); tap 'Add a description', save text, it shows under the header and survives restart
+- [ ] R153 lyrics fix: song ⋮ > Lyrics: timing and file; +/-0.25 s steps move the lyric highlight on reopening the lyrics; choose an .lrc and it replaces the found lyrics; 'Use the found lyrics again' removes it; Reset timing
+- [ ] R154 song cover: song ⋮ > Change cover, pick a picture; it shows in rows, mini player and player right away; Use the original cover restores; notification art may stay original

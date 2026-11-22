@@ -650,3 +650,14 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 151: import history
 - New `data/ImportLog.kt`: the last 15 imports (file or link) with where the songs came from and the songs not found (first 100). Library > Playlists > Import history shows them, with Clear. Kept on the phone only.
+
+## Round 152: playlist header collage and descriptions
+- Your own playlists now open with the collage of their songs' covers across the top (CoverCollage got `singlePx`/`tilePx` for the larger size), and carry a short description (new `data/PlaylistNotes.kt`; tap the line under the header to edit). DetailScreen gained `collage`, `note` and `onEditNote`. Ideas from Mochy Music's playlist covers and playlist descriptions (GPL-3.0); written for milo.
+
+## Round 153: song edit, lyrics timing and your own lyrics file
+- New `data/SongLyricFx.kt`; `LyricsRepo.get/rescan` apply, per song, a timing offset (-120 s to +180 s) and a lyrics file you choose (.lrc with times, or plain text), which replaces the found lyrics. New `LyricsFixDialog` (⋮ menu > "Lyrics: timing and file") on every song, YouTube or phone. Nothing in the audio file changes.
+- These are two of the pieces of Mochy Music's song edit sheet (GPL-3.0, ui/menu/songedit); title/artist/album editing already existed in milo. Not ported: choosing a cover from sources or a picture, per-song speed and EQ, video picker, artist picker.
+
+## Round 154: your own cover for a song
+- New `data/SongCover.kt`; `ArtLoader.cover/soft` check it first; Cover/rememberCover/rememberSoft reload when it changes. Song ⋮ menu: "Change cover" (pick a picture; scaled to 1200 px) and "Use the original cover". The picture is kept inside milo; the song file is unchanged. The lock-screen and notification artwork and other places that don't go through milo's cover loader still show the original.
+- From Mochy Music's song edit sheet cover picker (GPL-3.0); milo's version takes a picture you pick, with no cover search.

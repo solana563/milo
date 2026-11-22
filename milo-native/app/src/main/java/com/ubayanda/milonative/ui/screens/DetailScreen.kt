@@ -76,6 +76,11 @@ fun DetailScreen(
     headerAction2: Pair<String, () -> Unit>? = null,
     /** Which playlist / album / artist a Download from this page belongs to, so the Downloads screen can keep them together. */
     downloadGroup: com.ubayanda.milonative.data.OfflineStore.Group? = null,
+    /** Show the songs' covers as a collage across the top instead of the first song's cover (your own playlists). */
+    collage: Boolean = false,
+    /** A short note under the header; when [onEditNote] is set a tap on it (or on "Add a description") edits it. */
+    note: String = "",
+    onEditNote: (() -> Unit)? = null,
 ) {
     val lead = coverTrack ?: tracks.firstOrNull()
     val soft = rememberSoft(vm, lead).value
@@ -110,7 +115,7 @@ fun DetailScreen(
                 val w = maxWidth
                 Box(Modifier.fillMaxWidth()) {
                     // the art fills the whole top of the page, then melts into the panel (like the iOS 27 artist page)
-                    Cover(vm, lead, w, 0.dp, px = 1000)
+                    if (collage) com.ubayanda.milonative.ui.components.CoverCollage(vm, tracks, w, 0.dp, singlePx = 1000, tilePx = 500) else Cover(vm, lead, w, 0.dp, px = 1000)
                     Box(
                         Modifier.matchParentSize().background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
@@ -153,6 +158,12 @@ fun DetailScreen(
                         }
                     }
                 }
+            }
+            if (note.isNotEmpty() || onEditNote != null) {
+                Text(
+                    note.ifEmpty { "Add a description" }, color = if (note.isEmpty()) Milo.dim.copy(alpha = 0.6f) else Milo.dim, fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp).then(if (onEditNote != null) Modifier.pressable(true) { onEditNote() } else Modifier),
+                )
             }
             val g = downloadGroup
             if (g != null && (g.kind == "artist" || g.kind == "album")) {

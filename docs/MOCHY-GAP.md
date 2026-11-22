@@ -61,3 +61,15 @@ Importers now find songs missing from the phone on YouTube Music (so a Spotify p
 
 ## Update R151
 Import history shipped. Still missing: a review step to fix uncertain matches by hand, local-file tag and artwork import.
+
+
+## Update R152
+Playlist header collage and descriptions shipped for your own playlists. Still missing: custom playlist cover from a picture, collage style choices.
+
+
+## Update R153
+Song edit: lyrics offset and own lyrics file shipped. Still missing: cover pick (sources/picture), per-song speed/EQ, video picker, artist picker.
+
+
+## Update R154
+Song cover from a picture shipped (no cover search). Still missing: per-song speed/EQ, video picker, artist picker, notification artwork using the custom cover.

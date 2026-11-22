@@ -104,6 +104,10 @@ fun TrackRow(
     val picked by remember(t.id) { androidx.compose.runtime.derivedStateOf { t.id in selState.value } }
     var menu by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    var lyricFix by remember { mutableStateOf(false) }
+    val coverPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) Toast.makeText(ctx, if (com.ubayanda.milonative.data.SongCover.set(ctx, t.id, uri)) "Cover changed" else "Couldn't read that picture", Toast.LENGTH_SHORT).show()
+    }
     val savedItems = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value
     val isYt = t.uri.startsWith("yt:")
     val saved = isYt && savedItems.any { it.id == t.uri.removePrefix("yt:") }
@@ -187,6 +191,7 @@ fun TrackRow(
                     t.title, t.artist.takeIf { it != "Unknown artist" } ?: "", t.album, com.ubayanda.milonative.data.MetaEdits.has(t.id),
                     { n, a, al -> editing = false; vm.editInfo(t.id, n, a, al) }, { editing = false; vm.resetInfo(t.id) }, { editing = false },
                 )
+                if (lyricFix) LyricsFixDialog(t.id, t.title) { lyricFix = false }
                 if (menu) MiloPopup({ menu = false }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Cover(vm, t, 68.dp, Rad.md, px = 200)
@@ -210,6 +215,9 @@ fun TrackRow(
                     PopupAction(MiloIcons.Checklist, "Select multiple") { menu = false; vm.toggleSelect(t.id) }
                     PopupAction(MiloIcons.Share, "Share") { menu = false; actions.share(t) }
                     if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(MiloIcons.Edit, "Edit info") { menu = false; editing = true }
+                    PopupAction(MiloIcons.Edit, "Lyrics: timing and file") { menu = false; lyricFix = true }
+                    PopupAction(MiloIcons.Edit, "Change cover") { menu = false; coverPicker.launch(arrayOf("image/*")) }
+                    if (com.ubayanda.milonative.data.SongCover.has(ctx, t.id)) PopupAction(MiloIcons.Edit, "Use the original cover") { menu = false; com.ubayanda.milonative.data.SongCover.remove(ctx, t.id) }
                     PopupAction(MiloIcons.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
                     PopupAction(MiloIcons.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
                     if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(MiloIcons.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }

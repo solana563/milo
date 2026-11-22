@@ -33,6 +33,14 @@ class ArtLoader(private val context: Context) {
     /** Cover at roughly [px] pixels, or null when the song has no art. */
     suspend fun cover(t: Track, px: Int = 640): Bitmap? = withContext(Dispatchers.IO) {
         val b = bucket(px)
+        // a cover you chose for this song comes first
+        val mine = SongCover.file(context, t.id)
+        if (mine.exists()) {
+            val ck = "c${t.id}:$b:${mine.lastModified()}"
+            cache.get(ck)?.let { return@withContext it }
+            val got = remote(mine.absolutePath, b)
+            if (got != null) { cache.put(ck, got); return@withContext got }
+        }
         val k = "${key(t)}:$b"
         cache.get(k)?.let { return@withContext it }
         val missed = none[k]
@@ -125,7 +133,8 @@ class ArtLoader(private val context: Context) {
     /** 48px copy, blurred by hand: stretched back up it is smooth (no blocks) and needs no blur effect on the GPU. */
     suspend fun soft(t: Track): Bitmap? = withContext(Dispatchers.IO) {
         val k = key(t)
-        small.get(k)?.let { return@withContext it }
+        val custom = SongCover.has(context, t.id)
+        if (!custom) small.get(k)?.let { return@withContext it }
         val src = cover(t, 160) ?: return@withContext null
         val n = 48
         val s = Bitmap.createScaledBitmap(src, n, n, true).copy(Bitmap.Config.ARGB_8888, true)
@@ -134,7 +143,7 @@ class ArtLoader(private val context: Context) {
         var cur = px
         repeat(3) { cur = boxBlur(cur, n, 2) }
         s.setPixels(cur, 0, n, 0, 0, n, n)
-        small.put(k, s)
+        if (!custom) small.put(k, s)
         s
     }
 

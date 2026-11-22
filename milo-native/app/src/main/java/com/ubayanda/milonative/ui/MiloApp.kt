@@ -294,6 +294,7 @@ fun MiloApp(vm: MainViewModel) {
                             if (p != null) {
                                 var renaming by remember { mutableStateOf(false) }
                                 var exporting by remember { mutableStateOf(false) }
+                                var noting by remember { mutableStateOf(false) }
                                 val list = p.trackIds.mapNotNull { byId[it] }
                                 val ctxE = androidx.compose.ui.platform.LocalContext.current
                                 val saver = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("audio/x-mpegurl")) { uri ->
@@ -310,8 +311,11 @@ fun MiloApp(vm: MainViewModel) {
                                     headerAction = "Rename" to { renaming = true },
                                     headerAction2 = "Export" to { exporting = true },
                                     onMove = { f, t -> vm.movePlaylistItem(p.id, f, t) },
+                                    collage = true,
+                                    note = com.ubayanda.milonative.data.PlaylistNotes.get(ctxE, p.id), onEditNote = { noting = true },
                                     rowExtra = { t -> listOf(RowAction("Remove from this playlist") { vm.removeFromPlaylist(p.id, t.id) }) },
                                 )
+                                if (noting) NameDialog("Description", com.ubayanda.milonative.data.PlaylistNotes.get(ctxE, p.id), "Save", { n -> com.ubayanda.milonative.data.PlaylistNotes.set(ctxE, p.id, n); noting = false }, { noting = false })
                                 if (renaming) NameDialog("Rename playlist", p.name, "Save", { n -> vm.renamePlaylist(p.id, n); renaming = false }, { renaming = false })
                             }
                         }
