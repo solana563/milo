@@ -407,6 +407,13 @@ fun MiloApp(vm: MainViewModel) {
             AnimatedVisibility(visible = vm.showDownloads, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.DownloadManagerScreen(vm) { vm.showDownloads = false }
             }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                if (com.ubayanda.milonative.data.WhatsNew.pending(ctx, com.ubayanda.milonative.BuildConfig.VERSION_CODE)) vm.showWhatsNew = true
+            }
+            if (vm.showWhatsNew) com.ubayanda.milonative.ui.screens.WhatsNewSheet {
+                vm.showWhatsNew = false
+                com.ubayanda.milonative.data.WhatsNew.markSeen(ctx, com.ubayanda.milonative.BuildConfig.VERSION_CODE)
+            }
             AnimatedVisibility(visible = vm.showTaste, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
                 com.ubayanda.milonative.ui.screens.TasteProfileScreen(vm) { vm.showTaste = false }
             }

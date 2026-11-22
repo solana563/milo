@@ -661,3 +661,20 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 154: your own cover for a song
 - New `data/SongCover.kt`; `ArtLoader.cover/soft` check it first; Cover/rememberCover/rememberSoft reload when it changes. Song ⋮ menu: "Change cover" (pick a picture; scaled to 1200 px) and "Use the original cover". The picture is kept inside milo; the song file is unchanged. The lock-screen and notification artwork and other places that don't go through milo's cover loader still show the original.
 - From Mochy Music's song edit sheet cover picker (GPL-3.0); milo's version takes a picture you pick, with no cover search.
+
+## Round 155: recap story
+- New `ui/screens/RecapStory.kt`; Profile > Your listening > "Watch my recap". A full-screen story built from what milo counted on this phone: intro, time listened (with a count-up and "about N albums"), plays (and per day for a year), your number one song, top songs, top artist with bars, and a share card. Tap right for next, left for back; it also advances by itself every 6.5 s. Share sends the same plain text as before.
+- Idea from Mochy Music's recap story and ID card (GPL-3.0, ui/screens/recap); the pages and visuals are milo's own. Not ported: genre/mood pages, listening-time-of-day, the card's back side, picture export (needs more data than milo records).
+
+## Round 156: What's new
+- New `data/WhatsNew.kt` (hand-written list, bundled) and `ui/screens/WhatsNewSheet.kt`. It shows once after an update (build number goes up; a fresh install doesn't show it) and any time from Profile > About > What's new. Profile also shows the version and build. No update download or check: milo has no update server, and distribution (Play, F-Droid, test builds) handles installs.
+- Idea from Mochy Music's update and changelog sheets (GPL-3.0, ui/screens/update); the update-check part was not ported.
+
+## Round 157 — Profile as a hub of categories; Tools moved off Home
+- Home no longer has the Tools shelf. Identify song, Car mode, Bedside clock and iPod skin now live under Profile > Tools.
+- Profile is now a list of categories, each opening its own page (back returns to the list): Your listening, Connections (connect, sessions, shared playlists, QR scan, push, together, sharing), Accounts and sources (YouTube key, scrobbling, server), Playback and sound (autoplay, classic, gestures, Bluetooth, audio info), Look and layout, Downloads and backup, Tools, Help and about, Account (signed-in only).
+- No new third-party code. Downloads stay reachable from Library and Home's Downloaded card.
+
+## Round 158 — Threads-style pull to refresh
+- New pull indicator (hand-drawn, no icon): a ring of dots that appear as you pull, turn with the finger, pop when armed, then chase round while loading. Idea inspired by how the Threads app feels; the mark is milo's own and copies nothing from it.
+- Pull to refresh added to the Library songs list (rescans the phone library). Home and Discover already had it and now use the new mark.

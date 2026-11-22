@@ -260,3 +260,7 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R152 playlist header: open one of your playlists; the top shows a collage of its songs' covers (one cover if all one album); tap 'Add a description', save text, it shows under the header and survives restart
 - [ ] R153 lyrics fix: song ⋮ > Lyrics: timing and file; +/-0.25 s steps move the lyric highlight on reopening the lyrics; choose an .lrc and it replaces the found lyrics; 'Use the found lyrics again' removes it; Reset timing
 - [ ] R154 song cover: song ⋮ > Change cover, pick a picture; it shows in rows, mini player and player right away; Use the original cover restores; notification art may stay original
+- [ ] R155 recap: Profile > Your listening > Watch my recap; pages advance by tap and by themselves; left third goes back; the last card's Share opens the share sheet; All time and a year both work; Back closes it
+- [ ] R156 What's new: install over an older build -> the What's new dialog shows once; fresh install doesn't show it; Profile > About shows version/build and reopens it
+- [ ] R157: Home has no Tools shelf; Profile shows category rows; each opens a page, back returns to the list; Tools page launches Identify/Car/Bedside/iPod; Connections page has shared playlists + QR; Account row only when signed in.
+- [ ] R158: pull down on Home, Discover and Library songs: dots draw in, tick when armed, spin while loading, bounce back. Library pull rescans songs.

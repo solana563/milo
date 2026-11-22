@@ -313,11 +313,14 @@ private fun SongsList(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, bott
         onDispose { if (vm.jumper === j) { vm.jumper = null; vm.canJump = null } }
     }
     Box(Modifier.fillMaxSize()) {
+        val scanningNow by vm.scanning.collectAsState()
+        com.ubayanda.milonative.ui.components.BouncyRefresh(refreshing = scanningNow, onRefresh = { vm.scan() }, modifier = Modifier.fillMaxSize()) {
         LazyColumn(state = state, contentPadding = PaddingValues(end = 18.dp, bottom = bottomPad)) {
             itemsIndexed(rows, key = { _, r -> if (r is Track) "t" + r.id else "h$r" }, contentType = { _, r -> if (r is Track) "track" else "header" }) { _, r ->
                 if (r is Track) TrackRow(vm, r, r.id == ui.currentId, Milo.amber) { vm.player.playQueue(tracks, tracks.indexOf(r)) }
                 else LetterHeader(r as String, Milo.amber)
             }
+        }
         }
         Column(
             Modifier.align(Alignment.CenterEnd).fillMaxHeight(0.7f).padding(end = 2.dp),

@@ -73,3 +73,12 @@ Song edit: lyrics offset and own lyrics file shipped. Still missing: cover pick 
 
 ## Update R154
 Song cover from a picture shipped (no cover search). Still missing: per-song speed/EQ, video picker, artist picker, notification artwork using the custom cover.
+
+
+## Update R155
+Recap story shipped from milo's own stats (no genre/mood/time-of-day pages: milo does not record those). Still missing: recap picture export, ID card back, per-genre stats.
+
+
+## Update R156
+What's new sheet shipped (bundled list). Not ported: Mochy's in-app update check/download (milo has no update server; builds arrive through the store or test channel). The list must be edited by hand each release.
+- R157: Home Tools shelf moved into Profile > Tools; Profile reorganised into categories (UI only, uncompiled, untested on device).

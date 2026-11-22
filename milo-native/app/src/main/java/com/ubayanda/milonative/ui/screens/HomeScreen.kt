@@ -162,36 +162,6 @@ fun HomeScreen(
                 }
             }
         }
-        // the extras, where they can be found: one glass chip each, right under the player
-        item(key = "tools") {
-            val acts = com.ubayanda.milonative.ui.LocalActions.current
-            Column(Modifier.padding(top = 10.dp).fillMaxWidth().lift(card, 12f).clip(card).background(Milo.panel, card).border(1.dp, Milo.line, card).padding(bottom = 14.dp)) {
-                SectionTitle("Tools")
-                androidx.compose.foundation.lazy.LazyRow(
-                    contentPadding = PaddingValues(horizontal = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    val chips = listOf(
-                        Triple("\uD83C\uDFA4", "Identify song", acts.identify),
-                        Triple("\uD83C\uDF19", "Bedside clock", acts.bedside),
-                        Triple("\uD83D\uDE97", "Car mode", acts.carMode),
-                        Triple("\uD83C\uDF9B", "iPod skin", acts.ipod),
-                        Triple("\u2B07", "Downloads", onDownloads),
-                    )
-                    items(chips.size) { i ->
-                        val (glyph, label, go) = chips[i]
-                        Row(
-                            Modifier.height(48.dp).pressable(true) { go() }.glass(androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).padding(horizontal = 18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(glyph, fontSize = 18.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Text(label, color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        }
-                    }
-                }
-            }
-        }
         // saved songs: first when you're offline, after the streaming shelves when you're online
         if (savedSongs.isNotEmpty() && offlineNow) item(key = "dl-top") { DownloadedCard(vm, ui, card, onDownloads) }
         // online: YouTube Music leads right under the player (recommended playlists, trending artists, charts). Offline: only your own music below.

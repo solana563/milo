@@ -57,8 +57,11 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
     var editing by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     val syncMsg by vm.syncMsg.collectAsState()
-    Column(Modifier.fillMaxSize().verticalScroll(vm.mem.scroll("profile")).padding(bottom = bottomPad)) {
-        ScreenTitle("Profile")
+    var section by rememberSaveable { mutableStateOf("") }
+    androidx.activity.compose.BackHandler(enabled = section.isNotEmpty()) { section = "" }
+    Column(Modifier.fillMaxSize().verticalScroll(vm.mem.scroll(if (section.isEmpty()) "profile" else "profile-$section")).padding(bottom = bottomPad)) {
+        if (section.isEmpty()) ScreenTitle("Profile") else SectionBar(profileSections.firstOrNull { it.key == section }?.title ?: "Profile") { section = "" }
+        if (section.isEmpty()) {
         val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
         // the card takes the playing song's colour, fading to dark, like the web profile
         val tint = vm.tint.collectAsState().value
@@ -108,60 +111,68 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
         }
         }
         if (a.signedIn && syncMsg.isNotEmpty()) Text(syncMsg, color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 10.dp))
-        Spacer(Modifier.height(16.dp))
-        InsightsCard(vm)
-        Spacer(Modifier.height(16.dp))
-        ToolsCard(vm)
-        Spacer(Modifier.height(16.dp))
-        ServerCard(vm)
-        Spacer(Modifier.height(16.dp))
-        YouTubeKeyCard(vm)
-        Spacer(Modifier.height(16.dp))
-        ScrobbleCard(vm)
-        Spacer(Modifier.height(16.dp))
-        TogetherCard(vm)
-        Spacer(Modifier.height(16.dp))
-        BluetoothCard()
-        Spacer(Modifier.height(16.dp))
-        DownloadsCard(vm)
-        Spacer(Modifier.height(16.dp))
-        ReportCard()
-        Spacer(Modifier.height(16.dp))
-        AppearanceCard()
-        if (!(com.ubayanda.milonative.ui.theme.Y2K.on || com.ubayanda.milonative.ui.theme.Spider.on || com.ubayanda.milonative.ui.theme.Sticker.on || com.ubayanda.milonative.ui.theme.Nebula.on || com.ubayanda.milonative.ui.theme.ChromeStyle.on)) {
-            Spacer(Modifier.height(16.dp))
-            AccentCard()
         }
-        Spacer(Modifier.height(16.dp))
-        ClassicCard()
-        Spacer(Modifier.height(Sp.x6))
-        GesturesCard()
-        Spacer(Modifier.height(16.dp))
-        HomeLocalCard()
-        Spacer(Modifier.height(16.dp))
-        BtCompatCard()
-        Spacer(Modifier.height(16.dp))
-        Box(Modifier.padding(horizontal = Sp.gutter)) { Pill("Show the welcome tour", null, false) { Tour.open.value = true } }
-        if (a.signedIn) {
+        if (section.isEmpty()) {
             Spacer(Modifier.height(16.dp))
-            SharingCard(vm, a)
-        }
-        Spacer(Modifier.height(16.dp))
-        BroughtByCard()
-        if (a.signedIn) {
-            Spacer(Modifier.height(18.dp))
-            var othersMsg by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-            Text(
-                "Sign out of my other devices", color = Milo.amber, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp))
-                    .clickable { othersMsg = "Working…"; vm.signOutOtherDevices { e -> othersMsg = e ?: "Done. Other devices are signed out." } }
-                    .padding(vertical = 10.dp),
-            )
-            if (othersMsg.isNotEmpty()) Text(othersMsg, color = Color(0xFFB8B8C0), fontSize = 13.sp, modifier = Modifier.padding(horizontal = 24.dp))
-            Text(
-                "Delete account", color = Color(0xFFFF8A80), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp)).clickable { deleting = true }.padding(vertical = 10.dp),
-            )
+            profileSections.filter { it.key != "account" || a.signedIn }.forEach { sec ->
+                SectionRow(sec) { section = sec.key }
+                Spacer(Modifier.height(10.dp))
+            }
+        } else {
+            Gap()
+            when (section) {
+                "listening" -> InsightsCard(vm)
+                "connect" -> {
+                    ConnectionsCard(vm)
+                    Gap(); TogetherCard(vm)
+                    if (a.signedIn) { Gap(); SharingCard(vm, a) }
+                }
+                "sources" -> {
+                    YouTubeKeyCard(vm)
+                    Gap(); ScrobbleCard(vm)
+                    Gap(); ServerCard(vm)
+                }
+                "playback" -> {
+                    AutoplayCard(vm)
+                    Gap(); ClassicCard()
+                    Gap(); GesturesCard()
+                    Gap(); BluetoothCard()
+                    Gap(); BtCompatCard()
+                    Gap(); AudioInfoCard(vm)
+                }
+                "look" -> {
+                    AppearanceCard()
+                    if (!(com.ubayanda.milonative.ui.theme.Y2K.on || com.ubayanda.milonative.ui.theme.Spider.on || com.ubayanda.milonative.ui.theme.Sticker.on || com.ubayanda.milonative.ui.theme.Nebula.on || com.ubayanda.milonative.ui.theme.ChromeStyle.on)) {
+                        Gap(); AccentCard()
+                    }
+                    Gap(); HomeLocalCard()
+                }
+                "storage" -> {
+                    DownloadsCard(vm)
+                    Gap(); BackupCard(vm)
+                }
+                "tools" -> ToolsCard(vm)
+                "help" -> {
+                    ReportCard()
+                    Gap(); AboutCard(vm)
+                    Gap(); Box(Modifier.padding(horizontal = Sp.gutter)) { Pill("Show the welcome tour", null, false) { Tour.open.value = true } }
+                    Gap(); BroughtByCard()
+                }
+                "account" -> if (a.signedIn) {
+                    var othersMsg by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+                    Text(
+                        "Sign out of my other devices", color = Milo.amber, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp))
+                            .clickable { othersMsg = "Working\u2026"; vm.signOutOtherDevices { e -> othersMsg = e ?: "Done. Other devices are signed out." } }
+                            .padding(vertical = 10.dp),
+                    )
+                    if (othersMsg.isNotEmpty()) Text(othersMsg, color = Color(0xFFB8B8C0), fontSize = 13.sp, modifier = Modifier.padding(horizontal = 24.dp))
+                    Text(
+                        "Delete account", color = Color(0xFFFF8A80), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 24.dp).clip(RoundedCornerShape(12.dp)).clickable { deleting = true }.padding(vertical = 10.dp),
+                    )
+                }
+            }
         }
     }
     if (editing) EditProfileDialog(vm, a) { editing = false }
@@ -441,8 +452,15 @@ private fun InsightsCard(vm: MainViewModel) {
                     Text("${r.plays}×", color = Milo.dim, fontSize = 14.sp)
                 }
             }
+            var story by remember { mutableStateOf(false) }
+            Row(Modifier.padding(top = 14.dp)) { Pill("Watch my recap", null, true) { story = true } }
+            if (story) {
+                val cal = java.util.Calendar.getInstance()
+                val days = if (year == null) null else if (year == cal.get(java.util.Calendar.YEAR)) cal.get(java.util.Calendar.DAY_OF_YEAR) else 365
+                com.ubayanda.milonative.ui.screens.RecapStory(st, if (year == null) "listening" else year.toString(), days) { story = false }
+            }
             val ctxR = androidx.compose.ui.platform.LocalContext.current
-            androidx.compose.foundation.layout.Box(Modifier.padding(top = 14.dp)) { Pill("Share my recap", null, false) {
+            androidx.compose.foundation.layout.Box(Modifier.padding(top = 8.dp)) { Pill("Share my recap", null, false) {
                 val hrs = st.totalMs / 3_600_000.0
                 val txt = buildString {
                     append((if (year == null) "My milo. recap\n" else "My milo. $year recap\n"))
@@ -474,9 +492,36 @@ private fun InsightsCard(vm: MainViewModel) {
 
 @Composable
 private fun ToolsCard(vm: MainViewModel) {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val auto by vm.autoplay.collectAsState()
     val actions = com.ubayanda.milonative.ui.LocalActions.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Tools", color = Milo.text, style = Ty.title)
+        Text("Things you open when you need them.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Pill("Identify song", null, true) { actions.identify() }
+            Pill("Car mode", null, false) { actions.carMode() }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Pill("Bedside clock", null, false) { actions.bedside() }
+            Pill("iPod skin", null, false) { actions.ipod() }
+        }
+    }
+}
+
+@Composable
+private fun AutoplayCard(vm: MainViewModel) {
+    val auto by vm.autoplay.collectAsState()
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Autoplay", color = Milo.text, style = Ty.title)
+        ShareRow("Smart autoplay (keep similar songs coming)", auto) { vm.setAutoplay(it) }
+    }
+}
+
+@Composable
+private fun BackupCard(vm: MainViewModel) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var msg by remember { mutableStateOf("") }
     val save = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) msg = try {
@@ -491,18 +536,44 @@ private fun ToolsCard(vm: MainViewModel) {
     }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("Tools", color = Milo.text, style = Ty.title)
-        ShareRow("Smart autoplay (keep similar songs coming)", auto) { vm.setAutoplay(it) }
-        Spacer(Modifier.height(10.dp))
+        Text("Backup", color = Milo.text, style = Ty.title)
+        Text("Your playlists, likes and settings in one file.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Pill("Car mode", null, true) { actions.carMode() }
-            Pill("Bedside clock", null, false) { actions.bedside() }
-            Pill("Identify song", null, false) { actions.identify() }
-            Pill("iPod skin", null, false) { actions.ipod() }
-            Pill("Save backup", null, false) { save.launch("milo-backup.json") }
+            Pill("Save backup", null, true) { save.launch("milo-backup.json") }
             Pill("Restore", null, false) { open.launch(arrayOf("application/json", "text/plain", "*/*")) }
         }
         if (msg.isNotEmpty()) Text(msg, color = Milo.dim, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+    }
+}
+
+@Composable
+private fun ConnectionsCard(vm: MainViewModel) {
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Devices and sharing", color = Milo.text, style = Ty.title)
+        Text("Play on other devices, listen in rooms, and share playlists.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp, bottom = 14.dp))
+        Pill("milo. Connect: my devices", null, true) { vm.showConnect = true }
+        Spacer(Modifier.height(10.dp))
+        Pill("milo. Sessions: listening rooms", null, false) { vm.showSessions = true }
+        Spacer(Modifier.height(10.dp))
+        Pill("Shared playlists", null, false) { vm.showCpl = true }
+        Spacer(Modifier.height(10.dp))
+        Pill("Scan a milo. QR code", null, false) { vm.showScanner = true }
+        if (com.ubayanda.milonative.push.Push.available(androidx.compose.ui.platform.LocalContext.current)) {
+            val pctx = androidx.compose.ui.platform.LocalContext.current
+            var pushOn by remember { mutableStateOf(com.ubayanda.milonative.push.Push.enabled(pctx)) }
+            ShareRow("Instant message notifications", pushOn) { pushOn = it; com.ubayanda.milonative.push.Push.setEnabled(pctx, it) }
+        }
+    }
+}
+
+@Composable
+private fun AudioInfoCard(vm: MainViewModel) {
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Audio info", color = Milo.text, style = Ty.title)
+        Text("What your phone and headphones can play.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Pill("Audio info: formats and outputs", null, false) { vm.showAudioInfo = true }
     }
 }
 
@@ -737,21 +808,6 @@ private fun DownloadsCard(vm: MainViewModel) {
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         Pill("Manage downloads", null, true) { vm.showDownloads = true }
-        Spacer(Modifier.height(10.dp))
-        Pill("milo. Connect: my devices", null, false) { vm.showConnect = true }
-        Spacer(Modifier.height(10.dp))
-        Pill("milo. Sessions: listening rooms", null, true) { vm.showSessions = true }
-        Spacer(Modifier.height(10.dp))
-        Pill("Shared playlists", null, false) { vm.showCpl = true }
-        Spacer(Modifier.height(10.dp))
-        Pill("Audio info: formats and outputs", null, false) { vm.showAudioInfo = true }
-        Spacer(Modifier.height(10.dp))
-        Pill("Scan a milo. QR code", null, false) { vm.showScanner = true }
-        if (com.ubayanda.milonative.push.Push.available(androidx.compose.ui.platform.LocalContext.current)) {
-            val pctx = androidx.compose.ui.platform.LocalContext.current
-            var pushOn by remember { mutableStateOf(com.ubayanda.milonative.push.Push.enabled(pctx)) }
-            ShareRow("Instant message notifications", pushOn) { pushOn = it; com.ubayanda.milonative.push.Push.setEnabled(pctx, it) }
-        }
         if (items.isNotEmpty()) Spacer(Modifier.height(10.dp))
         if (items.isNotEmpty()) Pill("Remove all downloads", null, false) {
             com.ubayanda.milonative.data.OfflineStore.clear()
@@ -822,5 +878,59 @@ private fun GesturesCard() {
         com.ubayanda.milonative.ui.components.MiloChip("Reset gestures", false, Modifier.padding(top = 6.dp)) {
             g.reset(ctx); dtap = true; centre = 0; secs = 10; swipe = true; dist = 160f
         }
+    }
+}
+
+@Composable
+private fun AboutCard(vm: MainViewModel) {
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("About", color = Milo.text, style = Ty.title)
+        Text("milo. " + com.ubayanda.milonative.BuildConfig.VERSION_NAME + " (build " + com.ubayanda.milonative.BuildConfig.VERSION_CODE + ")", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 4.dp))
+        Row(Modifier.padding(top = 6.dp)) { Pill("What's new", null, false, compact = true) { vm.showWhatsNew = true } }
+    }
+}
+
+private class ProfileSection(val key: String, val glyph: String, val title: String, val sub: String)
+
+private val profileSections = listOf(
+    ProfileSection("listening", "\uD83D\uDCCA", "Your listening", "Recap, top songs, taste profile"),
+    ProfileSection("connect", "\uD83D\uDD17", "Connections", "Devices, listening rooms, shared playlists, sharing with friends"),
+    ProfileSection("sources", "\uD83C\uDFA7", "Accounts and sources", "YouTube, scrobbling, my own server"),
+    ProfileSection("playback", "\uD83D\uDD0A", "Playback and sound", "Autoplay, player mode, gestures, Bluetooth, audio info"),
+    ProfileSection("look", "\uD83C\uDFA8", "Look and layout", "Appearance, accent colour, Home"),
+    ProfileSection("storage", "\u2B07", "Downloads and backup", "Saved songs, save and restore"),
+    ProfileSection("tools", "\uD83E\uDDF0", "Tools", "Identify song, car mode, bedside clock, iPod skin"),
+    ProfileSection("help", "\u2753", "Help and about", "Something not working, version, welcome tour"),
+    ProfileSection("account", "\uD83D\uDC64", "Account", "Other devices, delete account"),
+)
+
+@Composable
+private fun Gap() { Spacer(Modifier.height(16.dp)) }
+
+@Composable
+private fun SectionRow(sec: ProfileSection, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 10f).clip(shape).glass(shape).clickable { onClick() }.padding(horizontal = Sp.x5, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Milo.card2), contentAlignment = Alignment.Center) { Text(sec.glyph, fontSize = 22.sp) }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(sec.title, color = Milo.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            Text(sec.sub, color = Milo.dim, fontSize = 13.sp, maxLines = 2)
+        }
+        Text("\u203A", color = Milo.dim, fontSize = 24.sp)
+    }
+}
+
+@Composable
+private fun SectionBar(title: String, onBack: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable { onBack() }, contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(com.ubayanda.milonative.ui.theme.MiloIcons.ArrowBackIosNew, "Back", tint = Milo.text, modifier = Modifier.size(20.dp))
+        }
+        Text(title, color = Milo.text, style = Ty.display, modifier = Modifier.padding(start = 4.dp))
     }
 }

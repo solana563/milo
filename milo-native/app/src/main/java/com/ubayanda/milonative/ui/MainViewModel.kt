@@ -568,6 +568,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** The What's new list is open. */
+    var showWhatsNew by androidx.compose.runtime.mutableStateOf(false)
+
     /** The Download Manager screen is open. */
     var showDownloads by androidx.compose.runtime.mutableStateOf(false)
 

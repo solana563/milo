@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -167,8 +168,46 @@ fun BouncyRefresh(refreshing: Boolean, onRefresh: () -> Unit, modifier: Modifier
                 .clip(CircleShape).background(Milo.card2, CircleShape).border(1.dp, Milo.line, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            if (refreshing) CircularProgressIndicator(Modifier.size(22.dp), color = Milo.amber, strokeWidth = 2.5.dp)
-            else Icon(MiloIcons.Refresh, null, tint = Milo.amber, modifier = Modifier.size(22.dp).graphicsLayer { rotationZ = p * 270f })
+            MiloPullMark(p = p, armed = armed, refreshing = refreshing)
+        }
+    }
+}
+
+/**
+ * The pull indicator: a ring of dots that appear one after another as you pull (and turn with your finger), pop when the pull is far
+ * enough, then circle with a rolling swell while it loads. Drawn by hand, no icon.
+ */
+@Composable
+private fun MiloPullMark(p: Float, armed: Boolean, refreshing: Boolean) {
+    val spin = androidx.compose.animation.core.rememberInfiniteTransition(label = "pullSpin")
+    val t by spin.animateFloat(
+        0f, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1100, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "pullT",
+    )
+    val dots = 8
+    val col = Milo.amber
+    androidx.compose.foundation.Canvas(Modifier.size(30.dp)) {
+        val c = center
+        val ring = size.minDimension / 2f - 4.dp.toPx()
+        val base = 2.2.dp.toPx()
+        val turn = if (refreshing) t * 360f else p * 200f
+        for (i in 0 until dots) {
+            val a = Math.toRadians((turn + i * 360.0 / dots) - 90.0)
+            val x = c.x + (ring * Math.cos(a)).toFloat()
+            val y = c.y + (ring * Math.sin(a)).toFloat()
+            val grow: Float; val fade: Float
+            if (refreshing) {
+                // a swell rolls round the ring, so the dots look like they chase each other
+                val w = ((t * dots - i) % dots + dots) % dots
+                val k = (1f - (w / dots)).coerceIn(0f, 1f)
+                grow = 0.55f + 0.9f * k * k; fade = 0.35f + 0.65f * k
+            } else {
+                // dot i shows up once the pull has reached its share
+                val k = ((p * (dots + 1) - i) ).coerceIn(0f, 1f)
+                grow = (0.3f + 0.7f * k) * (if (armed) 1.15f else 1f); fade = k
+            }
+            drawCircle(col.copy(alpha = fade), radius = base * grow, center = Offset(x, y))
         }
     }
 }
