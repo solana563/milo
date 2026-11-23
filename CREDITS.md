@@ -693,3 +693,17 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Feedback on R159: no colour blocks, no pixel lettering. Removed the pixel font (PixelText.kt deleted; delete it from your repo too) and restored normal screen/shelf titles (Rows.kt back to its R158 form).
 - Home keeps the mosaic layout in milo's own glass style: slim header, Now playing tile first, listening widget (minutes today, streak, 7 slim bars), Liked songs / Saved offline tiles, Quick access grid (pin with Edit), Jump back in (recent albums).
 - Every Home block now sits straight on the black background; the rounded panel cards behind the shelves are gone.
+
+## Round 161 — Black pages everywhere
+- The big rounded panel card (and its border) behind every non-Home screen is gone: Library, Discover, Search, Profile and the album/artist/playlist pages now sit on black like Home, with the glass tiles on top.
+- Album/artist/playlist headers fade into black instead of the song-tinted panel colour. The page background no longer takes the playing song's tint; glass tiles, cards and the player still do.
+
+## Round 162 — Background choices, Recently played on top, accent tiles
+- New Profile > Look and layout > Background: Black, Song art (the playing song's softened cover, dimmed), Song colour (a gradient from the song's own colour into black) or My picture (any image from the phone, scaled to 1600 px and kept in the app). Draws behind every screen.
+- Home: Recently played now sits directly under the Now playing tile.
+- Liked songs and Saved offline tiles are filled with the accent colour (text flips dark or light to stay readable) and follow accent changes.
+
+## Round 163 — Now playing: button strip and live lyrics
+- Layout follows a mockup of stacked cards: the art with the title on top; under it a horizontal strip of buttons (Like, Save, Queue, Output, Sound, Timer, Visual, More) that replaces the slim dock on the right edge; then the controls card (scrubber and transport, now a floating rounded card); and at the bottom, on black, the lyrics.
+- Bottom lyrics: the line being sung in large type with the next two lines fading below it (plain lyrics show their first lines). Tap it or drag up for the full lyrics page; the Lyrics ticker option still replaces it when on.
+- The like heart still flies to the Like button (its overlay moved to the screen root so the strip doesn't clip it).

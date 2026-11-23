@@ -236,11 +236,9 @@ fun MiloApp(vm: MainViewModel) {
                 }
                 // like the web: solid cards, edge to edge. Other screens are one card with big top curves; Home draws its own two cards
                 val panelShape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp)
-                val ownCards = detail == null && tab == Tab.Home
-                Box(
-                    if (ownCards) Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.bg, panelShape)
-                    else Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.panel, panelShape).border(1.dp, Milo.line, panelShape)
-                ) {
+                // every screen sits straight on black, with the glass tiles on top (no big card behind them)
+                Box(Modifier.weight(1f).fillMaxWidth().clip(panelShape).background(Milo.bg, panelShape)) {
+                    com.ubayanda.milonative.ui.components.BackgroundLayer(currentSoft)
                     // every screen change animates: deeper pages slide in from the right, going back slides out, switching tabs glides sideways
                     androidx.compose.animation.AnimatedContent(
                         targetState = ScreenKey(ytPages.lastOrNull(), detail, tab, if (ytPages.isNotEmpty()) 10 + ytPages.size else if (detail != null) 1 else 0),

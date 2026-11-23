@@ -121,7 +121,7 @@ fun DetailScreen(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colorStops = arrayOf(
                                     0f to Color.Black.copy(alpha = 0.55f), 0.24f to Color.Transparent,
-                                    0.50f to Milo.panel.copy(alpha = 0f), 0.80f to Milo.panel.copy(alpha = 0.88f), 1f to Milo.panel,
+                                    0.50f to Milo.bg.copy(alpha = 0f), 0.80f to Milo.bg.copy(alpha = 0.88f), 1f to Milo.bg,
                                 ),
                             ),
                         ),

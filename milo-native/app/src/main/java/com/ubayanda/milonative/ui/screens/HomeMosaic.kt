@@ -33,7 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -180,13 +182,19 @@ private fun HeroStats(vm: MainViewModel, onOpen: () -> Unit) {
 @Composable
 private fun BigTile(label: String, value: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(Rad.xl)
-    Column(modifier.tactile(36.dp, clip = false, onClick = onClick).lift(shape, 14f).glass(shape).padding(18.dp)) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(Milo.amber.copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = Milo.amber, modifier = Modifier.size(20.dp))
+    val acc = Milo.amber
+    // text on the accent: dark on a light accent, light on a dark one
+    val ink = if (acc.luminance() > 0.5f) Color(0xFF14110C) else Color.White
+    Column(
+        modifier.tactile(36.dp, clip = false, onClick = onClick).lift(shape, 14f).clip(shape)
+            .background(Brush.verticalGradient(listOf(acc, acc.copy(alpha = 0.82f))), shape).padding(18.dp),
+    ) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(ink.copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = ink, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text(value, color = Milo.text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
-        Text(label, color = Milo.dim, style = Ty.label)
+        Text(value, color = ink, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
+        Text(label, color = ink.copy(alpha = 0.75f), style = Ty.label)
     }
 }
 

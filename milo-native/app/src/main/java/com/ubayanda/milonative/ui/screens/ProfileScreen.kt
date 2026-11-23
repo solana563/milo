@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import com.ubayanda.milonative.ui.components.AppBackground as B
 import androidx.compose.ui.graphics.asImageBitmap
 import com.ubayanda.milonative.data.ChatMedia
 import androidx.compose.foundation.clickable
@@ -142,6 +143,7 @@ fun ProfileScreen(vm: MainViewModel, a: AccountUi, songs: Int, likes: Int, playl
                 }
                 "look" -> {
                     AppearanceCard()
+                    Gap(); BackgroundCard()
                     if (!(com.ubayanda.milonative.ui.theme.Y2K.on || com.ubayanda.milonative.ui.theme.Spider.on || com.ubayanda.milonative.ui.theme.Sticker.on || com.ubayanda.milonative.ui.theme.Nebula.on || com.ubayanda.milonative.ui.theme.ChromeStyle.on)) {
                         Gap(); AccentCard()
                     }
@@ -749,6 +751,41 @@ private fun AppearanceCard() {
             }
         }
         Text(opts.first { it.key == active }.blurb, color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 10.dp))
+    }
+}
+
+@Composable
+private fun BackgroundCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
+    androidx.compose.runtime.LaunchedEffect(Unit) { B.init(ctx) }
+    var msg by remember { mutableStateOf("") }
+    val pick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) msg = if (B.setCustom(ctx, uri)) "Background set." else "Couldn't read that picture."
+    }
+    val opts = listOf(B.BLACK to "Black", B.SONG_ART to "Song art", B.SONG_COLOUR to "Song colour", B.CUSTOM to "My picture")
+    Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
+        Text("Background", color = Milo.text, style = Ty.title)
+        Text("What sits behind every screen.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp))
+        Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            opts.forEach { (m, label) ->
+                val on = B.mode == m
+                val chip = RoundedCornerShape(24.dp)
+                Box(
+                    Modifier.height(44.dp).clip(chip)
+                        .background(if (on) Milo.text.copy(alpha = 0.14f) else Color.Transparent)
+                        .border(if (on) 2.dp else 1.dp, if (on) Milo.text else Milo.line, chip)
+                        .clickable {
+                            if (m == B.CUSTOM && !B.hasCustom(ctx)) pick.launch("image/*") else B.set(ctx, m)
+                        }
+                        .padding(horizontal = 16.dp)
+                        .semantics { contentDescription = "$label background" + if (on) ", selected" else "" },
+                    contentAlignment = Alignment.Center,
+                ) { Text(label, color = Milo.text, fontSize = 15.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium) }
+            }
+        }
+        Row(Modifier.padding(top = 12.dp)) { Pill(if (B.hasCustom(ctx)) "Change picture" else "Choose a picture", null, false) { pick.launch("image/*") } }
+        if (msg.isNotEmpty()) Text(msg, color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 8.dp))
     }
 }
 

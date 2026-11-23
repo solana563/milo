@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -236,7 +237,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val npCtx = androidx.compose.ui.platform.LocalContext.current
     var tapFlash by remember { mutableStateOf<TapFlash?>(null) }
     LaunchedEffect(tapFlash?.token) { if (tapFlash != null) { kotlinx.coroutines.delay(750); tapFlash = null } }
-    val cardShape = RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl)
+    val cardShape = RoundedCornerShape(Rad.xl)
     // flat cover-tinted card: no live blur or glass shader (they cost frames)
     val npGlass = Modifier.clip(cardShape).frosted(soft, 0.5f).border(1.dp, glassStroke(1.2f), cardShape)
     // behind a queue / sound sheet the player just dims (no blur)
@@ -259,6 +260,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         else -> l.plain.lineSequence().firstOrNull { it.isNotBlank() } ?: "Lyrics"
     }
 
+    val likeBurst = remember { LikeBurstState() }
     BackHandler { if (lyOpen) lyTo(screenH) else if (panel != Panel.None) panel = Panel.None else foldAway() }
 
     val screenW = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
@@ -333,7 +335,6 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             ) {
                 val coverLook by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
-                val likeBurst = remember { LikeBurstState() }
                 // next / previous: the new cover glides in from the side it came from while the old one slips away
                 androidx.compose.animation.AnimatedContent(
                     targetState = ArtKey(t.id, cover, coverDone),
@@ -417,36 +418,6 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
                 RoundBtn(MiloIcons.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = { foldAway() })
 
-                // one slim dock on the right edge instead of a stack of separate buttons (like the status-icon tab on the phone mock-up)
-                val dockShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
-                Column(
-                    Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 12.dp)
-                        .clip(dockShape).background(Color.Black.copy(alpha = 0.38f)).border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
-                        .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                        .padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
-                    // the heart pops when a song is liked
-                    val heartPop = remember { androidx.compose.animation.core.Animatable(1f) }
-                    LaunchedEffect(liked) { if (liked) { heartPop.snapTo(0.55f); heartPop.animateTo(1f, androidx.compose.animation.core.spring(0.32f, 420f)) } else heartPop.snapTo(1f) }
-                    RoundBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", Modifier.likeButtonTarget(likeBurst, LikeSlot.PLAYER).graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }, tint = if (liked) Milo.amber else Color.White, flat = true, label = "Like") { likeBurst.likeFromButton(LikeSlot.PLAYER, liked) { vm.toggleFav(t.id) } }
-                    if (t.uri.startsWith("yt:")) {
-                        val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                        RoundBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, "Download", tint = if (savedNow) Milo.amber else Color.White, flat = true, label = if (savedNow) "Saved" else "Save") { vm.downloadTracks(listOf(t)) }
-                    }
-                    RoundBtn(MiloIcons.DockQueue, "Queue", flat = true, label = "Queue") { panel = Panel.Queue }
-                    RoundBtn(
-                        if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.DockSpeaker,
-                        "Output", tint = if (outDock.kind != "speaker") Milo.amber else Color.White, flat = true, label = "Output",
-                    ) { castOpen = true }
-                    RoundBtn(MiloIcons.DockSound, "Sound", flat = true, label = "Sound") { panel = Panel.Sound }
-                    RoundBtn(MiloIcons.DockTimer, "Sleep timer", tint = if (ui.sleepLeftMs > 0) Milo.amber else Color.White, flat = true, label = if (ui.sleepLeftMs > 0) fmtTime(ui.sleepLeftMs) else "Timer") { panel = Panel.Timer }
-                    if (!com.ubayanda.milonative.BuildConfig.LITE) RoundBtn(MiloIcons.GraphicEq, "Visualiser", flat = true, label = "Visual") { panel = Panel.Visual }
-                    MoreMenu(vm, t, ui)
-                }
-                // the heart that flies from the Like button, thumps and dives back in (Mochy's like burst)
-                LikeBurstOverlay(likeBurst)
 
                 androidx.compose.animation.AnimatedContent(
                     targetState = t, contentKey = { it.id },
@@ -457,7 +428,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     },
                     label = "titles",
                 ) { tt ->
-                    Column(Modifier.padding(start = Sp.gutter, end = 68.dp, bottom = Sp.x6).onGloballyPositioned { if (drag <= 0f) morphTitle = it.boundsInWindow() }) {
+                    Column(Modifier.padding(start = Sp.gutter, end = Sp.gutter, bottom = Sp.x6).onGloballyPositioned { if (drag <= 0f) morphTitle = it.boundsInWindow() }) {
                         Text(tt.title, color = Color.White, style = Ty.display, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(tt.artist, color = Color(0xFFEDE8DC), style = Ty.heading, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = Sp.x1))
                         Text(
@@ -478,14 +449,39 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             }
 
-            Spacer(Modifier.height(8.dp)) // black canvas shows between the art and the control card, like the web
+            // the button strip: like, save, queue, output, sound, timer, visual, more (was a dock on the right edge)
+            val stripShape = RoundedCornerShape(Rad.xl)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp).clip(stripShape)
+                    .background(Milo.amber.copy(alpha = 0.14f), stripShape).border(1.dp, glassStroke(1.2f), stripShape).padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+                // the heart pops when a song is liked
+                val heartPop = remember { androidx.compose.animation.core.Animatable(1f) }
+                LaunchedEffect(liked) { if (liked) { heartPop.snapTo(0.55f); heartPop.animateTo(1f, androidx.compose.animation.core.spring(0.32f, 420f)) } else heartPop.snapTo(1f) }
+                StripBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", if (liked) Milo.amber else Color.White, Modifier.weight(1f).likeButtonTarget(likeBurst, LikeSlot.PLAYER).graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }) { likeBurst.likeFromButton(LikeSlot.PLAYER, liked) { vm.toggleFav(t.id) } }
+                if (t.uri.startsWith("yt:")) {
+                    val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
+                    StripBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, if (savedNow) "Saved" else "Save", if (savedNow) Milo.amber else Color.White, Modifier.weight(1f)) { vm.downloadTracks(listOf(t)) }
+                }
+                StripBtn(MiloIcons.DockQueue, "Queue", Color.White, Modifier.weight(1f)) { panel = Panel.Queue }
+                StripBtn(
+                    if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.DockSpeaker,
+                    "Output", if (outDock.kind != "speaker") Milo.amber else Color.White, Modifier.weight(1f),
+                ) { castOpen = true }
+                StripBtn(MiloIcons.DockSound, "Sound", Color.White, Modifier.weight(1f)) { panel = Panel.Sound }
+                StripBtn(MiloIcons.DockTimer, "Sleep timer", if (ui.sleepLeftMs > 0) Milo.amber else Color.White, Modifier.weight(1f)) { panel = Panel.Timer }
+                if (!com.ubayanda.milonative.BuildConfig.LITE) StripBtn(MiloIcons.GraphicEq, "Visualiser", Color.White, Modifier.weight(1f)) { panel = Panel.Visual }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { MoreMenu(vm, t, ui) }
+            }
 
             // control card
             val glowBase = vm.tint.collectAsState().value.let { if (it == 0) Milo.amber else Color(0xFF000000.toInt() or it) }
             val glowA by androidx.compose.animation.animateColorAsState(glowBase, androidx.compose.animation.core.tween(700), label = "glowA")
             val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color.White, 0.22f), androidx.compose.animation.core.tween(700), label = "glowB")
             Column(
-                Modifier.fillMaxWidth()
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp)
                     .pointerInput("lyrics-swipe") {
                         // swipe up on the card: the lyrics page follows your finger, then springs open (or back) when you let go
                         detectVerticalDragGestures(
@@ -501,7 +497,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         drawRect(Brush.radialGradient(listOf(glowA.copy(alpha = 0.38f), Color.Transparent), Offset(size.width * 0.12f, size.height * 0.95f), size.width * 0.75f))
                         drawRect(Brush.radialGradient(listOf(glowB.copy(alpha = 0.28f), Color.Transparent), Offset(size.width * 0.95f, size.height * 0.05f), size.width * 0.55f))
                     }
-                    .navigationBarsPadding().padding(top = Sp.x3, bottom = Sp.x1),
+                    .padding(top = Sp.x3, bottom = Sp.x2),
             ) {
                 if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter), vm.tint.collectAsState().value) { vm.player.seekTo(it) }
@@ -529,7 +525,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         if (ui.repeat != 0) Milo.amber else Milo.text,
                     ) { vm.player.cycleRepeat() }
                 }
-                // lyrics handle: shows the line being sung; tap it or drag it up for the full lyrics page
+            // the bottom black area: the lyrics, live. Tap it or drag up for the full page.
+            Column(
+                Modifier.fillMaxWidth().heightIn(min = 120.dp).navigationBarsPadding().padding(top = 2.dp, bottom = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Column(
                     Modifier.fillMaxWidth().clickable { lyTo(0f) }.padding(top = 4.dp, bottom = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -558,13 +558,14 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             positionProvider = { uiNow.positionMs - tickerOff },
                             modifier = Modifier.padding(horizontal = Sp.x6),
                         )
-                    } else Text(
-                        if (lyricsLoading) "Lyrics" else preview, color = Milo.text.copy(alpha = 0.7f), style = Ty.body,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = Sp.x6),
-                    )
+                    } else LiveLyrics(lyrics, lyricsLoading, ui.positionMs)
                 }
             }
+            }
         }
+
+        // the heart that flies from the Like button, thumps and dives back in (Mochy's like burst)
+        LikeBurstOverlay(likeBurst)
 
         // the cover and the song info travel between the mini player and the open player with the sheet
         val lookNow by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
@@ -1664,4 +1665,42 @@ private fun LyricsFlightLayer(lp: () -> Float, cover: androidx.compose.ui.graphi
     val d = androidx.compose.ui.platform.LocalDensity.current
     val top = androidx.compose.foundation.layout.WindowInsets.statusBars.getTop(d)
     com.ubayanda.milonative.ui.player.LyricsCoverFlight(cover, morphFrom(art, growLate, d, top), lp(), growLate)
+}
+
+
+/** A button in the strip under the art: an icon in an even share of the row. */
+@Composable
+private fun StripBtn(icon: ImageVector, desc: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.height(48.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+    }
+}
+
+/** The line being sung and the two after it, shown under the controls. */
+@Composable
+private fun LiveLyrics(l: Lyrics?, loading: Boolean, positionMs: Long) {
+    val lines: List<String>
+    val key: Int
+    when {
+        loading -> { lines = listOf("Lyrics"); key = -2 }
+        l == null -> { lines = listOf("No lyrics for this song"); key = -1 }
+        l.synced.isNotEmpty() -> {
+            val i = l.synced.indexOfLast { it.timeMs <= positionMs + 250 }.coerceAtLeast(0)
+            lines = l.synced.drop(i).map { it.text }.filter { it.isNotBlank() }.take(3).ifEmpty { listOf("Lyrics") }
+            key = i
+        }
+        else -> { lines = l.plain.lineSequence().filter { it.isNotBlank() }.take(3).toList().ifEmpty { listOf("Lyrics") }; key = 0 }
+    }
+    androidx.compose.animation.Crossfade(targetState = key to lines, animationSpec = androidx.compose.animation.core.tween(260), label = "liveLyrics") { (_, ls) ->
+        Column(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalAlignment = Alignment.CenterHorizontally) {
+            ls.forEachIndexed { n, line ->
+                Text(
+                    line, color = Color.White.copy(alpha = if (n == 0) 1f else if (n == 1) 0.5f else 0.28f),
+                    fontSize = if (n == 0) 22.sp else 16.sp, fontWeight = if (n == 0) FontWeight.Bold else FontWeight.Medium,
+                    lineHeight = if (n == 0) 28.sp else 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = if (n == 0) 4.dp else 2.dp),
+                )
+            }
+        }
+    }
 }
