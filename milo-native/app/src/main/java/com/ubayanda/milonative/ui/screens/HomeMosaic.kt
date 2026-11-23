@@ -105,6 +105,16 @@ fun HomeMosaic(
         // now playing leads
         player()
         Column(Modifier.padding(horizontal = Sp.gutter), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            val recentAlbums = remember(albums.size) {
+                com.ubayanda.milonative.player.RecentStore.ids(ctx).mapNotNull { vm.trackById(it) }
+                    .filter { it.id > 0 }.mapNotNull { t -> albums.firstOrNull { it.id == t.albumId } }.distinctBy { it.id }.take(4)
+            }
+            if (recentAlbums.isNotEmpty()) {
+                Text("Jump back in", color = Milo.text, style = Ty.title)
+                TileGrid(vm, recentAlbums.map { a -> PinTile(a.title, MiloIcons.MusicNote, a.tracks.first()) { onOpenAlbum(a) } })
+            }
+        }
+        Column(Modifier.padding(horizontal = Sp.gutter), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             HeroStats(vm, onProfile)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BigTile("Liked songs", likedCount.toString(), MiloIcons.Favorite, Modifier.weight(1f), onLiked)
@@ -132,14 +142,6 @@ fun HomeMosaic(
                 Text("Edit", color = Milo.amber, style = Ty.label, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { editing = true }.padding(horizontal = 8.dp, vertical = 4.dp))
             }
             TileGrid(vm, pinned)
-            val recentAlbums = remember(albums.size) {
-                com.ubayanda.milonative.player.RecentStore.ids(ctx).mapNotNull { vm.trackById(it) }
-                    .filter { it.id > 0 }.mapNotNull { t -> albums.firstOrNull { it.id == t.albumId } }.distinctBy { it.id }.take(4)
-            }
-            if (recentAlbums.isNotEmpty()) {
-                Text("Jump back in", color = Milo.text, style = Ty.title, modifier = Modifier.padding(top = 4.dp))
-                TileGrid(vm, recentAlbums.map { a -> PinTile(a.title, MiloIcons.MusicNote, a.tracks.first()) { onOpenAlbum(a) } })
-            }
         }
     }
     if (editing) PinsDialog(playlists) { editing = false }
@@ -182,19 +184,13 @@ private fun HeroStats(vm: MainViewModel, onOpen: () -> Unit) {
 @Composable
 private fun BigTile(label: String, value: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(Rad.xl)
-    val acc = Milo.amber
-    // text on the accent: dark on a light accent, light on a dark one
-    val ink = if (acc.luminance() > 0.5f) Color(0xFF14110C) else Color.White
-    Column(
-        modifier.tactile(36.dp, clip = false, onClick = onClick).lift(shape, 14f).clip(shape)
-            .background(Brush.verticalGradient(listOf(acc, acc.copy(alpha = 0.82f))), shape).padding(18.dp),
-    ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(ink.copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = ink, modifier = Modifier.size(20.dp))
+    Column(modifier.tactile(36.dp, clip = false, onClick = onClick).lift(shape, 14f).glass(shape).padding(18.dp)) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = Milo.amber, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text(value, color = ink, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
-        Text(label, color = ink.copy(alpha = 0.75f), style = Ty.label)
+        Text(value, color = Milo.text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 30.sp)
+        Text(label, color = Milo.dim, style = Ty.label)
     }
 }
 

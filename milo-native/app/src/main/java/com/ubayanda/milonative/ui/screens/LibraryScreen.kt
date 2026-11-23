@@ -66,6 +66,8 @@ import com.ubayanda.milonative.ui.components.MiloChip
 import com.ubayanda.milonative.ui.components.NameDialog
 import com.ubayanda.milonative.ui.components.ScreenTitle
 import com.ubayanda.milonative.ui.components.TrackRow
+import com.ubayanda.milonative.ui.components.glass
+import com.ubayanda.milonative.ui.components.lift
 import com.ubayanda.milonative.ui.theme.Milo
 import com.ubayanda.milonative.util.NaturalOrder
 import com.ubayanda.milonative.util.plural
@@ -116,12 +118,12 @@ private fun LikedBanner(count: Int, onOpen: () -> Unit, onPlay: () -> Unit, onSh
     val shape = RoundedCornerShape(24.dp)
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp).clip(shape)
-            .background(Brush.horizontalGradient(listOf(Color(0xFF6B4300).copy(alpha = 0.55f), Milo.card)))
+            .lift(shape, 10f).glass(shape)
             .clickable(onClick = onOpen).padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Brush.verticalGradient(listOf(Color(0xFFE39000), Color(0xFF6B4300)))), contentAlignment = Alignment.Center) {
-            Icon(MiloIcons.Favorite, null, tint = Color.White, modifier = Modifier.size(26.dp))
+        Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(Milo.text.copy(alpha = 0.08f)), contentAlignment = Alignment.Center) {
+            Icon(MiloIcons.Favorite, null, tint = Milo.amber, modifier = Modifier.size(26.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
@@ -177,11 +179,9 @@ private fun ListRow(vm: MainViewModel, lead: Track, title: String, sub: String, 
 private fun IconRow(icon: ImageVector, hot: Boolean, title: String, sub: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
-            Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(
-                if (hot) Brush.verticalGradient(listOf(Color(0xFFE39000), Color(0xFF6B4300))) else Brush.verticalGradient(listOf(Milo.card2, Milo.card))
-            ),
+            Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Milo.text.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, tint = if (hot) Color.White else Milo.text, modifier = Modifier.size(24.dp)) }
+        ) { Icon(icon, null, tint = if (hot) Milo.amber else Milo.text, modifier = Modifier.size(24.dp)) }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, color = Milo.text, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -707,3 +707,8 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Layout follows a mockup of stacked cards: the art with the title on top; under it a horizontal strip of buttons (Like, Save, Queue, Output, Sound, Timer, Visual, More) that replaces the slim dock on the right edge; then the controls card (scrubber and transport, now a floating rounded card); and at the bottom, on black, the lyrics.
 - Bottom lyrics: the line being sung in large type with the next two lines fading below it (plain lyrics show their first lines). Tap it or drag up for the full lyrics page; the Lyrics ticker option still replaces it when on.
 - The like heart still flies to the Like button (its overlay moved to the screen root so the strip doesn't clip it).
+
+## Round 164 — Fixes from feedback on R162/R163
+- Now playing: the lyrics area is now a solid black panel (rounded top, running to the bottom edge) under the controls card, instead of sitting over the frosted backdrop.
+- Library: the Liked songs banner and the Liked/Downloads icon tiles no longer use the fixed orange-brown gradient. They are glass on the page background with the accent only on the icon, so they follow the app's look and accent.
+- Home: Liked/Saved tiles are glass again (accent icon, not accent fill); "Recently played" is replaced by "Jump back in" (recent albums) directly under Now playing.

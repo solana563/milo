@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +34,9 @@ object AppBackground {
 
     var mode by mutableIntStateOf(BLACK)
         private set
+    /** Home's Liked and Saved tiles show a blurred cover (default on). */
+    var tileArt by mutableStateOf(true)
+        private set
     /** Changes whenever the custom picture is replaced, so the screen reloads it. */
     var rev by mutableIntStateOf(0)
         private set
@@ -46,7 +50,10 @@ object AppBackground {
         if (loaded) return
         loaded = true
         mode = p(c).getInt("mode", BLACK)
+        tileArt = p(c).getBoolean("tileArt", true)
     }
+
+    fun setTileArt(c: Context, on: Boolean) { tileArt = on; p(c).edit().putBoolean("tileArt", on).apply() }
 
     fun set(c: Context, m: Int) { mode = m; p(c).edit().putInt("mode", m).apply() }
 

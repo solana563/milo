@@ -527,7 +527,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             // the bottom black area: the lyrics, live. Tap it or drag up for the full page.
             Column(
-                Modifier.fillMaxWidth().heightIn(min = 120.dp).navigationBarsPadding().padding(top = 2.dp, bottom = 6.dp),
+                Modifier.fillMaxWidth().heightIn(min = 120.dp)
+                    .background(Color.Black, RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl))
+                    .navigationBarsPadding().padding(top = 8.dp, bottom = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(

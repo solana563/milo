@@ -129,7 +129,6 @@ fun HomeScreen(
                         "No music found",
                         "Put songs on your phone, SD card or a USB drive and they will show up here on their own.",
                     )
-                    RecentlyPlayed(vm, ui, tracks.size)
                 },
             )
         }
@@ -341,31 +340,5 @@ private fun DownloadedCard(vm: MainViewModel, ui: PlayerUi, card: androidx.compo
             Pill("See all", null, false, compact = true) { onAll() }
         }
         list.take(8).forEach { t -> TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { vm.rememberRemote(list); vm.player.playQueue(list, list.indexOf(t)) } }
-    }
-}
-
-/** The songs played last, right under the player. */
-@Composable
-private fun RecentlyPlayed(vm: MainViewModel, ui: PlayerUi, trackCount: Int) {
-    val rctx = androidx.compose.ui.platform.LocalContext.current
-    val played = androidx.compose.runtime.remember(ui.currentId, trackCount) {
-        com.ubayanda.milonative.player.RecentStore.ids(rctx).mapNotNull { vm.trackById(it) }.take(20)
-    }
-    if (played.isEmpty()) return
-    Column(Modifier.fillMaxWidth()) {
-        Text("Recently played", color = Milo.text, style = com.ubayanda.milonative.ui.theme.Ty.title, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
-        Spacer(Modifier.height(8.dp))
-        LazyRow(state = vm.mem.list("home-played"), contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(played, key = { "rp" + it.id }) { t ->
-                Column(Modifier.width(120.dp).tactile(14.dp) {
-                    if (played.any { it.id < 0 }) vm.playRemote(played, played.indexOf(t)) else vm.player.playQueue(played, played.indexOf(t))
-                }) {
-                    Cover(vm, t, 120.dp, 14.dp, px = 360)
-                    Spacer(Modifier.height(6.dp))
-                    Text(t.title, color = if (t.id == ui.currentId) Milo.amber else Milo.text, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(t.artist, color = Milo.dim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-        }
     }
 }

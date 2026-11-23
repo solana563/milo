@@ -279,7 +279,7 @@ object OfflineStore {
     /** The saved songs as normal tracks, newest first. */
     fun tracks(): List<Track> = _items.value.sortedByDescending { it.at }.map { asTrack(it) }
 
-    private fun asTrack(it: Item) = Track(
+    fun asTrack(it: Item) = Track(
         id = YtMusic.trackId(it.id), uri = "yt:" + it.id, title = it.title, artist = it.artist, album = it.album.ifEmpty { "Downloaded" },
         albumId = 4_000_000_000_000L + (it.album.hashCode().toLong() and 0x7fffffffL), durationMs = it.durationMs, trackNo = 0, year = 0, addedSec = it.at / 1000, artUrl = it.art,
     )

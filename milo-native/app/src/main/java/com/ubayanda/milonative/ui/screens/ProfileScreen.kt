@@ -784,6 +784,10 @@ private fun BackgroundCard() {
                 ) { Text(label, color = Milo.text, fontSize = 15.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium) }
             }
         }
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Blurred cover on Home's Liked and Saved tiles", color = Milo.text, style = Ty.body, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(checked = B.tileArt, onCheckedChange = { B.setTileArt(ctx, it) })
+        }
         Row(Modifier.padding(top = 12.dp)) { Pill(if (B.hasCustom(ctx)) "Change picture" else "Choose a picture", null, false) { pick.launch("image/*") } }
         if (msg.isNotEmpty()) Text(msg, color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 8.dp))
     }
