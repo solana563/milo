@@ -729,3 +729,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 168 — Lyrics page is the Poster screen
 - The lyrics page (swipe up from Now playing) now follows Mochy Music's Poster layout exactly: the cover as a great circle from the top-left, the line being sung set huge, artist and title small under it, then the seek bar and the controls. The added button row is gone. The top bar keeps translate, share and the options menu; translation and readings show under the sung line. Player skins are unchanged (the R168 default-skin switch was undone). Poster's seek bar and controls are shared from PlayerSkins.kt.
+
+## Round 169 — Poster lyrics page fix, opaque Now playing backdrop
+- The Poster circle on the lyrics page was being hidden for the cover fly-in, so the page looked empty; the circle now always shows and the fly-in is off. Now playing's see-through aura/art backdrop is replaced by Poster's opaque song-colour-to-black gradient.
+
+## Round 170 — No cover fly-in
+- Removed the cover/title/button morph from the mini player into Now playing and the cover fly-in to the lyrics page. Both screens now just appear with the sheet slide, fully opaque from the first frame (the player content no longer fades in behind the morph).

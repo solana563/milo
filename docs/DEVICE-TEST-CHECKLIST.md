@@ -276,3 +276,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - CI: Rounds 159–165 compile green (2026-11-23). R166 not built yet. Device checks above remain open unless ticked.
 - [ ] R167: lyrics page poster look + buttons; Now playing without cards, taller art, shorter lyrics area; opening Queue/Sound/Timer from the lyrics page
 - [ ] R168: lyrics page matches Poster (huge sung line, seek, controls, no button row); translate/readings show under the line; skins unchanged
+- [ ] R169: lyrics page shows the Poster circle; Now playing backdrop is opaque Poster gradient (no see-through)
+- [ ] R170: opening Now playing from the mini player and swiping up to lyrics show no cover fly-in; screens are opaque while opening

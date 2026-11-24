@@ -265,17 +265,10 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
     val screenW = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
     Box(Modifier.fillMaxSize().sheetReveal({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, screenW, screenH, 0f).background(Milo.bg)) {
-        // the cover, softened, fills the whole screen behind everything so the glass card has something to frost
-        Box(Modifier.fillMaxSize()) {
-            val warpOn = remember(t.id) { npCtx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE).getBoolean("pbg_warp", false) }
-            if (warpOn && soft != null) com.ubayanda.milonative.ui.player.LiquidWarpBackdrop(soft, ui.isPlaying, Modifier.fillMaxSize())
-            else {
-            com.ubayanda.milonative.ui.components.AuraBackdrop(vm.tint.collectAsState().value, ui.isPlaying, Modifier.fillMaxSize())
-            soft?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.3f) }
-            }
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
-        }
-        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim * (1f - 0.9f * com.ubayanda.milonative.ui.player.smooth(1f - com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag))) }.pointerInput("lyrics-swipe-all") {
+        // Poster backdrop (Mochy Music): the song's colour fading into black, fully opaque
+        val npAccent = vm.tint.collectAsState().value.let { if (it == 0) Milo.amber else Color(0xFF000000.toInt() or it) }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(npAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))))
+        Column(Modifier.fillMaxSize().graphicsLayer { alpha = behindDim }.pointerInput("lyrics-swipe-all") {
             // swipe up anywhere on the player (title, gaps, buttons area) that a child did not already use
             var up = false
             var decided = false
@@ -560,15 +553,6 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
         // the heart that flies from the Like button, thumps and dives back in (Mochy's like burst)
         LikeBurstOverlay(likeBurst)
-
-        // the cover and the song info travel between the mini player and the open player with the sheet
-        val lookNow by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
-        SheetMorphLayer({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, cover?.asImageBitmap(), t.title, t.artist, morphArt, morphTitle, lookNow.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE, ui.isPlaying, morphPlay, morphNext)
-        // the cover on its way into the lyrics header, over the page
-        if (lyOpen) {
-            val lookFly by com.ubayanda.milonative.ui.player.rememberCoverLook().collectAsState()
-            LyricsFlightLayer({ 1f - (lyY / screenH).coerceIn(0f, 1f) }, cover?.asImageBitmap(), morphArt, lookFly.style != com.ubayanda.milonative.ui.player.PlayerCoverStyle.EDGE_TO_EDGE)
-        }
 
         when (panel) {
             Panel.Queue -> Sheet(0.72f, soft, { panel = Panel.None }) { QueueContent(vm, ui) }
@@ -1119,8 +1103,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
         val posterC = posterW * 1.15f
         com.ubayanda.milonative.ui.components.Cover(vm, t, posterC, posterC / 2, px = 700, modifier = Modifier
             .offset(x = -(posterC * 0.28f), y = -(posterC * 0.22f)).clip(CircleShape)
-            .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.lyricsArt = it.boundsInWindow().translate(0f, -pageOffset()) }
-            .graphicsLayer { alpha = if (com.ubayanda.milonative.ui.player.MorphTargets.fullArt != null) 0f else 1f })
+            )
         Box(Modifier.fillMaxWidth().height(posterW * 0.3f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
