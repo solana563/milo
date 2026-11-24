@@ -432,7 +432,7 @@ private fun mmss(ms: Long): String {
 
 /** A thin seek bar: drag or tap to move the playhead. */
 @Composable
-private fun SkinSeek(ui: PlayerUi, accent: Color, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
+internal fun SkinSeek(ui: PlayerUi, accent: Color, onSeek: (Long) -> Unit, modifier: Modifier = Modifier) {
     var dragging by remember { mutableStateOf(false) }
     var frac by remember { mutableFloatStateOf(0f) }
     val live = if (ui.durationMs > 0) (ui.positionMs.toFloat() / ui.durationMs).coerceIn(0f, 1f) else 0f
@@ -465,7 +465,7 @@ private fun SkinSeek(ui: PlayerUi, accent: Color, onSeek: (Long) -> Unit, modifi
 }
 
 @Composable
-private fun SkinControls(vm: MainViewModel, ui: PlayerUi, modifier: Modifier = Modifier, big: Dp = 64.dp) {
+internal fun SkinControls(vm: MainViewModel, ui: PlayerUi, modifier: Modifier = Modifier, big: Dp = 64.dp) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.player.previous() }, contentAlignment = Alignment.Center) {
             Icon(MiloIcons.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(28.dp))

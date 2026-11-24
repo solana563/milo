@@ -1116,11 +1116,12 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val posterAccent = if (tintNow == 0) Milo.amber else Color(0xFF000000.toInt() or tintNow)
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(posterAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))).clickable(enabled = false) {}) {
         // Poster: the cover as a great circle swung in from the top-left
-        com.ubayanda.milonative.ui.components.Cover(vm, t, posterW * 0.78f, posterW * 0.39f, px = 700, modifier = Modifier
-            .offset(x = -(posterW * 0.24f), y = -(posterW * 0.3f)).clip(CircleShape)
+        val posterC = posterW * 1.15f
+        com.ubayanda.milonative.ui.components.Cover(vm, t, posterC, posterC / 2, px = 700, modifier = Modifier
+            .offset(x = -(posterC * 0.28f), y = -(posterC * 0.22f)).clip(CircleShape)
             .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.lyricsArt = it.boundsInWindow().translate(0f, -pageOffset()) }
             .graphicsLayer { alpha = if (com.ubayanda.milonative.ui.player.MorphTargets.fullArt != null) 0f else 1f })
-        Box(Modifier.fillMaxWidth().height(posterW * 0.5f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent))))
+        Box(Modifier.fillMaxWidth().height(posterW * 0.3f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
@@ -1198,184 +1199,34 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         if (lyOff != 0L) DropdownMenuItem(text = { Text("Reset timing (" + (if (lyOff > 0) "+" else "") + (lyOff / 1000.0) + " s)") }, onClick = { lyOff = 0; fx.edit().remove("lyoff_" + t.id).apply(); moreMenu = false })
                     }
                 }
-                Spacer(Modifier.width(6.dp))
-                Box(
-                    Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
-                    contentAlignment = Alignment.Center,
-                ) { Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
-            }
-            Spacer(Modifier.height(10.dp))
-            Spacer(Modifier.height(posterW * 0.2f))
-            Column(Modifier.fillMaxWidth()) {
-                Text(t.title, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    t.artist + if (lyrics != null && lyrics.synced.isNotEmpty()) " · Synced · online" else if (lyrics != null) " · online" else "",
-                    color = Color(0xFFD6D0C4), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
             }
             if (lyrics != null && lyrics.note.isNotEmpty()) Text(lyrics.note, color = Milo.amber, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(top = 8.dp))
-            Spacer(Modifier.height(8.dp))
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when {
-                    loading || rescanning -> com.ubayanda.milonative.ui.components.SkeletonLines()
-                    lyrics == null -> Text("No lyrics found for this song, or you're offline.", color = Milo.dim, fontSize = 18.sp, modifier = Modifier.padding(vertical = 24.dp))
-                    lyrics.synced.isNotEmpty() -> {
-                        val state = rememberLazyListState()
-                        val btNow by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
-                        val btDelay = if (btNow.bt) com.ubayanda.milonative.player.BtOutput.lyricDelay(ctx) else 0
-                        val pos = ui.positionMs - btDelay - lyOff
-                        val idx = lyrics.synced.indexOfLast { it.timeMs <= pos + 250 }
-                        // an instrumental opening adds one list row (the dots) before the first line
-                        val lead = if ((lyrics.synced.firstOrNull()?.timeMs ?: 0L) >= com.ubayanda.milonative.ui.components.MinInterludeMs) 1 else 0
-                        // the line that was being sung until a moment ago, so rows below can trail the scroll by exactly the step it made
-                        var freshPage by remember(lyrics) { mutableStateOf(true) }
-                        LaunchedEffect(lyrics) { kotlinx.coroutines.delay(900); freshPage = false }
-                        var prevIdx by remember(lyrics) { androidx.compose.runtime.mutableIntStateOf(-1) }
-                        LaunchedEffect(idx) { kotlinx.coroutines.delay(60); prevIdx = idx }
-                        LaunchedEffect(idx, bouncy) {
-                            if (idx < 0) return@LaunchedEffect
-                            val target = (idx - 2 + lead).coerceAtLeast(0)
-                            if (!bouncy) { state.animateScrollToItem(target); return@LaunchedEffect }
-                            val info = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == target }
-                            // a spring, so the page glides to the next line and settles with a little give; far jumps (a seek) just go there
-                            if (info == null) state.scrollToItem(target)
-                            else state.animateScrollBy((info.offset - state.layoutInfo.beforeContentPadding).toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 170f))
-                        }
-                        val glowEntries = remember(lyrics) {
-                            lyrics.synced.mapIndexed { n, l ->
-                                val nextLine = lyrics.synced.getOrNull(n + 1)?.timeMs ?: (l.timeMs + 4000)
-                                com.ubayanda.milonative.ui.lyrics.LyricsEntry(
-                                    time = l.timeMs, text = l.text,
-                                    words = l.words.takeIf { it.isNotEmpty() }?.mapIndexed { k, w ->
-                                        val end = l.words.getOrNull(k + 1)?.timeMs ?: nextLine
-                                        com.ubayanda.milonative.ui.lyrics.WordTimestamp(w.text, w.timeMs / 1000.0, end / 1000.0)
-                                    },
-                                )
-                            }
-                        }
-                        val glowPos by androidx.compose.runtime.rememberUpdatedState(pos)
-                        LazyColumn(state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp)) {
-                            // an instrumental opening: dots count it down until the first line
-                            lyrics.synced.firstOrNull()?.let { f ->
-                                if (f.timeMs >= com.ubayanda.milonative.ui.components.MinInterludeMs)
-                                    item(key = "interlude-open", contentType = "dots") { com.ubayanda.milonative.ui.components.InterludeDots(0L, f.timeMs, pos) }
-                            }
-                            itemsIndexed(lyrics.synced, contentType = { _, _ -> "line" }) { i, line ->
-                                val on = i == idx
-                                // follow-through: when the page steps one line, rows below the sung line hold back by that step and
-                                // catch up, the further down the later (after Mochy's LyricsStagger)
-                                val lag = remember { androidx.compose.animation.core.Animatable(0f) }
-                                LaunchedEffect(idx) {
-                                    val d = i - idx
-                                    if (bouncy && d in 1..9 && idx - prevIdx == 1) {
-                                        val step = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == prevIdx + lead }?.size?.toFloat() ?: 0f
-                                        if (step > 0f) {
-                                            lag.snapTo(step)
-                                            val omega = 1000f / (55f * d)
-                                            lag.animateTo(0f, androidx.compose.animation.core.spring(1f, omega * omega))
-                                        }
-                                    } else if (lag.value != 0f) lag.snapTo(0f)
-                                }
-                                val sc by androidx.compose.animation.core.animateFloatAsState(
-                                    if (!bouncy || on) 1f else 0.9f,
-                                    androidx.compose.animation.core.spring(dampingRatio = 0.38f, stiffness = 260f), label = "lyScale",
-                                )
-                                val kick by androidx.compose.animation.core.animateFloatAsState(
-                                    if (bouncy && !on) 8f else 0f,
-                                    androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 300f), label = "lyKick",
-                                )
-                                Column(
-                                    Modifier.fillMaxWidth().cascadeIn(i - (idx - 2).coerceAtLeast(0), freshPage).graphicsLayer {
-                                        if (!glow) { scaleX = sc; scaleY = sc }; translationY = kick * dens + lag.value
-                                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-                                    }.combinedClickable(
-                                        onClick = { vm.player.seekTo(line.timeMs) },
-                                        onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
-                                    ).padding(vertical = 12.dp),
-                                ) {
-                                    if (glow) {
-                                        val entry = glowEntries[i]
-                                        val glowState = if (on) com.ubayanda.milonative.ui.lyrics.LyricsLineState.ACTIVE else if (i > idx) com.ubayanda.milonative.ui.lyrics.LyricsLineState.UPCOMING else com.ubayanda.milonative.ui.lyrics.LyricsLineState.PAST
-                                        com.ubayanda.milonative.ui.lyrics.LyricsGlowLine(
-                                            entry = entry,
-                                            state = glowState,
-                                            blurStage = if (!glowBlur || on) 0 else if (kotlin.math.abs(i - idx) <= 1) 1 else 2,
-                                            positionProvider = { glowPos },
-                                            accentColor = Milo.amber,
-                                            onClick = { vm.player.seekTo(line.timeMs) },
-                                            onLongClick = { card(listOf(line.text, lyrics.synced.getOrNull(i + 1)?.text.orEmpty())) },
-                                            subLine = rm?.getOrNull(i),
-                                            translation = tr?.getOrNull(i)?.takeIf { it.isNotBlank() && !it.equals(line.text, ignoreCase = true) },
-                                            translationLoading = lang.isNotEmpty() && tr == null,
-                                        )
-                                    } else {
-                                    val words = if (on) line.words.ifEmpty { if (wordMode) estimateWords(line, lyrics.synced.getOrNull(i + 1)?.timeMs) else emptyList() } else emptyList()
-                                    if (on && words.isNotEmpty()) {
-                                        // word-by-word: each word fills in as it is sung (timed words when the lyrics have them, estimated from the line otherwise)
-                                        val lineEnd = lyrics.synced.getOrNull(i + 1)?.timeMs ?: (line.timeMs + 4000)
-                                        Text(
-                                            androidx.compose.ui.text.buildAnnotatedString {
-                                                words.forEachIndexed { wi, w ->
-                                                    val end = words.getOrNull(wi + 1)?.timeMs ?: minOf(lineEnd, w.timeMs + 900)
-                                                    val p = ((pos - w.timeMs).toFloat() / (end - w.timeMs).coerceAtLeast(1)).coerceIn(0f, 1f)
-                                                    withStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = 0.42f + 0.58f * p))) { append(w.text) }
-                                                    if (wi < words.lastIndex) append(" ")
-                                                }
-                                            },
-                                            fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
-                                        )
-                                    } else Text(
-                                        line.text.ifEmpty { "•   •   •" },
-                                        color = Color.White.copy(alpha = if (on) 1f else 0.38f),
-                                        fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp,
-                                    )
-                                    rm?.getOrNull(i)?.let { rd ->
-                                        Text(rd, color = Color.White.copy(alpha = if (on) 0.78f else 0.34f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 2.dp))
-                                    }
-                                    val tl = tr?.getOrNull(i).orEmpty()
-                                    if (tl.isNotBlank() && !tl.equals(line.text, ignoreCase = true)) {
-                                        Text(tl, color = Milo.amber.copy(alpha = if (on) 1f else 0.5f), fontSize = 18.sp, lineHeight = 24.sp, modifier = Modifier.padding(top = 4.dp))
-                                    }
-                                    }
-                                    // a long gap after this line (singing time guessed from its length) is an interlude: dots count it down
-                                    val nextT = lyrics.synced.getOrNull(i + 1)?.timeMs
-                                    if (nextT != null && line.text.isNotBlank()) {
-                                        val sung = line.timeMs + (line.text.length * 75L).coerceIn(1800L, 6000L)
-                                        if (nextT - sung >= com.ubayanda.milonative.ui.components.MinInterludeMs)
-                                            com.ubayanda.milonative.ui.components.InterludeDots(sung, nextT, pos)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else -> Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 20.dp)) {
-                        val ls = lyrics.plain.lines()
-                        ls.forEachIndexed { i, l ->
-                            Text(l, color = Color.White, fontSize = 22.sp, lineHeight = 32.sp,
-                                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = { card(ls.drop(i).take(3)) }))
-                            rm?.getOrNull(i)?.let { rd -> Text(rd, color = Color.White.copy(alpha = 0.78f), fontSize = 16.sp, lineHeight = 22.sp) }
-                            val tl = tr?.getOrNull(i).orEmpty()
-                            if (tl.isNotBlank() && !tl.equals(l, ignoreCase = true)) Text(tl, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp)
-                        }
-                    }
+            Spacer(Modifier.weight(1f))
+            // Poster: the line being sung, performed huge; artist and title small beneath; seek bar and controls
+            val posterLines = lyrics?.synced.orEmpty()
+            val posterIdx = posterLines.indexOfLast { it.timeMs <= ui.positionMs - lyOff + 250 }
+            val posterWords = when {
+                loading || rescanning -> "Looking for lyrics\u2026"
+                posterLines.isNotEmpty() && posterIdx >= 0 -> posterLines[posterIdx].text
+                else -> t.title
+            }
+            androidx.compose.animation.Crossfade(targetState = posterWords, animationSpec = androidx.compose.animation.core.tween(240), label = "poster-words") { w ->
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        w.ifBlank { "\u266A" }, color = Color.White, fontSize = (if (w.length > 40) 30f else 40f).sp, lineHeight = (if (w.length > 40) 34f else 44f).sp,
+                        fontWeight = FontWeight.Black, maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
+                    )
+                    val sub = if (posterIdx >= 0) tr?.getOrNull(posterIdx)?.takeIf { it.isNotBlank() && !it.equals(w, ignoreCase = true) } ?: rm?.getOrNull(posterIdx) else null
+                    if (sub != null) Text(sub, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp, modifier = Modifier.padding(top = 6.dp))
                 }
             }
-            val likedNow = vm.favs.collectAsState().value.contains(t.id)
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                StripBtn(if (likedNow) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", likedNow, Modifier.weight(1f)) { vm.toggleFav(t.id) }
-                if (t.uri.startsWith("yt:")) {
-                    val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                    StripBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, if (savedNow) "Saved" else "Save", savedNow, Modifier.weight(1f)) { vm.downloadTracks(listOf(t)) }
-                }
-                StripBtn(MiloIcons.DockQueue, "Queue", false, Modifier.weight(1f)) { onPanel(Panel.Queue) }
-                StripBtn(MiloIcons.DockSound, "Sound", false, Modifier.weight(1f)) { onPanel(Panel.Sound) }
-                StripBtn(MiloIcons.DockTimer, "Sleep timer", ui.sleepLeftMs > 0, Modifier.weight(1f)) { onPanel(Panel.Timer) }
-            }
-            Scrubber(ui, Modifier, vm.tint.collectAsState().value) { vm.player.seekTo(it) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(fmtTime(ui.positionMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
-                Text(fmtTime(ui.durationMs), color = Milo.text.copy(alpha = 0.85f), fontSize = 14.sp)
-            }
+            Spacer(Modifier.height(14.dp))
+            Text(t.artist, color = Color.White.copy(alpha = 0.85f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth())
+            Text(t.title, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            com.ubayanda.milonative.ui.player.SkinSeek(ui, posterAccent, { vm.player.seekTo(it) })
+            Spacer(Modifier.height(4.dp))
+            com.ubayanda.milonative.ui.player.SkinControls(vm, ui)
         }
     }
 }

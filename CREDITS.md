@@ -726,3 +726,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 167 — Poster lyrics page, card-free Now playing
 - Lyrics page (swipe up from Now playing) is now Poster style: accent-to-black backdrop, the cover as a great circle from the top-left (idea from Mochy Music's Poster skin), big title and artist, and a button row (Like, Save, Queue, Sound, Sleep timer) above the scrubber. Queue, Sound and Timer close the lyrics page and open their sheet.
 - Now playing: the cards behind the button strip and the controls are gone (buttons keep their round backdrops), both sit lower, the black lyrics area is shorter and the song art taller; the live lyric under the controls is poster-style (big, left-aligned, two lines).
+
+## Round 168 — Lyrics page is the Poster screen
+- The lyrics page (swipe up from Now playing) now follows Mochy Music's Poster layout exactly: the cover as a great circle from the top-left, the line being sung set huge, artist and title small under it, then the seek bar and the controls. The added button row is gone. The top bar keeps translate, share and the options menu; translation and readings show under the sung line. Player skins are unchanged (the R168 default-skin switch was undone). Poster's seek bar and controls are shared from PlayerSkins.kt.
