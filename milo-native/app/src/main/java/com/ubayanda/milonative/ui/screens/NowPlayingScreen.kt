@@ -455,9 +455,8 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             }
 
             // the button strip: like, save, queue, sound, timer, visual, more. It uses the same frosted look as the controls card, so it follows the app's background.
-            val stripShape = RoundedCornerShape(Rad.xl)
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 8.dp).lift(stripShape, 14f).then(npGlass).clip(stripShape).padding(horizontal = 6.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 2.dp).padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // the heart pops when a song is liked
@@ -490,13 +489,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             onDragCancel = { lyTo(if (lyY < screenH * 0.88f) 0f else screenH) },
                         )
                     }
-                    .lift(cardShape, 18f).then(npGlass).clip(cardShape)
-                    .drawBehind {
-                        // soft blurred colour blobs from the cover bleed through the glass, like the glow cards in the reference
-                        drawRect(Brush.radialGradient(listOf(glowA.copy(alpha = 0.38f), Color.Transparent), Offset(size.width * 0.12f, size.height * 0.95f), size.width * 0.75f))
-                        drawRect(Brush.radialGradient(listOf(glowB.copy(alpha = 0.28f), Color.Transparent), Offset(size.width * 0.95f, size.height * 0.05f), size.width * 0.55f))
-                    }
-                    .padding(top = Sp.x3, bottom = Sp.x2),
+                    .padding(top = Sp.x2, bottom = 0.dp),
             ) {
                 if (Y2K.on) LcdStrip(t.title, t.artist, "${fmtTime(ui.positionMs)} / ${fmtTime(ui.durationMs)}", ui.quality, ui.isPlaying, Modifier.padding(horizontal = Sp.gutter).padding(bottom = Sp.x3))
                 Scrubber(ui, Modifier.padding(horizontal = Sp.gutter), vm.tint.collectAsState().value) { vm.player.seekTo(it) }
@@ -526,17 +519,17 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             // the bottom black area: the lyrics, live. Tap it or drag up for the full page.
             Column(
-                Modifier.fillMaxWidth().heightIn(min = 120.dp)
+                Modifier.fillMaxWidth().heightIn(min = 88.dp)
                     .background(Color.Black, RoundedCornerShape(topStart = Rad.xl, topEnd = Rad.xl))
-                    .navigationBarsPadding().padding(top = 8.dp, bottom = 6.dp),
+                    .navigationBarsPadding().padding(top = 4.dp, bottom = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
                     Modifier.fillMaxWidth().clickable { lyTo(0f) }.padding(top = 4.dp, bottom = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(Modifier.width(80.dp).height(5.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
-                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.width(56.dp).height(4.dp).clip(CircleShape).background(Milo.text.copy(alpha = 0.3f)))
+                    Spacer(Modifier.height(4.dp))
                     val tickerFx = remember(t.id) { npCtx.getSharedPreferences("milo_fx", android.content.Context.MODE_PRIVATE) }
                     val tickerOn = tickerFx.getBoolean("lyticker", false) && (lyrics?.synced?.isNotEmpty() == true || lyricsLoading)
                     if (tickerOn) {
@@ -595,7 +588,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     shape = RoundedCornerShape(topStart = androidx.compose.foundation.shape.CornerSize(r), topEnd = androidx.compose.foundation.shape.CornerSize(r), bottomEnd = androidx.compose.foundation.shape.CornerSize(0f), bottomStart = androidx.compose.foundation.shape.CornerSize(0f))
                     clip = true
                 }) {
-                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading, { lyY }) { lyTo(screenH) }
+                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading, { lyY }, { p -> lyTo(screenH); panel = p }) { lyTo(screenH) }
                     // grab this and pull down to close; it springs back if you let go early
                     Box(
                         Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp).width(140.dp).height(36.dp).pointerInput("lyrics-close") {
@@ -1081,7 +1074,7 @@ private fun Label(text: String) {
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics0: Lyrics?, loading: Boolean, pageOffset: () -> Float = { 0f }, onBack: () -> Unit) {
+private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?, lyrics0: Lyrics?, loading: Boolean, pageOffset: () -> Float = { 0f }, onPanel: (Panel) -> Unit = {}, onBack: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val fx = remember { ctx.getSharedPreferences("milo_fx", 0) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -1119,7 +1112,15 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val coverBmp by com.ubayanda.milonative.ui.components.rememberCover(vm, t, 400)
     val tintNow = vm.tint.collectAsState().value
     fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
-    Box(Modifier.fillMaxSize().artBackdrop(soft, 0.62f).clickable(enabled = false) {}) {
+    val posterW = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+    val posterAccent = if (tintNow == 0) Milo.amber else Color(0xFF000000.toInt() or tintNow)
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(posterAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))).clickable(enabled = false) {}) {
+        // Poster: the cover as a great circle swung in from the top-left
+        com.ubayanda.milonative.ui.components.Cover(vm, t, posterW * 0.78f, posterW * 0.39f, px = 700, modifier = Modifier
+            .offset(x = -(posterW * 0.24f), y = -(posterW * 0.3f)).clip(CircleShape)
+            .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.lyricsArt = it.boundsInWindow().translate(0f, -pageOffset()) }
+            .graphicsLayer { alpha = if (com.ubayanda.milonative.ui.player.MorphTargets.fullArt != null) 0f else 1f })
+        Box(Modifier.fillMaxWidth().height(posterW * 0.5f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
@@ -1204,19 +1205,13 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 ) { Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp)) }
             }
             Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                com.ubayanda.milonative.ui.components.Cover(vm, t, 86.dp, 22.dp, px = 300, modifier = Modifier
-                    .onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.lyricsArt = it.boundsInWindow().translate(0f, -pageOffset()) }
-                    // the cover flies in from the player (LyricsCoverFlight draws it over the page), so this one stays unseen once that has somewhere to start
-                    .graphicsLayer { alpha = if (com.ubayanda.milonative.ui.player.MorphTargets.fullArt != null) 0f else 1f })
-                Spacer(Modifier.width(18.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(t.title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        t.artist + if (lyrics != null && lyrics.synced.isNotEmpty()) " · Synced · online" else if (lyrics != null) " · online" else "",
-                        color = Color(0xFFD6D0C4), fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            Spacer(Modifier.height(posterW * 0.2f))
+            Column(Modifier.fillMaxWidth()) {
+                Text(t.title, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    t.artist + if (lyrics != null && lyrics.synced.isNotEmpty()) " · Synced · online" else if (lyrics != null) " · online" else "",
+                    color = Color(0xFFD6D0C4), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
             }
             if (lyrics != null && lyrics.note.isNotEmpty()) Text(lyrics.note, color = Milo.amber, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(8.dp))
@@ -1364,6 +1359,17 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         }
                     }
                 }
+            }
+            val likedNow = vm.favs.collectAsState().value.contains(t.id)
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                StripBtn(if (likedNow) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", likedNow, Modifier.weight(1f)) { vm.toggleFav(t.id) }
+                if (t.uri.startsWith("yt:")) {
+                    val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
+                    StripBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, if (savedNow) "Saved" else "Save", savedNow, Modifier.weight(1f)) { vm.downloadTracks(listOf(t)) }
+                }
+                StripBtn(MiloIcons.DockQueue, "Queue", false, Modifier.weight(1f)) { onPanel(Panel.Queue) }
+                StripBtn(MiloIcons.DockSound, "Sound", false, Modifier.weight(1f)) { onPanel(Panel.Sound) }
+                StripBtn(MiloIcons.DockTimer, "Sleep timer", ui.sleepLeftMs > 0, Modifier.weight(1f)) { onPanel(Panel.Timer) }
             }
             Scrubber(ui, Modifier, vm.tint.collectAsState().value) { vm.player.seekTo(it) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1693,18 +1699,18 @@ private fun LiveLyrics(l: Lyrics?, loading: Boolean, positionMs: Long) {
         l == null -> { lines = listOf("No lyrics for this song"); key = -1 }
         l.synced.isNotEmpty() -> {
             val i = l.synced.indexOfLast { it.timeMs <= positionMs + 250 }.coerceAtLeast(0)
-            lines = l.synced.drop(i).map { it.text }.filter { it.isNotBlank() }.take(3).ifEmpty { listOf("Lyrics") }
+            lines = l.synced.drop(i).map { it.text }.filter { it.isNotBlank() }.take(2).ifEmpty { listOf("Lyrics") }
             key = i
         }
-        else -> { lines = l.plain.lineSequence().filter { it.isNotBlank() }.take(3).toList().ifEmpty { listOf("Lyrics") }; key = 0 }
+        else -> { lines = l.plain.lineSequence().filter { it.isNotBlank() }.take(2).toList().ifEmpty { listOf("Lyrics") }; key = 0 }
     }
     androidx.compose.animation.Crossfade(targetState = key to lines, animationSpec = androidx.compose.animation.core.tween(260), label = "liveLyrics") { (_, ls) ->
-        Column(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = Sp.x6), horizontalAlignment = Alignment.Start) {
             ls.forEachIndexed { n, line ->
                 Text(
-                    line, color = Color.White.copy(alpha = if (n == 0) 1f else if (n == 1) 0.5f else 0.28f),
-                    fontSize = if (n == 0) 22.sp else 16.sp, fontWeight = if (n == 0) FontWeight.Bold else FontWeight.Medium,
-                    lineHeight = if (n == 0) 28.sp else 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    line, color = Color.White.copy(alpha = if (n == 0) 1f else 0.4f),
+                    fontSize = if (n == 0) 26.sp else 16.sp, fontWeight = if (n == 0) FontWeight.Black else FontWeight.SemiBold,
+                    lineHeight = if (n == 0) 31.sp else 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Start,
                     maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = if (n == 0) 4.dp else 2.dp),
                 )
             }

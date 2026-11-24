@@ -720,3 +720,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 166 — Now playing edge to edge
 - The button strip and the controls card now run the full width of the screen like the art and the black lyrics panel (the 10 dp side margins are gone).
+
+- CI status (2026-11-23): `assembleFullDebug` green through Round 165. Round 166 (edge-to-edge player cards) not built yet.
+
+## Round 167 — Poster lyrics page, card-free Now playing
+- Lyrics page (swipe up from Now playing) is now Poster style: accent-to-black backdrop, the cover as a great circle from the top-left (idea from Mochy Music's Poster skin), big title and artist, and a button row (Like, Save, Queue, Sound, Sleep timer) above the scrubber. Queue, Sound and Timer close the lyrics page and open their sheet.
+- Now playing: the cards behind the button strip and the controls are gone (buttons keep their round backdrops), both sit lower, the black lyrics area is shorter and the song art taller; the live lyric under the controls is poster-style (big, left-aligned, two lines).

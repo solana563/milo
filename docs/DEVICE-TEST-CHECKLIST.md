@@ -273,3 +273,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R164: Now playing has a solid black lyrics panel at the bottom with the live lines; Library Liked banner and Downloads/Liked icons are glass with an accent icon (try two accents + the Song art background); Home shows Jump back in under Now playing and no Recently played row.
 - [ ] R165: player strip is frosted with round backdrops, on-state is white not accent; Output is top right of the art and opens the output chooser; Home Liked/Saved tiles show blurred covers, switch in Profile > Background turns it off.
 - [ ] R166: art, button strip, controls card and lyrics panel all run edge to edge on Now playing.
+- CI: Rounds 159–165 compile green (2026-11-23). R166 not built yet. Device checks above remain open unless ticked.
+- [ ] R167: lyrics page poster look + buttons; Now playing without cards, taller art, shorter lyrics area; opening Queue/Sound/Timer from the lyrics page
