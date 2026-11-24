@@ -417,6 +417,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     }
                 }
                 RoundBtn(MiloIcons.KeyboardArrowDown, "Back", Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp), onClick = { foldAway() })
+                val outTop by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
+                RoundBtn(
+                    if (outTop.kind != "speaker" && outTop.bt) MiloIcons.BluetoothAudio else if (outTop.kind != "speaker") MiloIcons.Headphones else MiloIcons.DockSpeaker,
+                    "Output", Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(12.dp), onClick = { castOpen = true },
+                )
 
 
                 androidx.compose.animation.AnimatedContent(
@@ -449,30 +454,24 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 }
             }
 
-            // the button strip: like, save, queue, output, sound, timer, visual, more (was a dock on the right edge)
+            // the button strip: like, save, queue, sound, timer, visual, more. It uses the same frosted look as the controls card, so it follows the app's background.
             val stripShape = RoundedCornerShape(Rad.xl)
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp).clip(stripShape)
-                    .background(Milo.amber.copy(alpha = 0.14f), stripShape).border(1.dp, glassStroke(1.2f), stripShape).padding(horizontal = 6.dp, vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(vertical = 8.dp).lift(stripShape, 14f).then(npGlass).clip(stripShape).padding(horizontal = 6.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val outDock by com.ubayanda.milonative.player.BtOutput.now.collectAsState()
                 // the heart pops when a song is liked
                 val heartPop = remember { androidx.compose.animation.core.Animatable(1f) }
                 LaunchedEffect(liked) { if (liked) { heartPop.snapTo(0.55f); heartPop.animateTo(1f, androidx.compose.animation.core.spring(0.32f, 420f)) } else heartPop.snapTo(1f) }
-                StripBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", if (liked) Milo.amber else Color.White, Modifier.weight(1f).likeButtonTarget(likeBurst, LikeSlot.PLAYER).graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }) { likeBurst.likeFromButton(LikeSlot.PLAYER, liked) { vm.toggleFav(t.id) } }
+                StripBtn(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, "Like", liked, Modifier.weight(1f).likeButtonTarget(likeBurst, LikeSlot.PLAYER).graphicsLayer { scaleX = heartPop.value; scaleY = heartPop.value }) { likeBurst.likeFromButton(LikeSlot.PLAYER, liked) { vm.toggleFav(t.id) } }
                 if (t.uri.startsWith("yt:")) {
                     val savedNow = com.ubayanda.milonative.data.OfflineStore.items.collectAsState().value.any { it.id == t.uri.removePrefix("yt:") }
-                    StripBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, if (savedNow) "Saved" else "Save", if (savedNow) Milo.amber else Color.White, Modifier.weight(1f)) { vm.downloadTracks(listOf(t)) }
+                    StripBtn(if (savedNow) MiloIcons.DownloadDone else MiloIcons.DockSave, if (savedNow) "Saved" else "Save", savedNow, Modifier.weight(1f)) { vm.downloadTracks(listOf(t)) }
                 }
-                StripBtn(MiloIcons.DockQueue, "Queue", Color.White, Modifier.weight(1f)) { panel = Panel.Queue }
-                StripBtn(
-                    if (outDock.kind != "speaker" && outDock.bt) MiloIcons.BluetoothAudio else if (outDock.kind != "speaker") MiloIcons.Headphones else MiloIcons.DockSpeaker,
-                    "Output", if (outDock.kind != "speaker") Milo.amber else Color.White, Modifier.weight(1f),
-                ) { castOpen = true }
-                StripBtn(MiloIcons.DockSound, "Sound", Color.White, Modifier.weight(1f)) { panel = Panel.Sound }
-                StripBtn(MiloIcons.DockTimer, "Sleep timer", if (ui.sleepLeftMs > 0) Milo.amber else Color.White, Modifier.weight(1f)) { panel = Panel.Timer }
-                if (!com.ubayanda.milonative.BuildConfig.LITE) StripBtn(MiloIcons.GraphicEq, "Visualiser", Color.White, Modifier.weight(1f)) { panel = Panel.Visual }
+                StripBtn(MiloIcons.DockQueue, "Queue", false, Modifier.weight(1f)) { panel = Panel.Queue }
+                StripBtn(MiloIcons.DockSound, "Sound", false, Modifier.weight(1f)) { panel = Panel.Sound }
+                StripBtn(MiloIcons.DockTimer, "Sleep timer", ui.sleepLeftMs > 0, Modifier.weight(1f)) { panel = Panel.Timer }
+                if (!com.ubayanda.milonative.BuildConfig.LITE) StripBtn(MiloIcons.GraphicEq, "Visualiser", false, Modifier.weight(1f)) { panel = Panel.Visual }
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { MoreMenu(vm, t, ui) }
             }
 
@@ -481,7 +480,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
             val glowA by androidx.compose.animation.animateColorAsState(glowBase, androidx.compose.animation.core.tween(700), label = "glowA")
             val glowB by androidx.compose.animation.animateColorAsState(androidx.compose.ui.graphics.lerp(glowBase, Color.White, 0.22f), androidx.compose.animation.core.tween(700), label = "glowB")
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 10.dp)
+                Modifier.fillMaxWidth()
                     .pointerInput("lyrics-swipe") {
                         // swipe up on the card: the lyrics page follows your finger, then springs open (or back) when you let go
                         detectVerticalDragGestures(
@@ -1385,7 +1384,7 @@ private fun MoreMenu(vm: MainViewModel, t: Track, ui: PlayerUi) {
         if (u != null) com.ubayanda.milonative.ui.components.CanvasStore.set(canvasCtx, songNow.id, u)
     }
     Box {
-        RoundBtn(MiloIcons.MoreHoriz, "More", flat = true, label = "More") { open = true }
+        StripBtn(MiloIcons.MoreHoriz, "More", false) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Add to playlist") }, onClick = { open = false; actions.addToPlaylist(t) })
             DropdownMenuItem(text = { Text("Share song") }, onClick = { open = false; actions.share(t) })
@@ -1670,11 +1669,17 @@ private fun LyricsFlightLayer(lp: () -> Float, cover: androidx.compose.ui.graphi
 }
 
 
-/** A button in the strip under the art: an icon in an even share of the row. */
+/** A button in the strip under the art: an icon on its own round backdrop. When it is on, the backdrop turns solid white and the icon dark (no accent colour). */
 @Composable
-private fun StripBtn(icon: ImageVector, desc: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(modifier.height(48.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+private fun StripBtn(icon: ImageVector, desc: String, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.height(52.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.size(46.dp).clip(CircleShape)
+                .background(if (on) Color.White.copy(alpha = 0.92f) else Color.White.copy(alpha = 0.12f), CircleShape)
+                .border(1.dp, Color.White.copy(alpha = if (on) 0f else 0.14f), CircleShape)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) { Icon(icon, desc, tint = if (on) Color.Black else Color.White, modifier = Modifier.size(22.dp)) }
     }
 }
 

@@ -712,3 +712,11 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Now playing: the lyrics area is now a solid black panel (rounded top, running to the bottom edge) under the controls card, instead of sitting over the frosted backdrop.
 - Library: the Liked songs banner and the Liked/Downloads icon tiles no longer use the fixed orange-brown gradient. They are glass on the page background with the accent only on the icon, so they follow the app's look and accent.
 - Home: Liked/Saved tiles are glass again (accent icon, not accent fill); "Recently played" is replaced by "Jump back in" (recent albums) directly under Now playing.
+
+## Round 165 — Player buttons follow the background; Output moves; Home tiles show a blurred cover
+- Now playing: the button strip uses the same frosted look as the controls card (so it follows the chosen background), every button sits on its own round backdrop, and a button that is on (liked, saved, timer running) turns solid white with a dark icon instead of the accent colour.
+- The Output button moved to the top right of the art, opposite Back.
+- Home: the Liked songs and Saved offline tiles show a blurred cover by default (newest liked song, newest saved song), under a dark veil. Profile > Look and layout > Background has a switch for it; with it off, or when there is no song yet, the tiles are plain glass.
+
+## Round 166 — Now playing edge to edge
+- The button strip and the controls card now run the full width of the screen like the art and the black lyrics panel (the 10 dp side margins are gone).
