@@ -774,3 +774,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 182 — runCatching blocks logged too
 - The 22 runCatching blocks (the other 2 are receiver calls, rewritten the same way) now use ErrorLog.catching { }, which behaves exactly like runCatching but also writes the failure to the report like R181. Together with R181 no failure the app carries on from is silent any more.
+
+## Round 183 — Lyrics lower, smaller third line
+- Lyrics screen: the lyric block sits lower (clear of the cover) and the third line is smaller (14 sp).

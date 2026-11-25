@@ -1099,7 +1099,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     var lyOff by remember(t.id) { mutableStateOf(fx.getLong("lyoff_" + t.id, 0L)) }
     // bouncy lyrics: the sung line pops and springs into place and the page eases after it. Off when the phone's animations are off.
     var bouncyPref by remember { mutableStateOf(fx.getBoolean("lybounce", true)) }
-    val calm = remember { try { android.provider.Settings.Global.getFloat(ctx.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (_: Throwable) { false } }
+    val calm = remember { try { android.provider.Settings.Global.getFloat(ctx.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); false } }
     val bouncy = bouncyPref && !calm
     val dens = androidx.compose.ui.platform.LocalDensity.current.density
     var moreMenu by remember { mutableStateOf(false) }
@@ -1225,7 +1225,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 posterLines.isNotEmpty() && posterIdx >= 0 -> posterLines[posterIdx].text
                 else -> t.title
             }
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().weight(1f).padding(top = posterW * 0.3f), contentAlignment = Alignment.Center) {
                 androidx.compose.animation.AnimatedContent(
                     targetState = posterIdx to posterWords,
                     contentKey = { it.first to it.second },
@@ -1253,7 +1253,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         val nextLine = if (idx >= 0) posterLines.getOrNull(idx + 1)?.text.orEmpty() else ""
                         val thirdLine = if (idx >= 0) posterLines.getOrNull(idx + 2)?.text.orEmpty() else ""
                         if (nextLine.isNotBlank()) Text(nextLine, color = Color.White.copy(alpha = 0.32f), fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 18.dp).fillMaxWidth())
-                        if (thirdLine.isNotBlank()) Text(thirdLine, color = Color.White.copy(alpha = 0.18f), fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 10.dp).fillMaxWidth())
+                        if (thirdLine.isNotBlank()) Text(thirdLine, color = Color.White.copy(alpha = 0.18f), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp).fillMaxWidth())
                     }
                 }
             }

@@ -290,3 +290,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R180: tap a queue song, wait, send an error report: it should now contain [pick] lines showing what happened
 - [ ] R181: use the app normally for a while, then Profile > error report: [failed] lines should appear for anything that broke quietly (and not flood the list); app behaves exactly as before
 - [ ] R182: same as R181; lyrics fallbacks, crossmix analysis and player teardown failures now show as [failed] lines
+- [ ] R183: lyrics block clear of the song art; third line smaller
