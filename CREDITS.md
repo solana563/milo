@@ -764,3 +764,13 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 179 — Third lyric line, swipe-down close, same close drop on Now playing
 - Lyrics screen: a third (fainter) line under the next line; pulling down anywhere on the page now closes it (it follows the finger, springs back if let go early).
 - Now playing: closing (drag down, back arrow, back button) now uses the lyrics page's drop: the whole screen follows the finger down with rounded top corners and falls off the screen on the same bouncy spring, instead of shrinking into the mini player. Opening is unchanged.
+
+## Round 180 — Queue tap diagnostics
+- Reported: picking a song from the queue changes the cover, waits, then returns to the playing song. The error report shows no error at that moment and the code path (TransportTransitions.pickFromQueue → seekToPicked) doesn't revert by itself, so this round only adds "[pick]" lines to the report: the tap (index, queue size, state), the move, and whether the new song started within 6 s or what was playing instead. No behaviour change.
+
+## Round 181 — Everything that fails is logged
+- The error report only held failures someone had remembered to log; 183 places caught an exception and carried on silently. They now all call ErrorLog.swallowed(), which writes "[failed] ExceptionType: message @ File.kt:line" to the report. The same failure from the same place is written three times at most (then "repeats hidden"), cancellations are ignored, messages go through the same scrubber as everything else (emails, tokens, folder names), and the in-memory list grew from 40 to 120 lines. Nothing leaves the phone unless the person sends the report; crashes were already saved and shown on the next start.
+- Not covered: runCatching blocks (24) and a handful of catches with a named variable already; the pick/queue diagnostics from R180 stay.
+
+## Round 182 — runCatching blocks logged too
+- The 22 runCatching blocks (the other 2 are receiver calls, rewritten the same way) now use ErrorLog.catching { }, which behaves exactly like runCatching but also writes the failure to the report like R181. Together with R181 no failure the app carries on from is silent any more.

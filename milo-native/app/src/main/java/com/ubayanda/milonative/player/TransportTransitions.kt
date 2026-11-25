@@ -209,6 +209,7 @@ class TransportTransitions(
             return
         }
         val song = player.getMediaItemAt(target).mediaId
+        com.ubayanda.milonative.util.ErrorLog.add("pick", "queue tap: #$target of ${player.mediaItemCount}, now on #${player.currentMediaItemIndex}, song ${song.takeLast(6)}, state ${player.playbackState}, phase $phase")
         pick(song, ready = { host.getReady(song) }) { seekToPicked(it, index) }
     }
 
@@ -350,12 +351,17 @@ class TransportTransitions(
             delay(FrameMs)
             waited += FrameMs
         }
+        com.ubayanda.milonative.util.ErrorLog.add("pick", if (waited >= StartWaitMs) "the picked song hadn't started after ${StartWaitMs}ms: now #${player.currentMediaItemIndex}, state ${player.playbackState}, playing ${player.isPlaying}" else "the picked song is playing: #${player.currentMediaItemIndex} after ${waited}ms")
     }
 
     // moves to the song at [index] as it is now and plays it
     private fun seekToPicked(player: ExoPlayer, index: () -> Int) {
         val now = index()
-        if (now == C.INDEX_UNSET || now >= player.mediaItemCount) return
+        if (now == C.INDEX_UNSET || now >= player.mediaItemCount) {
+            com.ubayanda.milonative.util.ErrorLog.add("pick", "the picked song is gone from the queue (index $now of ${player.mediaItemCount})")
+            return
+        }
+        com.ubayanda.milonative.util.ErrorLog.add("pick", "moving to #$now (was #${player.currentMediaItemIndex})")
         player.seekToDefaultPosition(now)
         if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) player.prepare()
         player.playWhenReady = true

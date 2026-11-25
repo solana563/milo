@@ -56,7 +56,7 @@ internal fun CoverReflection(
     if (source == null) return
     val picture by produceState<Bitmap?>(null, source) {
         value = withContext(Dispatchers.Default) {
-            runCatching { blurSmall(Bitmap.createScaledBitmap(source, ReflectionPx, ReflectionPx, true), ReflectionBlurPx) }.getOrNull()
+            com.ubayanda.milonative.util.ErrorLog.catching { blurSmall(Bitmap.createScaledBitmap(source, ReflectionPx, ReflectionPx, true), ReflectionBlurPx) }.getOrNull()
         }
     }
     val mesh = remember { ReflectionMesh() }

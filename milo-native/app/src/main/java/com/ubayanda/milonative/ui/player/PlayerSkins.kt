@@ -400,7 +400,7 @@ private fun SkinDot() { Box(Modifier.size(14.dp).clip(CircleShape).background(Co
 private fun rememberSkinLines(vm: MainViewModel, t: Track): Pair<List<LyricsEntry>, Boolean> {
     var loaded by remember(t.id) { mutableStateOf(false) }
     val lyrics by produceState<Lyrics?>(null, t.id) {
-        value = runCatching { vm.lyricsFor(t) }.getOrNull()
+        value = com.ubayanda.milonative.util.ErrorLog.catching { vm.lyricsFor(t) }.getOrNull()
         loaded = true
     }
     val lines = remember(lyrics) {
@@ -561,7 +561,7 @@ private fun TimelineSkin(vm: MainViewModel, t: Track, ui: PlayerUi, onClose: () 
     val pos by rememberUpdatedState(ui.positionMs)
     val idx by remember(lines) { derivedStateOf { currentIndex(lines, pos) } }
     val list = rememberLazyListState()
-    LaunchedEffect(idx) { if (idx >= 0) runCatching { list.animateScrollToItem(max(0, idx - 2)) } }
+    LaunchedEffect(idx) { if (idx >= 0) com.ubayanda.milonative.util.ErrorLog.catching { list.animateScrollToItem(max(0, idx - 2)) } }
     Column(Modifier.fillMaxSize().background(skinBrush(Brush.verticalGradient(listOf(accent.copy(alpha = 0.35f), Color.Black)))).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 64.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             SkinBack(onClose)

@@ -55,13 +55,33 @@ object ErrorLog {
     @Synchronized fun add(tag: String, msg: String?) {
         val line = fmt.format(Date()) + "  [" + scrub(tag) + "] " + scrub(msg ?: "").take(600)
         items.addLast(line)
-        while (items.size > 40) items.removeFirst()
+        while (items.size > 120) items.removeFirst()
         if (keepHistory()) try {
             val f = File(app!!.filesDir, "diag.log")
             if (f.length() > 64_000) f.writeText(f.readLines().takeLast(100).joinToString("\n") + "\n")
             f.appendText(line + "\n")
         } catch (_: Throwable) {}
     }
+
+    private val seenFailures = HashMap<String, Int>()
+
+    /**
+     * A failure that the app caught and carried on from (a download that broke, a file that wouldn't open, a service that was missing): it used to vanish,
+     * now it lands in the report with where it happened. The same failure from the same place is written three times at most, so one broken thing can't fill the list.
+     */
+    @Synchronized fun swallowed(e: Throwable) {
+        if (e is kotlinx.coroutines.CancellationException || e is InterruptedException) return
+        val at = e.stackTrace.firstOrNull { it.className.startsWith("com.ubayanda.milonative") }?.let { it.fileName + ":" + it.lineNumber } ?: "-"
+        val key = at + e.javaClass.simpleName
+        val n = (seenFailures[key] ?: 0) + 1
+        seenFailures[key] = n
+        if (n > 3) return
+        add("failed", e.javaClass.simpleName + ": " + (e.message ?: "").take(160) + " @ " + at + if (n == 3) " (repeats hidden)" else "")
+    }
+
+    /** runCatching that also writes the failure to the report; use it wherever a failure is carried on from. */
+    inline fun <T> catching(block: () -> T): Result<T> =
+        try { Result.success(block()) } catch (e: Throwable) { swallowed(e); Result.failure(e) }
 
     /** A failed call to the server: the kind of call and the status only, never the body, ids or the person's details. */
     fun api(method: String, path: String, status: Int) = add("api", "$method ${path.substringBefore('?').replace(Regex("[0-9]+"), "#")} -> ${if (status == 0) "no connection" else status}")

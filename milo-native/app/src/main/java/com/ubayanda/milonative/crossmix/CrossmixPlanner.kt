@@ -637,7 +637,7 @@ object CrossmixPlanner {
     private fun parseLines(lyrics: String?): List<Line> {
         // only lyrics timed to the line say where the voice is; plain text would put it all at 0:00
         if (lyrics.isNullOrBlank() || !SyncedStamp.containsMatchIn(lyrics)) return emptyList()
-        val entries = runCatching { parseLrc(lyrics) }.getOrNull().orEmpty()
+        val entries = com.ubayanda.milonative.util.ErrorLog.catching { parseLrc(lyrics) }.getOrNull().orEmpty()
             .filter { it.text.isNotBlank() }
         return entries.mapIndexed { index, entry ->
             // a line lasts until the next one, or ~4 s for the last

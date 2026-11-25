@@ -29,7 +29,7 @@ object LyricsFallbacks {
         c.setRequestProperty("User-Agent", "milo-native/1.0 (+https://github.com/ubayanda)")
         c.setRequestProperty("Accept", "application/json")
         if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else null
-    } catch (_: Exception) { null }
+    } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null }
 
     private fun stamp(ms: Long): String {
         val m = ms / 60000; val s = (ms % 60000) / 1000; val cs = (ms % 1000) / 10
@@ -38,12 +38,12 @@ object LyricsFallbacks {
 
     /** First source that has synced lyrics wins. Returns lrclib-shaped JSON ({"syncedLyrics": ...}) or null. */
     fun synced(title: String, artist: String, album: String, secs: Int, videoId: String?): String? {
-        val lrc = runCatching { betterLyrics(title, artist, album, secs) }.getOrNull()
-            ?: videoId?.let { runCatching { simpMusic(it, secs) }.getOrNull() }
-            ?: runCatching { kuGou(title, artist, secs) }.getOrNull()
-            ?: runCatching { LyricsMore.netEase(title, artist, secs) }.getOrNull()
-            ?: runCatching { LyricsMore.deezer(title, artist, secs) }.getOrNull()
-            ?: runCatching { LyricsMore.qqMusic(title, artist, secs) }.getOrNull()
+        val lrc = com.ubayanda.milonative.util.ErrorLog.catching { betterLyrics(title, artist, album, secs) }.getOrNull()
+            ?: videoId?.let { com.ubayanda.milonative.util.ErrorLog.catching { simpMusic(it, secs) }.getOrNull() }
+            ?: com.ubayanda.milonative.util.ErrorLog.catching { kuGou(title, artist, secs) }.getOrNull()
+            ?: com.ubayanda.milonative.util.ErrorLog.catching { LyricsMore.netEase(title, artist, secs) }.getOrNull()
+            ?: com.ubayanda.milonative.util.ErrorLog.catching { LyricsMore.deezer(title, artist, secs) }.getOrNull()
+            ?: com.ubayanda.milonative.util.ErrorLog.catching { LyricsMore.qqMusic(title, artist, secs) }.getOrNull()
         return lrc?.takeIf { it.isNotBlank() }?.let { JSONObject().put("syncedLyrics", it).toString() }
     }
 

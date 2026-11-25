@@ -42,7 +42,7 @@ class CrossmixAnalysisRepository(
     private val dispatcher = Executors.newSingleThreadExecutor { runnable ->
         // nice +1 instead of Java's MIN_PRIORITY (which lands in the background group and starves on a busy phone, the A33 decoded under 1 s of audio per 2 s)
         Thread({
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LESS_FAVORABLE) } catch (_: Throwable) {}
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LESS_FAVORABLE) } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             runnable.run()
         }, "crossmix-analysis").apply { isDaemon = true }
     }.asCoroutineDispatcher()
@@ -147,7 +147,7 @@ class CrossmixAnalysisRepository(
             ?: error("only ${lastPresentationUs / 1_000_000} s of audio came through")
     }
 
-    private fun read(mediaId: String): TrackAnalysis? = runCatching {
+    private fun read(mediaId: String): TrackAnalysis? = com.ubayanda.milonative.util.ErrorLog.catching {
         val file = cacheFile(mediaId)
         if (!file.exists()) return null
         DataInputStream(BufferedInputStream(file.inputStream())).use { input ->
@@ -179,7 +179,7 @@ class CrossmixAnalysisRepository(
         }
     }.getOrNull()
 
-    private fun write(mediaId: String, analysis: TrackAnalysis) = runCatching {
+    private fun write(mediaId: String, analysis: TrackAnalysis) = com.ubayanda.milonative.util.ErrorLog.catching {
         val target = cacheFile(mediaId)
         val temp = File(target.parentFile, target.name + ".tmp")
         DataOutputStream(BufferedOutputStream(temp.outputStream())).use { out ->

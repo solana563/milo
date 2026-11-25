@@ -31,7 +31,7 @@ object LyricsMore {
             c.outputStream.use { it.write(body.toByteArray()) }
         }
         if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else null
-    } catch (_: Exception) { null }
+    } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null }
 
     private fun stamp(ms: Long): String {
         val m = ms / 60000; val s = (ms % 60000) / 1000; val cs = (ms % 1000) / 10
@@ -122,7 +122,7 @@ object LyricsMore {
     private fun dzJwt(): String? {
         dzToken?.takeIf { System.currentTimeMillis() < dzUntil }?.let { return it }
         val jwt = JSONObject(http("https://auth.deezer.com/login/anonymous?jo=p&rto=c") ?: return null).optString("jwt").takeIf { it.isNotBlank() } ?: return null
-        val exp = runCatching {
+        val exp = com.ubayanda.milonative.util.ErrorLog.catching {
             val p = String(Base64.decode(jwt.split('.')[1], Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP), Charsets.UTF_8)
             JSONObject(p).getLong("exp") * 1000
         }.getOrNull() ?: (System.currentTimeMillis() + 5 * 60_000L)

@@ -35,7 +35,7 @@ class PlaybackService : MediaLibraryService() {
                 }
                 // keep the widgets' progress bar moving while a song plays
                 if (p != null && p.isPlaying) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, p)
-            } catch (_: Throwable) {}
+            } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             handler.postDelayed(this, 10_000)
         }
     }
@@ -93,15 +93,15 @@ class PlaybackService : MediaLibraryService() {
                         com.ubayanda.milonative.util.ErrorLog.add("audio", "stall: restarting the output at ${p.currentPosition} ms to drop queued audio")
                         p.seekTo(p.currentPosition)
                     }
-                } catch (_: Throwable) {}
+                } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             }, 150L)
-        } catch (_: Throwable) {}
+        } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     // keeps the home-screen widgets alive: the progress bar moves and "playing" stays fresh while music plays
     private val widgetBeat = object : Runnable {
         override fun run() {
-            try { exo?.let { if (it.isPlaying) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, it) } } catch (_: Throwable) {}
+            try { exo?.let { if (it.isPlaying) com.ubayanda.milonative.widget.WidgetUpdater.push(this@PlaybackService, it) } } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             handler.postDelayed(this, 5_000)
         }
     }
@@ -140,7 +140,7 @@ class PlaybackService : MediaLibraryService() {
                         }
                     }
                 }
-            } catch (_: Throwable) {}
+            } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             handler.postDelayed(this, 500)
         }
     }
@@ -160,7 +160,7 @@ class PlaybackService : MediaLibraryService() {
         try {
             if (android.os.Build.VERSION.SDK_INT >= 31) (getSystemService(VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
             else @Suppress("DEPRECATION") (getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator)
-        } catch (_: Throwable) { null }
+        } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null }
     }
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -202,7 +202,7 @@ class PlaybackService : MediaLibraryService() {
             } else if (sdk >= 26 && v.hasAmplitudeControl()) {
                 v.vibrate(android.os.VibrationEffect.createOneShot(20, amplitude.coerceIn(1, 255)))
             }
-        } catch (_: Throwable) {}
+        } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     private fun btCompat() = getSharedPreferences("milo_fx", MODE_PRIVATE).getBoolean("btcompat", false)
@@ -249,7 +249,7 @@ class PlaybackService : MediaLibraryService() {
         xfSkip = false
         xfClockOnly = false
         primedKey = null
-        ghost?.let { try { it.stop(); it.clearMediaItems() } catch (_: Throwable) {} }
+        ghost?.let { try { it.stop(); it.clearMediaItems() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
     }
 
     private val fader = object : Runnable {
@@ -261,7 +261,7 @@ class PlaybackService : MediaLibraryService() {
             lastTick = now
             try {
                 tick(p, now, dt)
-            } catch (_: Throwable) { endGhost(); if (p.volume != 1f) p.volume = 1f }
+            } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); endGhost(); if (p.volume != 1f) p.volume = 1f }
             handler.postDelayed(this, 25)
         }
     }
@@ -556,7 +556,7 @@ class PlaybackService : MediaLibraryService() {
             }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 if (!promotingCrossmix) xdir()?.onItemChanged()
-                if (!crossmixOn()) try { com.ubayanda.milonative.crossmix.CrossmixLab.look(this@PlaybackService, mediaItem, if (cur().hasNextMediaItem()) cur().getMediaItemAt(cur().nextMediaItemIndex) else null) } catch (_: Throwable) {}
+                if (!crossmixOn()) try { com.ubayanda.milonative.crossmix.CrossmixLab.look(this@PlaybackService, mediaItem, if (cur().hasNextMediaItem()) cur().getMediaItemAt(cur().nextMediaItemIndex) else null) } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
                 // the main cur() reached the end of the old song by itself during the fade: that is the hand-over
                 if (xfOwn) xfOwn = false
                 else if (xfPhase == 1 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && ghost != null) beginHandoff(cur(), ghost!!, android.os.SystemClock.elapsedRealtime())
@@ -615,11 +615,11 @@ class PlaybackService : MediaLibraryService() {
 
     // a changed Crossmix choice (engine, length, tempo, style...) re-plans the next hand-over
     private val xPrefsWatch = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (_: Throwable) {} }
+        if (key in CrossmixLive.keys) handler.post { try { director.onSettingsChanged() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
         if (key?.startsWith("loud_") == true) com.ubayanda.milonative.player.audio.LoudnessFx.load(fxPrefs)
         if (key == "rg_mode" || key == "rg_pre" || key == "rg") handler.post { updateGain(cur()); applyVolumeNow() }
         if (key?.startsWith("haptic_") == true) handler.post { synchronized(hapticProcs) { hapticProcs.toList() }.forEach { applyHaptic(it) } }
-        if (key == "tfade" || key == "tfx") handler.post { try { syncTransport() } catch (_: Throwable) {} }
+        if (key == "tfade" || key == "tfx") handler.post { try { syncTransport() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
     }
 
     /** Mochy's pause / play / skip fades and effects (TransportTransitions); length from the "Soft pause & skip" slider, effect from the chips under it */
@@ -685,7 +685,7 @@ class PlaybackService : MediaLibraryService() {
             xfAudibleAt = 0L
             primedKey = "skip#" + target
             true
-        } catch (_: Throwable) { endGhost(); false }
+        } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); endGhost(); false }
     }
 
     private fun makeFading(p: ExoPlayer): Player = TransportFadingPlayer(p, transport)
@@ -776,7 +776,7 @@ class PlaybackService : MediaLibraryService() {
             try { session?.player = fp } catch (e: Throwable) { com.ubayanda.milonative.util.ErrorLog.add("crossmix", "could not swap the session's player: " + e.message) }
             AudioFx.attach(this@PlaybackService, incoming.audioSessionId)
             // a cast bridge built on the old player would restore the queue onto a released one: build a new one on this player
-            try { castBridge?.release() } catch (_: Throwable) {}
+            try { castBridge?.release() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             castBridge = CastBridge(this@PlaybackService, { session }, incoming, fp).also { it.init() }
 
             // the hooks a song change runs (loudness, recents, loop reset) for the song now playing, which this player reached by a seek before it was ours
@@ -788,13 +788,13 @@ class PlaybackService : MediaLibraryService() {
         }
 
         override fun release(outgoing: ExoPlayer) {
-            runCatching { outgoing.stop(); outgoing.clearMediaItems(); outgoing.release() }
+            com.ubayanda.milonative.util.ErrorLog.catching { outgoing.stop(); outgoing.clearMediaItems(); outgoing.release() }
             crossmixProcessors.remove(outgoing)
             if (outgoingExo === outgoing) outgoingExo = null
         }
 
         override fun discard(incoming: ExoPlayer) {
-            runCatching { incoming.stop(); incoming.release() }
+            com.ubayanda.milonative.util.ErrorLog.catching { incoming.stop(); incoming.release() }
             crossmixProcessors.remove(incoming)
         }
 
@@ -898,19 +898,19 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
-        try { castBridge?.release() } catch (_: Throwable) {}
+        try { castBridge?.release() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         castBridge = null
-        if (ownFocus()) try { focus.stop() } catch (_: Throwable) {}
+        if (ownFocus()) try { focus.stop() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         BtOutput.stop(this)
         svcScope.cancel()
         handler.removeCallbacksAndMessages(null)
         com.ubayanda.milonative.widget.WidgetUpdater.clear(this)
-        try { ghost?.release() } catch (_: Throwable) {}
+        try { ghost?.release() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         ghost = null
-        try { getSharedPreferences("milo_fx", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(xPrefsWatch) } catch (_: Throwable) {}
-        try { transport.cancel() } catch (_: Throwable) {}
-        try { directorOrNull?.release() } catch (_: Throwable) {}
-        try { outgoingExo?.release() } catch (_: Throwable) {}
+        try { getSharedPreferences("milo_fx", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(xPrefsWatch) } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+        try { transport.cancel() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+        try { directorOrNull?.release() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+        try { outgoingExo?.release() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         outgoingExo = null
         exo = null
         AudioFx.release()

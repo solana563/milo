@@ -347,7 +347,7 @@ class CrossmixDirector(
     private fun restoreSpeed() {
         val ramp = speedRamp ?: return
         speedRamp = null
-        runCatching {
+        com.ubayanda.milonative.util.ErrorLog.catching {
             if (abs(ramp.player.playbackParameters.speed - ramp.lastSet) < 0.0005f) ramp.player.playbackParameters = ramp.base
         }
     }
@@ -382,7 +382,7 @@ class CrossmixDirector(
         val initialDelayMs = (BaseDelayMs + max(0.0, drift)).coerceAtMost(400.0)
 
         val parameters = PlaybackParameters((base.speed * plan.inSpeed).coerceIn(0.25f, 4f), base.pitch)
-        val incoming = runCatching { host.createIncoming(nextIndex, plan.inStartMs, parameters) }.getOrNull()
+        val incoming = com.ubayanda.milonative.util.ErrorLog.catching { host.createIncoming(nextIndex, plan.inStartMs, parameters) }.getOrNull()
         if (incoming == null) {
             report("Couldn't open a player for the next song: played through")
             return

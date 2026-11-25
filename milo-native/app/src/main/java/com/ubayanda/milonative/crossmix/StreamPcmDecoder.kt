@@ -106,10 +106,10 @@ internal object StreamPcmDecoder {
             }
             return Outcome(reachedEnd = reachedEnd, durationUs = durationUs, lastPresentationUs = lastPresentationUs)
         } finally {
-            codec?.runCatching { stop() }
-            codec?.runCatching { release() }
-            runCatching { extractor.release() }
-            runCatching { source.close() }
+            codec?.let { c -> com.ubayanda.milonative.util.ErrorLog.catching { c.stop() } }
+            codec?.let { c -> com.ubayanda.milonative.util.ErrorLog.catching { c.release() } }
+            com.ubayanda.milonative.util.ErrorLog.catching { extractor.release() }
+            com.ubayanda.milonative.util.ErrorLog.catching { source.close() }
         }
     }
 
@@ -162,12 +162,12 @@ private class Media3MediaDataSource(
     }
 
     override fun getSize(): Long {
-        if (length == C.LENGTH_UNSET.toLong() && source == null) runCatching { reopen(0L) }
+        if (length == C.LENGTH_UNSET.toLong() && source == null) com.ubayanda.milonative.util.ErrorLog.catching { reopen(0L) }
         return if (length == C.LENGTH_UNSET.toLong()) -1L else length
     }
 
     override fun close() {
-        runCatching { source?.close() }
+        com.ubayanda.milonative.util.ErrorLog.catching { source?.close() }
         source = null
     }
 
@@ -179,7 +179,7 @@ private class Media3MediaDataSource(
         val opened = try {
             next.open(spec)
         } catch (error: HttpDataSource.InvalidResponseCodeException) {
-            runCatching { next.close() }
+            com.ubayanda.milonative.util.ErrorLog.catching { next.close() }
             if (error.responseCode == 416 && offset > 0) {
                 ended = true
                 if (length == C.LENGTH_UNSET.toLong()) length = offset
