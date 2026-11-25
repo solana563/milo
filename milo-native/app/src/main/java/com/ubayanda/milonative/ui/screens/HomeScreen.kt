@@ -281,7 +281,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                     Box(
                         Modifier.size(46.dp).clip(CircleShape).background(Milo.amber).clickable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(26.dp)) }
+                    ) { com.ubayanda.milonative.ui.components.PlayPauseGlyph(ui, 26.dp) }
                     val pill = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
                     Row(
                         Modifier.clip(pill).background(Color(0x55000000), pill).border(1.dp, Color.White.copy(alpha = 0.28f), pill)
@@ -291,6 +291,9 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                         Icon(if (liked) MiloIcons.Favorite else MiloIcons.FavoriteBorder, null, tint = if (liked) Milo.amber else Milo.text, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(if (liked) "Liked" else "Like", color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    }
+                    if (ui.isPlaying && !com.ubayanda.milonative.BuildConfig.LITE) {
+                        com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.width(64.dp), height = 34.dp, style = 0)
                     }
                 }
             } else {

@@ -41,6 +41,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
     Search("Search", MiloIcons.Search),
     Discover("Discover", MiloIcons.Explore),
     Library("Library", MiloIcons.BookmarkBorder),
+    Friends("Friends", MiloIcons.People),
     Profile("Profile", MiloIcons.PersonOutline),
 }
 

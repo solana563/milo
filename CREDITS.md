@@ -777,3 +777,14 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 183 — Lyrics lower, smaller third line
 - Lyrics screen: the lyric block sits lower (clear of the cover) and the third line is smaller (14 sp).
+
+## Round 184 — Android 8+ for the full app, Friends in the bottom nav
+- The full and F-Droid builds now have minSdk 26 (Android 8), down from 29 (Android 10); Lite stays as it is. The source already ran on Android 8 through Lite, and the libraries the full build adds (Firebase messaging, Cast, Glance widgets) all support API 26, but this has not been compiled or run on an Android 8 or 9 device by me: CI lint (NewApi) is the first check.
+- Bottom nav: a Friends tab (people icon) between Library and Profile opens the Friends list as a real tab; opening a chat covers the screen as before and Back returns to the list. Home's old shortcut still works.
+
+## Round 185 — visualiser spots + buffering spinner
+- Small live visualiser (SpectrumView, bars) on the Home "Now playing" card right of the Liked pill, and bottom-right of the Now playing screen beside the quality badge. Shown only while playing, not in Lite.
+- Play/pause buttons (mini player, Home card, Now playing, skins) show a spinning ring while the song is buffering (`PlayerUi.buffering`, new `PlayPauseGlyph`).
+
+## Round 186 — current lyric pops
+- Lyrics screen: the line being sung is larger (48sp, 40sp for long lines, 34sp for very long), arrives with a springy overshoot and has a soft accent glow. Next/third lines unchanged.

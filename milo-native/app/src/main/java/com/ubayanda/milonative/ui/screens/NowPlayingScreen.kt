@@ -432,6 +432,11 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 )
 
 
+                if (ui.isPlaying && !com.ubayanda.milonative.BuildConfig.LITE) {
+                    com.ubayanda.milonative.ui.components.SpectrumView(
+                        Milo.amber, Modifier.align(Alignment.BottomEnd).padding(end = Sp.gutter, bottom = Sp.x6).width(72.dp), height = 36.dp, style = 0,
+                    )
+                }
                 androidx.compose.animation.AnimatedContent(
                     targetState = t, contentKey = { it.id },
                     modifier = Modifier.align(Alignment.BottomStart),
@@ -517,7 +522,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                             .pressable { vm.player.toggle() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(38.dp))
+                        com.ubayanda.milonative.ui.components.PlayPauseGlyph(ui, 38.dp)
                     }
                     RoundDark(MiloIcons.SkipNext, "Next", Modifier.onGloballyPositioned { if (drag <= 0f) morphNext = it.boundsInWindow() }) { vm.player.next() }
                     IconTap(
@@ -1243,10 +1248,17 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                     label = "poster-words",
                 ) { (idx, w) ->
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        // the current line pops: bigger type, a springy overshoot when it arrives and a soft glow
+                        val pop = remember(idx, w) { androidx.compose.animation.core.Animatable(0.86f) }
+                        LaunchedEffect(idx, w) {
+                            pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.42f, stiffness = 260f))
+                        }
+                        val big = when { w.length > 70 -> 34f; w.length > 40 -> 40f; else -> 48f }
                         Text(
-                            w.ifBlank { "\u266A" }, color = Color.White, fontSize = (if (w.length > 40) 30f else 38f).sp, lineHeight = (if (w.length > 40) 35f else 44f).sp,
+                            w.ifBlank { "\u266A" }, color = Color.White, fontSize = big.sp, lineHeight = (big * 1.14f).sp,
                             fontWeight = FontWeight.Black, maxLines = 5, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
+                            style = androidx.compose.ui.text.TextStyle(shadow = androidx.compose.ui.graphics.Shadow(posterAccent.copy(alpha = 0.55f), blurRadius = 28f)),
+                            modifier = Modifier.fillMaxWidth().graphicsLayer { scaleX = pop.value; scaleY = pop.value },
                         )
                         val sub = if (idx >= 0) tr?.getOrNull(idx)?.takeIf { it.isNotBlank() && !it.equals(w, ignoreCase = true) } ?: rm?.getOrNull(idx) else null
                         if (sub != null) Text(sub, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp).fillMaxWidth())
@@ -1463,7 +1475,7 @@ private fun VisualPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 Text("Back", color = Milo.text, fontSize = 19.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onBack).padding(vertical = 10.dp, horizontal = 2.dp))
                 Spacer(Modifier.weight(1f))
                 Box(Modifier.size(58.dp).clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
-                    Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                    com.ubayanda.milonative.ui.components.PlayPauseGlyph(ui, 32.dp)
                 }
             }
             Spacer(Modifier.weight(1f))

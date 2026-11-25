@@ -26,6 +26,7 @@ data class Artist(val name: String, val tracks: List<Track>)
 data class PlayerUi(
     val currentId: Long? = null,
     val isPlaying: Boolean = false,
+    val buffering: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val shuffle: Boolean = false,

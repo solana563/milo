@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ubayanda.milonative"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 34
         buildConfigField("boolean", "LITE", "false")
         versionCode = (System.getenv("MILO_VERSION_CODE") ?: "1").toInt()

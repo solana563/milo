@@ -472,7 +472,7 @@ internal fun SkinControls(vm: MainViewModel, ui: PlayerUi, modifier: Modifier = 
         }
         Spacer(Modifier.width(18.dp))
         Box(Modifier.size(big).clip(CircleShape).background(Color.White).clickable { vm.player.toggle() }, contentAlignment = Alignment.Center) {
-            Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, if (ui.isPlaying) "Pause" else "Play", tint = Color.Black, modifier = Modifier.size(big * 0.5f))
+            com.ubayanda.milonative.ui.components.PlayPauseGlyph(ui, big * 0.5f, desc = if (ui.isPlaying) "Pause" else "Play")
         }
         Spacer(Modifier.width(18.dp))
         Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.player.next() }, contentAlignment = Alignment.Center) {

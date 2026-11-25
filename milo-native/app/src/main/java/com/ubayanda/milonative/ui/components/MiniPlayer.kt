@@ -85,7 +85,7 @@ fun MiniPlayer(vm: MainViewModel, t: Track, ui: PlayerUi, onOpen: () -> Unit, mo
                 Modifier.size(48.dp).onGloballyPositioned { com.ubayanda.milonative.ui.player.MorphTargets.miniPlay = it.boundsInWindow() }.clip(CircleShape).background(Milo.cream).pressable { vm.player.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(if (ui.isPlaying) MiloIcons.Pause else MiloIcons.PlayArrow, "Play or pause", tint = Color.Black, modifier = Modifier.size(28.dp))
+                PlayPauseGlyph(ui, 28.dp)
             }
         }
         Box(Modifier.fillMaxWidth().height(3.dp).padding(horizontal = 18.dp)) {

@@ -183,7 +183,7 @@ fun MiloApp(vm: MainViewModel) {
     var newMany by remember { mutableStateOf(false) }
     // Back from anywhere goes Home first; on Home the first back warns and the second leaves the app.
     val lastBack = remember { longArrayOf(0L) }
-    BackHandler(enabled = !car && selection.isEmpty() && !playerOpen && !friendsOpen && detail == null && yt == null && ytPages.isEmpty()) {
+    BackHandler(enabled = !car && selection.isEmpty() && !playerOpen && !friendsOpen && chatWith == null && detail == null && yt == null && ytPages.isEmpty()) {
         if (tab != Tab.Home) tab = Tab.Home
         else {
             val now = System.currentTimeMillis()
@@ -199,7 +199,7 @@ fun MiloApp(vm: MainViewModel) {
         onDismiss = { identifying = false },
     )
     BackHandler(enabled = selection.isNotEmpty()) { vm.clearSelection() }
-    BackHandler(enabled = !playerOpen && friendsOpen) { if (chatWith != null) chatWith = null else friendsOpen = false }
+    BackHandler(enabled = !playerOpen && (friendsOpen || chatWith != null)) { if (chatWith != null) chatWith = null else friendsOpen = false }
     BackHandler(enabled = !playerOpen && !friendsOpen && detail != null) { detail = null }
 
     CompositionLocalProvider(LocalActions provides actions) {
@@ -340,6 +340,7 @@ fun MiloApp(vm: MainViewModel) {
                             )
                             Tab.Discover -> DiscoverScreen(vm, ui, bottomPad, { l, i -> yt = l to i }, { ytPages = ytPages + it })
                             Tab.Search -> SearchScreen(vm, tracks, albums, artists, ui, bottomPad, { detail = Detail.AlbumD(it) }, { detail = Detail.ArtistD(it) }, onOpenPlaylist = { detail = Detail.PlaylistD(it.id) }, onOpenFriend = { chatWith = it; friendsOpen = true })
+                            Tab.Friends -> Box(Modifier.fillMaxSize().padding(bottom = 96.dp)) { com.ubayanda.milonative.ui.screens.FriendsScreen(vm, acct, { tab = Tab.Home }) { chatWith = it } }
                             Tab.Profile -> ProfileScreen(vm, acct, tracks.size, likedTracks.size, playlists.size, hours, bottomPad)
                         }
                     }
@@ -370,7 +371,7 @@ fun MiloApp(vm: MainViewModel) {
                 }, avatar = acct.avatar, name = acct.username, backdrop = backdrop)
             }
 
-            if (friendsOpen) {
+            if (friendsOpen || chatWith != null) {
                 Box(Modifier.fillMaxSize()) {
                     val cw = chatWith
                     if (cw != null) com.ubayanda.milonative.ui.screens.ChatScreen(vm, cw) { chatWith = null }

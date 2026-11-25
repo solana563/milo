@@ -198,7 +198,7 @@ class PlayerHolder(context: Context) {
         if (f.sampleRate > 0) parts.add((if (f.sampleRate % 1000 == 0) "${f.sampleRate / 1000}" else "%.1f".format(f.sampleRate / 1000f)) + " kHz")
         if (f.bitrate > 0 && (codec != "FLAC" && codec != "WAV" && codec != "ALAC")) parts.add("${f.bitrate / 1000} kbps")
         parts.joinToString(" \u00b7 ")
-    } catch (_: Exception) { "" }
+    } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); "" }
 
     private fun refresh() {
         val c = controller ?: return
@@ -209,6 +209,7 @@ class PlayerHolder(context: Context) {
         _state.value = _state.value.copy(
             currentId = if (xf != null) c.getMediaItemAt(xf.index).mediaId.toLongOrNull() else c.currentMediaItem?.mediaId?.toLongOrNull(),
             isPlaying = c.isPlaying,
+            buffering = c.playbackState == Player.STATE_BUFFERING && c.playWhenReady,
             positionMs = xf?.posMs ?: c.currentPosition.coerceAtLeast(0L),
             durationMs = if (xf != null && xf.durMs > 0L) xf.durMs else if (c.duration > 0) c.duration else 0L,
             shuffle = c.shuffleModeEnabled,
