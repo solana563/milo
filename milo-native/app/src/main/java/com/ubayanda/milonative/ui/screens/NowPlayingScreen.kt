@@ -285,7 +285,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         }) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.clip(RoundedCornerShape(bottomStart = Rad.xl, bottomEnd = Rad.xl)).background(Milo.card2).pointerInput("double-tap") {
+                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.background(Milo.card2).pointerInput("double-tap") {
                     detectTapGestures(onDoubleTap = { off ->
                         if (!com.ubayanda.milonative.ui.player.PlayerGestures.doubleTap(npCtx)) return@detectTapGestures
                         val cur = uiNow
@@ -1108,7 +1108,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
             .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
             .drawWithContent {
                 drawContent()
-                drawRect(Brush.verticalGradient(0f to Color.Black, 0.5f to Color.Black, 1f to Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                drawRect(Brush.verticalGradient(0f to Color.Black, 0.78f to Color.Black, 1f to Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
             })
         Box(Modifier.fillMaxWidth().height(posterW * 0.3f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {

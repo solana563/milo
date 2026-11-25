@@ -738,3 +738,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 171 — Lyrics screen only
 - Undid the default-skin switch: Now playing is left as it was. On the Poster lyrics screen the cover is now larger and solid at the top, melting into the black lower down (like the green glow) instead of ending in a hard circle edge.
+
+## Round 172 — Art card off, lyrics cover fade
+- Now playing: the song art no longer has rounded bottom corners (the card shape); nothing else on that screen changed. Lyrics screen: the cover stays solid until about three-quarters down, then melts into the black.

@@ -279,3 +279,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R169: lyrics page shows the Poster circle; Now playing backdrop is opaque Poster gradient (no see-through)
 - [ ] R170: opening Now playing from the mini player and swiping up to lyrics show no cover fly-in; screens are opaque while opening
 - [ ] R171: lyrics screen cover is large, solid at the top and fades into black near the marked line; Now playing unchanged, default skin back to Flagship
+- [ ] R172: Now playing art is square-edged (no card corners); lyrics cover solid then fades to black
