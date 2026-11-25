@@ -213,7 +213,10 @@ class CoreLogicTest {
             assertEquals(0f, a1, 0.001f); assertEquals(1f, b1, 0.001f)
         }
         val (a, b) = com.ubayanda.milonative.player.XFade.gains(0.5f, 0)
-        assertEquals(1f, a * a + b * b, 0.001f)   // equal power
+        // equal-power shape, held so the two together never sound louder than one song (no swell mid-fade)
+        assertTrue(a * a + b * b <= 1.001f)
+        assertTrue(a + b <= 1.12f + 0.001f)
+        assertEquals(a, b, 0.001f)
         val (la, lb) = com.ubayanda.milonative.player.XFade.gains(0.5f, 1)
         assertEquals(1f, la + lb, 0.001f)         // linear
     }

@@ -757,3 +757,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 177 — Honest label for skip blends
 - The "A classic crossfade is running" notice also showed for a Blend skip (the Blend skips switch in the transitions sheet, off by default). It now says "A skip blend is running (Blend skips is on)" in that case.
+
+## Round 178 — Release gate: unit test updated
+- CoreLogicTest.crossfadeCurves still asserted an exact equal-power sum (a² + b² = 1) at the midpoint; since R176 the pair is held below one song's level on purpose, so the test now checks a² + b² ≤ 1, a + b ≤ 1.12 and a symmetric midpoint. Endpoints and the linear curve are still checked exactly.

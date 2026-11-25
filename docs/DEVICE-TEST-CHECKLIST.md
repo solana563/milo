@@ -285,3 +285,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R175: lyrics line centred in the screen; rise/fade animation between lines; next line preview; translation shows under the line
 - [ ] R176: skip a song / classic crossfade: volume no longer swells mid-fade
 - [ ] R177: skipping with Blend skips on shows 'A skip blend is running'; with it off a skip is a plain jump
+- [ ] R178: CI unit tests green (crossfadeCurves updated); release gate passes
