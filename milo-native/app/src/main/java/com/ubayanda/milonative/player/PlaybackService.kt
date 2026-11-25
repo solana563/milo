@@ -803,7 +803,7 @@ class PlaybackService : MediaLibraryService() {
             return when {
                 !crossmixOn() -> "Transitions are set to Classic"
                 btCompat() -> "Bluetooth compatibility mode is on"
-                xfPhase != 0 || xfWarm -> "A classic crossfade is running"
+                xfPhase != 0 || xfWarm -> if (xfSkip) "A skip blend is running (Blend skips is on)" else "A classic crossfade is running"
                 p.repeatMode == Player.REPEAT_MODE_ONE -> "Repeat one plays the song straight round"
                 session?.player !== fading -> "Casting: Crossmix waits until you're back"
                 else -> null

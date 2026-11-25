@@ -282,3 +282,6 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R172: Now playing art is square-edged (no card corners); lyrics cover solid then fades to black
 - [ ] R173: dragging the lyrics screen down shows no Now playing buttons/controls through it; backdrop is solid
 - [ ] R174: lyrics art edge to edge fading to black; Now playing art fades at its bottom; crossmix overlaps no longer swell in volume (listen mid-mix; report if it now dips too much)
+- [ ] R175: lyrics line centred in the screen; rise/fade animation between lines; next line preview; translation shows under the line
+- [ ] R176: skip a song / classic crossfade: volume no longer swells mid-fade
+- [ ] R177: skipping with Blend skips on shows 'A skip blend is running'; with it off a skip is a plain jump

@@ -16,7 +16,14 @@ object XFade {
     const val SMOOTH = 2
     val names = listOf("Equal power", "Linear", "Smooth")
 
+    /** the curve's two volumes, held so that together they never sound louder than one song (no swell in the middle of the fade) */
     fun gains(f: Float, curve: Int): Pair<Float, Float> {
+        val g = rawGains(f, curve)
+        val k = com.ubayanda.milonative.crossmix.headroom(g.first, g.second)
+        return (g.first * k) to (g.second * k)
+    }
+
+    private fun rawGains(f: Float, curve: Int): Pair<Float, Float> {
         val x = f.coerceIn(0f, 1f)
         return when (curve) {
             LINEAR -> (1f - x) to x

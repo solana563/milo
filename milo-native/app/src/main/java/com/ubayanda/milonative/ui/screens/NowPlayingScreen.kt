@@ -1193,8 +1193,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 }
             }
             if (lyrics != null && lyrics.note.isNotEmpty()) Text(lyrics.note, color = Milo.amber, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(top = 8.dp))
-            Spacer(Modifier.weight(1f))
-            // Poster: the line being sung, performed huge; artist and title small beneath; seek bar and controls
+            // Poster: the line being sung, huge and centred in the space between the top bar and the song details
             val posterLines = lyrics?.synced.orEmpty()
             val posterIdx = posterLines.indexOfLast { it.timeMs <= ui.positionMs - lyOff + 250 }
             val posterWords = when {
@@ -1202,14 +1201,34 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                 posterLines.isNotEmpty() && posterIdx >= 0 -> posterLines[posterIdx].text
                 else -> t.title
             }
-            androidx.compose.animation.Crossfade(targetState = posterWords, animationSpec = androidx.compose.animation.core.tween(240), label = "poster-words") { w ->
-                Column(Modifier.fillMaxWidth()) {
-                    Text(
-                        w.ifBlank { "\u266A" }, color = Color.White, fontSize = (if (w.length > 40) 30f else 40f).sp, lineHeight = (if (w.length > 40) 34f else 44f).sp,
-                        fontWeight = FontWeight.Black, maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
-                    )
-                    val sub = if (posterIdx >= 0) tr?.getOrNull(posterIdx)?.takeIf { it.isNotBlank() && !it.equals(w, ignoreCase = true) } ?: rm?.getOrNull(posterIdx) else null
-                    if (sub != null) Text(sub, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp, modifier = Modifier.padding(top = 6.dp))
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                androidx.compose.animation.AnimatedContent(
+                    targetState = posterIdx to posterWords,
+                    contentKey = { it.first to it.second },
+                    transitionSpec = {
+                        // the new line rises into the middle while the old one lifts away and fades
+                        (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(420, delayMillis = 120)) +
+                            androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(520, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it / 3 } +
+                            androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(520, easing = androidx.compose.animation.core.FastOutSlowInEasing), initialScale = 0.94f))
+                            .togetherWith(
+                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(240)) +
+                                    androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(360, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it / 4 } +
+                                    androidx.compose.animation.scaleOut(androidx.compose.animation.core.tween(360), targetScale = 0.96f),
+                            )
+                    },
+                    label = "poster-words",
+                ) { (idx, w) ->
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            w.ifBlank { "\u266A" }, color = Color.White, fontSize = (if (w.length > 40) 30f else 38f).sp, lineHeight = (if (w.length > 40) 35f else 44f).sp,
+                            fontWeight = FontWeight.Black, maxLines = 5, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        val sub = if (idx >= 0) tr?.getOrNull(idx)?.takeIf { it.isNotBlank() && !it.equals(w, ignoreCase = true) } ?: rm?.getOrNull(idx) else null
+                        if (sub != null) Text(sub, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp).fillMaxWidth())
+                        val nextLine = if (idx >= 0) posterLines.getOrNull(idx + 1)?.text.orEmpty() else ""
+                        if (nextLine.isNotBlank()) Text(nextLine, color = Color.White.copy(alpha = 0.32f), fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 18.dp).fillMaxWidth())
+                    }
                 }
             }
             Spacer(Modifier.height(14.dp))

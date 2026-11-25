@@ -748,3 +748,12 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 174 — Edge-to-edge lyrics art, faded Now playing art, steady crossmix volume
 - Lyrics screen: the cover fills the top edge to edge (no circle) and melts into black at the bottom. Now playing: the cover fades into the background at its bottom edge (title and buttons stay solid); the grey card behind it is gone.
 - Crossmix: while two songs overlap their combined level is capped so it never rises above one song (beat-matched songs share kick and bass and were adding up louder mid-mix). `headroom()` in CrossmixStyles.kt now limits by amplitude as well as power.
+
+## Round 175 — Centred lyrics
+- Lyrics screen: the sung line now sits centred in the space between the top bar and the song details (text centred too), with the next line faint underneath and translation/readings under the sung line. New lines rise into the middle with a fade and soft scale while the old one lifts away.
+
+## Round 176 — Steady volume in the classic crossfade too
+- From an error report: the classic crossfade (used when you skip, or when a full mix isn't possible) logged old+new volumes such as 0.93 + 0.37 and 0.42 + 0.91, i.e. an equal-power curve whose two volumes add up to about 1.3 at the middle, so it swelled. XFade.gains now passes both volumes through the same headroom limit as Crossmix (R174), so the pair never sounds louder than one song. The same-song hand-over blend (linear) is unaffected.
+
+## Round 177 — Honest label for skip blends
+- The "A classic crossfade is running" notice also showed for a Blend skip (the Blend skips switch in the transitions sheet, off by default). It now says "A skip blend is running (Blend skips is on)" in that case.
