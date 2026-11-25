@@ -175,6 +175,8 @@ private class ArtKey(val id: Long, val bmp: Bitmap?, val done: Boolean)
 fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, onClose: () -> Unit) {
     var panel by remember { mutableStateOf(Panel.None) }
     var drag by remember { mutableFloatStateOf(0f) }
+    // closing: the whole player follows your finger down and drops off the screen on the same bouncy spring the lyrics page uses
+    var closeY by remember { mutableFloatStateOf(0f) }
     // 0 = folded into the mini player, 1 = open: the sheet grows out of the mini player and folds back into it (ui/player/MorphCover.kt)
     val openP = remember { androidx.compose.animation.core.Animatable(0f) }
     LaunchedEffect(Unit) { openP.animateTo(1f, androidx.compose.animation.core.spring(0.86f, 240f)) }
@@ -212,20 +214,21 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     val lyOpen = lyY < screenH - 0.5f
     var shut by remember { mutableStateOf(false) }
     // let go before the line: it springs back with a bounce; past it: it is thrown down the screen on the same spring, then closes
-    fun springBackPlayer() { val from = drag; dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { drag = value } } }
+    fun springBackPlayer() { val from = closeY; dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(0f, com.ubayanda.milonative.ui.components.Bounce.px()) { closeY = value } } }
     fun dismissPlayer() {
         if (shut) return
         shut = true
-        val from = drag
-        // folds the rest of the way into the mini player (the cover lands on its art), then closes
-        dragScope.launch { androidx.compose.animation.core.Animatable(from).animateTo(340f, androidx.compose.animation.core.spring(0.9f, 380f)) { drag = value }; onClose() }
+        val from = closeY
+        dragScope.launch {
+            var done = false
+            androidx.compose.animation.core.Animatable(0f).animateTo(1f, androidx.compose.animation.core.spring(0.424f, 200f, 0.002f)) {
+                closeY = if (value >= 1f) screenH else from + (screenH - from) * value
+                if (value >= 1f && !done) { done = true; onClose() }
+            }
+        }
     }
-    /** close from the back button / arrow: the sheet folds into the mini player */
-    fun foldAway() {
-        if (shut) return
-        shut = true
-        dragScope.launch { openP.animateTo(0f, androidx.compose.animation.core.spring(0.9f, 300f)); onClose() }
-    }
+    /** close from the back button / arrow: same drop as dragging it down */
+    fun foldAway() = dismissPlayer()
     var castOpen by remember { mutableStateOf(false) }
     if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
     // the cover for THIS song only (never the previous song's picture while the new one loads)
@@ -265,7 +268,13 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     BackHandler { if (lyOpen) lyTo(screenH) else if (panel != Panel.None) panel = Panel.None else foldAway() }
 
     val screenW = with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() }
-    Box(Modifier.fillMaxSize().sheetReveal({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, screenW, screenH, 0f).background(Milo.bg)) {
+    Box(Modifier.fillMaxSize().graphicsLayer {
+        translationY = closeY
+        if (closeY > 0f) {
+            val r = 36.dp.toPx() * (closeY / screenH * 8f).coerceIn(0f, 1f)
+            shape = RoundedCornerShape(topStart = r.toDp(), topEnd = r.toDp()); clip = true
+        }
+    }.sheetReveal({ com.ubayanda.milonative.ui.player.sheetProgress(openP.value, drag) }, screenW, screenH, 0f).background(Milo.bg)) {
         // Poster backdrop (Mochy Music): the song's colour fading into black, fully opaque
         val npAccent = vm.tint.collectAsState().value.let { if (it == 0) Milo.amber else Color(0xFF000000.toInt() or it) }
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(npAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))))
@@ -321,9 +330,9 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                         onVerticalDrag = { c, dy ->
                             if (!decided && dy != 0f) { decided = true; up = dy < 0f && drag <= 0f }
                             if (up) { c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) }
-                            else if (!shut) drag = (drag + dy).coerceAtLeast(0f)
+                            else if (!shut) closeY = (closeY + dy).coerceAtLeast(0f)
                         },
-                        onDragEnd = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) else if (drag > 220f) dismissPlayer() else springBackPlayer() },
+                        onDragEnd = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) else if (closeY > screenH * 0.16f) dismissPlayer() else springBackPlayer() },
                         onDragCancel = { if (up) lyTo(if (lyY < screenH * 0.88f) 0f else screenH) else springBackPlayer() },
                     )
                 }
@@ -578,7 +587,22 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                     shape = RoundedCornerShape(topStart = androidx.compose.foundation.shape.CornerSize(r), topEnd = androidx.compose.foundation.shape.CornerSize(r), bottomEnd = androidx.compose.foundation.shape.CornerSize(0f), bottomStart = androidx.compose.foundation.shape.CornerSize(0f))
                     clip = true
                 }) {
-                    LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading, { lyY }, { p -> lyTo(screenH); panel = p }) { lyTo(screenH) }
+                    Box(Modifier.fillMaxSize().pointerInput("lyrics-swipe-down") {
+                        // pull down anywhere on the page to close it; it follows the finger and springs back if you let go early
+                        var down = false
+                        var decided = false
+                        detectVerticalDragGestures(
+                            onDragStart = { lyJob?.cancel(); down = false; decided = false },
+                            onVerticalDrag = { c, dy ->
+                                if (!decided && dy != 0f) { decided = true; down = dy > 0f }
+                                if (down) { c.consume(); lyY = (lyY + dy).coerceIn(0f, screenH) }
+                            },
+                            onDragEnd = { if (down) lyTo(if (lyY > screenH * 0.16f) screenH else 0f) },
+                            onDragCancel = { if (down) lyTo(0f) },
+                        )
+                    }) {
+                        LyricsPage(vm, t, ui, soft, lyrics, lyricsLoading, { lyY }, { p -> lyTo(screenH); panel = p }) { lyTo(screenH) }
+                    }
                     // grab this and pull down to close; it springs back if you let go early
                     Box(
                         Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp).width(140.dp).height(36.dp).pointerInput("lyrics-close") {
@@ -1227,7 +1251,9 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                         val sub = if (idx >= 0) tr?.getOrNull(idx)?.takeIf { it.isNotBlank() && !it.equals(w, ignoreCase = true) } ?: rm?.getOrNull(idx) else null
                         if (sub != null) Text(sub, color = Milo.amber, fontSize = 16.sp, lineHeight = 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp).fillMaxWidth())
                         val nextLine = if (idx >= 0) posterLines.getOrNull(idx + 1)?.text.orEmpty() else ""
+                        val thirdLine = if (idx >= 0) posterLines.getOrNull(idx + 2)?.text.orEmpty() else ""
                         if (nextLine.isNotBlank()) Text(nextLine, color = Color.White.copy(alpha = 0.32f), fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 18.dp).fillMaxWidth())
+                        if (thirdLine.isNotBlank()) Text(thirdLine, color = Color.White.copy(alpha = 0.18f), fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 10.dp).fillMaxWidth())
                     }
                 }
             }

@@ -760,3 +760,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 178 — Release gate: unit test updated
 - CoreLogicTest.crossfadeCurves still asserted an exact equal-power sum (a² + b² = 1) at the midpoint; since R176 the pair is held below one song's level on purpose, so the test now checks a² + b² ≤ 1, a + b ≤ 1.12 and a symmetric midpoint. Endpoints and the linear curve are still checked exactly.
+
+## Round 179 — Third lyric line, swipe-down close, same close drop on Now playing
+- Lyrics screen: a third (fainter) line under the next line; pulling down anywhere on the page now closes it (it follows the finger, springs back if let go early).
+- Now playing: closing (drag down, back arrow, back button) now uses the lyrics page's drop: the whole screen follows the finger down with rounded top corners and falls off the screen on the same bouncy spring, instead of shrinking into the mini player. Opening is unchanged.
