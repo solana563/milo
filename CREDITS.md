@@ -744,3 +744,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 173 — Lyrics screen opaque
 - The lyrics screen's backdrop began with a translucent colour, so Now playing (buttons, playback controls) showed through while dragging it down. It now sits on solid black first, then the Poster colour gradient.
+
+## Round 174 — Edge-to-edge lyrics art, faded Now playing art, steady crossmix volume
+- Lyrics screen: the cover fills the top edge to edge (no circle) and melts into black at the bottom. Now playing: the cover fades into the background at its bottom edge (title and buttons stay solid); the grey card behind it is gone.
+- Crossmix: while two songs overlap their combined level is capped so it never rises above one song (beat-matched songs share kick and bass and were adding up louder mid-mix). `headroom()` in CrossmixStyles.kt now limits by amplitude as well as power.

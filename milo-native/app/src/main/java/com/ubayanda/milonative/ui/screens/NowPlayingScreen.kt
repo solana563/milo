@@ -285,7 +285,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
         }) {
             // art: edge to edge, swipe down anywhere on it to go back
             Box(
-                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.background(Milo.card2).pointerInput("double-tap") {
+                Modifier.fillMaxWidth().weight(1f).onGloballyPositioned { if (drag <= 0f) { morphArt = it.boundsInWindow(); com.ubayanda.milonative.ui.player.MorphTargets.fullArt = morphArt } }.pointerInput("double-tap") {
                     detectTapGestures(onDoubleTap = { off ->
                         if (!com.ubayanda.milonative.ui.player.PlayerGestures.doubleTap(npCtx)) return@detectTapGestures
                         val cur = uiNow
@@ -333,7 +333,12 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
                 androidx.compose.animation.AnimatedContent(
                     targetState = ArtKey(t.id, cover, coverDone),
                     contentKey = { it.id },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()
+                        .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(Brush.verticalGradient(0f to Color.Black, 0.6f to Color.Black, 1f to Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                        },
                     transitionSpec = {
                         val d = vm.player.navDir
                         (androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(420, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { (it * 0.22f * d).toInt() } +
@@ -1101,14 +1106,12 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val posterAccent = if (tintNow == 0) Milo.amber else Color(0xFF000000.toInt() or tintNow)
     Box(Modifier.fillMaxSize().background(Color.Black).background(Brush.verticalGradient(listOf(posterAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))).clickable(enabled = false) {}) {
         // Poster: the cover as a great circle swung in from the top-left
-        // the cover is solid at the top and melts into the black, the way the green does
-        val posterC = posterW * 1.3f
-        com.ubayanda.milonative.ui.components.Cover(vm, t, posterC, posterC / 2, px = 700, modifier = Modifier
-            .offset(x = -(posterC * 0.28f), y = -(posterC * 0.22f)).clip(CircleShape)
+        // the cover fills the top edge to edge and melts into the black at the bottom
+        com.ubayanda.milonative.ui.components.Cover(vm, t, posterW, 0.dp, px = 900, modifier = Modifier
             .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
             .drawWithContent {
                 drawContent()
-                drawRect(Brush.verticalGradient(0f to Color.Black, 0.78f to Color.Black, 1f to Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
+                drawRect(Brush.verticalGradient(0f to Color.Black, 0.55f to Color.Black, 1f to Color.Transparent), blendMode = androidx.compose.ui.graphics.BlendMode.DstIn)
             })
         Box(Modifier.fillMaxWidth().height(posterW * 0.3f).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp, vertical = 12.dp)) {

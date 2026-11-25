@@ -466,7 +466,12 @@ internal fun entryHighPass(p: Float, topHz: Float, openBy: Float): Float {
 /** what each song's level is multiplied by while both play: two loud songs at once would add up past full scale, so together they're brought down to the loudness of one */
 fun headroom(own: Float, other: Float): Float {
     val power = own * own + other * other
-    return if (power > 1f) 1f / sqrt(power) else 1f
+    val byPower = if (power > 1f) 1f / sqrt(power) else 1f
+    // beat-matched songs share their kick and bass, so they add up closer to straight amplitude than to power: keep the two together from ever
+    // sounding louder than one song, so the volume never swells in the middle of a mix
+    val sum = own + other
+    val byLevel = if (sum > 1.12f) 1.12f / sum else 1f
+    return minOf(byPower, byLevel)
 }
 
 fun FxParams.recede(distance: Float, side: Float, room: Float = 1f) {
