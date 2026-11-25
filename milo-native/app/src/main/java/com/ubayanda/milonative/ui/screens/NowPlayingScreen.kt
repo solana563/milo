@@ -1099,7 +1099,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     fun card(lines: List<String>) = com.ubayanda.milonative.data.ShareCard.share(ctx, t.title, t.artist, lines, coverBmp, tintNow)
     val posterW = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
     val posterAccent = if (tintNow == 0) Milo.amber else Color(0xFF000000.toInt() or tintNow)
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(posterAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))).clickable(enabled = false) {}) {
+    Box(Modifier.fillMaxSize().background(Color.Black).background(Brush.verticalGradient(listOf(posterAccent.copy(alpha = 0.55f), Color(0xFF080809), Color.Black))).clickable(enabled = false) {}) {
         // Poster: the cover as a great circle swung in from the top-left
         // the cover is solid at the top and melts into the black, the way the green does
         val posterC = posterW * 1.3f

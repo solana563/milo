@@ -741,3 +741,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 172 — Art card off, lyrics cover fade
 - Now playing: the song art no longer has rounded bottom corners (the card shape); nothing else on that screen changed. Lyrics screen: the cover stays solid until about three-quarters down, then melts into the black.
+
+## Round 173 — Lyrics screen opaque
+- The lyrics screen's backdrop began with a translucent colour, so Now playing (buttons, playback controls) showed through while dragging it down. It now sits on solid black first, then the Poster colour gradient.
