@@ -456,5 +456,6 @@ fun MiloApp(vm: MainViewModel) {
         newFor?.let { t ->
             NameDialog("New playlist", "", "Create", { n -> vm.createPlaylist(n, t.id); newFor = null }, { newFor = null })
         }
+        com.ubayanda.milonative.ui.components.UpdatePrompt()
     }
 }

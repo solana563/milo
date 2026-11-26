@@ -794,3 +794,7 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 188 — island-style mini visualiser
 - The two small visualisers (Home card, Now playing) are now `MiniWave`: seven thin rounded white bars centred on one line, like the iPhone island waveform. The full-screen visualiser page is unchanged.
+
+## Round 189 — update available + release pipeline
+- In-app update message: a few seconds after launch milo. checks the newest GitHub Release (milo.apk) and offers Download / Not now when it is newer. Off in the F-Droid build. New `UpdateChecker`, `UpdatePrompt`, BuildConfig `SELF_UPDATE` / `UPDATE_REPO`.
+- Workflow: a `v*` tag publishes milo.apk and its SHA-256 on a GitHub Release (only when the release signing key is set). See docs/RELEASING.md.

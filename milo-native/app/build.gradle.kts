@@ -19,6 +19,9 @@ android {
         minSdk = 26
         targetSdk = 34
         buildConfigField("boolean", "LITE", "false")
+        // update check: reads the newest GitHub Release of the repo the app was built from (CI sets GITHUB_REPOSITORY; or set MILO_UPDATE_REPO)
+        buildConfigField("boolean", "SELF_UPDATE", "true")
+        buildConfigField("String", "UPDATE_REPO", "\"" + (System.getenv("MILO_UPDATE_REPO") ?: System.getenv("GITHUB_REPOSITORY") ?: "") + "\"")
         versionCode = (System.getenv("MILO_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("MILO_VERSION_NAME") ?: "1.0"
     }
@@ -41,7 +44,7 @@ android {
             dimension = "store"
             signingConfig = signingConfigs.getByName(if (releaseKey != null) "release" else "debug")
         }
-        create("fdroid") { dimension = "store" }
+        create("fdroid") { dimension = "store"; buildConfigField("boolean", "SELF_UPDATE", "false") }   // F-Droid updates the app itself
         // "lite": a separate, lighter app for Android 8+ phones. Chat stays; Cast, widgets, visualiser and liquid glass are left out.
         create("lite") {
             dimension = "store"
