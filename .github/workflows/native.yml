@@ -251,3 +251,43 @@ jobs:
         if: always()
         shell: bash
         run: rm -f "$RUNNER_TEMP"/fbsa.* "$RUNNER_TEMP"/fb.* 2>/dev/null || true
+
+  # A version tag (v1.2.3) publishes the signed release APK as milo.apk on a GitHub Release. The website's download button and the app's
+  # "update available" message both read that release. Only runs when the release signing key is set, so an update can always install over the old app.
+  release:
+    needs: apk
+    if: startsWith(github.ref, 'refs/tags/v') && needs.apk.outputs.tests == 'success' && needs.apk.outputs.rel == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      HAS_KEY: ${{ secrets.MILO_KEYSTORE_B64 != '' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Release signing key check
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then echo "::warning::MILO_KEYSTORE_B64 is not set, so no GitHub Release was published (a debug-signed APK could not update later releases)."; fi
+      - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
+      - uses: actions/download-artifact@v4
+        if: env.HAS_KEY == 'true'
+        with:
+          name: milo-native-release-apk
+          path: rel
+      - name: Publish the GitHub Release
+        if: env.HAS_KEY == 'true'
+        shell: bash
+        run: |
+          set -e
+          cd rel
+          APK=$(ls *.apk | head -1)
+          mv "$APK" milo.apk
+          sha256sum milo.apk | tee milo.apk.sha256
+          PRE=""; case "$GITHUB_REF_NAME" in *-*) PRE="--prerelease" ;; esac
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" milo.apk milo.apk.sha256 --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" milo.apk milo.apk.sha256 --title "milo. ${GITHUB_REF_NAME#v}" --generate-notes $PRE
+          fi
+          { echo "### Published"; echo "Release $GITHUB_REF_NAME with milo.apk"; echo; echo '```'; cat milo.apk.sha256; echo '```'; echo "Paste that checksum into the website's src/site.ts (apkSha256) if you want it shown on the page."; } >> "$GITHUB_STEP_SUMMARY"
