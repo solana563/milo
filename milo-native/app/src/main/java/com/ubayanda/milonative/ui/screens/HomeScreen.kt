@@ -293,7 +293,7 @@ private fun PlayerCard(vm: MainViewModel, tracks: List<Track>, ui: PlayerUi, sca
                         Text(if (liked) "Liked" else "Like", color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                     }
                     if (ui.isPlaying && !com.ubayanda.milonative.BuildConfig.LITE) {
-                        com.ubayanda.milonative.ui.components.SpectrumView(Milo.amber, Modifier.width(64.dp), height = 34.dp, style = 0)
+                        com.ubayanda.milonative.ui.components.MiniWave(height = 30.dp)
                     }
                 }
             } else {

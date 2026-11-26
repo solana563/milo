@@ -30,6 +30,14 @@ class ArtLoader(private val context: Context) {
         else -> 1000
     }
 
+    /** The cover only if it is already in memory (no loading), so a screen can show it on its very first frame. */
+    fun peek(t: Track, px: Int = 640): Bitmap? {
+        val b = bucket(px)
+        val mine = SongCover.file(context, t.id)
+        if (mine.exists()) return cache.get("c${t.id}:$b:${mine.lastModified()}")
+        return cache.get("${key(t)}:$b")
+    }
+
     /** Cover at roughly [px] pixels, or null when the song has no art. */
     suspend fun cover(t: Track, px: Int = 640): Bitmap? = withContext(Dispatchers.IO) {
         val b = bucket(px)
@@ -126,7 +134,7 @@ class ArtLoader(private val context: Context) {
         } catch (e: Exception) {
             null
         } finally {
-            try { r.release() } catch (_: Exception) {}
+            try { r.release() } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         }
     }
 

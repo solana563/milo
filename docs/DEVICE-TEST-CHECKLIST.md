@@ -294,3 +294,5 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - [ ] R184: full app installs and runs on Android 8–9; bottom nav shows 6 tabs without crowding; Friends tab lists friends, opens a chat, Back returns to the list then Home
 - R185: visualiser beside Liked pill (Home) and bottom-right (Now playing) only while playing; play button spins while a song buffers (try a YouTube song on a slow network).
 - R186: lyrics screen current line is bigger and pops in with a spring + glow; check long lines still fit (5 lines max).
+- R187: change songs (and let crossmix change them) with the Now playing screen open: the new cover should slide in already drawn, no blank flash.
+- R188: the small visualisers look like the iPhone island waveform (7 thin white rounded bars, centred).

@@ -788,3 +788,9 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 186 — current lyric pops
 - Lyrics screen: the line being sung is larger (48sp, 40sp for long lines, 34sp for very long), arrives with a springy overshoot and has a soft accent glow. Next/third lines unchanged.
+
+## Round 187 — no cover stutter on song change
+- Now playing: the next song's art (and its soft copy) is decoded ahead of time, and a cover already in memory shows on the first frame, so the art no longer flashes blank/shimmer before popping in when the song changes. New `ArtLoader.peek`.
+
+## Round 188 — island-style mini visualiser
+- The two small visualisers (Home card, Now playing) are now `MiniWave`: seven thin rounded white bars centred on one line, like the iPhone island waveform. The full-screen visualiser page is unchanged.

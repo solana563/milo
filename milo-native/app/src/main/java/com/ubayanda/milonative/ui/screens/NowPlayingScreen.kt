@@ -233,8 +233,16 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
     if (castOpen) com.ubayanda.milonative.ui.components.CastDialog { castOpen = false }
     // the cover for THIS song only (never the previous song's picture while the new one loads)
     val coverPair by androidx.compose.runtime.produceState<Pair<Long, Bitmap?>>(t.id to null, t.id) { value = t.id to vm.art.cover(t, 1000) }
-    val cover = if (coverPair.first == t.id) coverPair.second else null
-    val coverDone = coverPair.first == t.id
+    // a song whose art is already in memory shows it on the very first frame (no blank/shimmer flash while it loads)
+    val peeked = remember(t.id) { vm.art.peek(t, 1000) }
+    val cover = if (coverPair.first == t.id) coverPair.second else peeked
+    val coverDone = coverPair.first == t.id || peeked != null
+    // get the next song's art ready in the background, so changing songs never waits on a decode
+    LaunchedEffect(ui.queueIds, ui.queueIndex) {
+        val nxt = vm.trackById(ui.queueIds.getOrNull(ui.queueIndex + 1)) ?: return@LaunchedEffect
+        vm.art.cover(nxt, 1000)
+        vm.art.soft(nxt)
+    }
     val soft = rememberSoft(vm, t).value
     // double-tap the art: left = back 10 s, right = forward 10 s, middle = play / pause
     val uiNow by rememberUpdatedState(ui)
@@ -433,9 +441,7 @@ fun NowPlayingScreen(vm: MainViewModel, t: Track, ui: PlayerUi, liked: Boolean, 
 
 
                 if (ui.isPlaying && !com.ubayanda.milonative.BuildConfig.LITE) {
-                    com.ubayanda.milonative.ui.components.SpectrumView(
-                        Milo.amber, Modifier.align(Alignment.BottomEnd).padding(end = Sp.gutter, bottom = Sp.x6).width(72.dp), height = 36.dp, style = 0,
-                    )
+                    com.ubayanda.milonative.ui.components.MiniWave(Modifier.align(Alignment.BottomEnd).padding(end = Sp.gutter, bottom = Sp.x6), height = 34.dp)
                 }
                 androidx.compose.animation.AnimatedContent(
                     targetState = t, contentKey = { it.id },
