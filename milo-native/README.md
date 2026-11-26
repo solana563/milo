@@ -1,5 +1,11 @@
 # milo. native (Kotlin + Jetpack Compose) — release 1
 
+<div align="center">
+<img src="../docs/native-home.jpg" width="24%" alt="Home"> <img src="../docs/native-playing.jpg" width="24%" alt="Now playing"> <img src="../docs/native-lyrics.jpg" width="24%" alt="Lyrics"> <img src="../docs/native-library.jpg" width="24%" alt="Library">
+</div>
+
+Runs on **Android 8.0 and up**.
+
 A real Android app (not a web wrapper). It reads music **directly** from the phone, SD card and USB drives through
 Android's MediaStore, so there is no uploading, no "link a folder" and no file picker.
 
@@ -12,13 +18,13 @@ Android's MediaStore, so there is no uploading, no "link a folder" and no file p
 > The workflow also builds a minified **release** APK (`milo-native-release-apk`), which scrolls much more smoothly than debug.
 
 ## What's in this version
-- Looks like the web milo.: black header with the logo, rounded panel, amber accent, Figtree font, pill nav, bordered cards.
+- Looks: iOS-style glass buttons and a floating tab bar (Home, Search, Explore, Library, Friends, Profile), your own accent colour or one that follows the song, Figtree font.
 - First screen explains and asks for audio access (and notifications on Android 13+). If Android stops asking, a button opens Settings.
 - Whole library read in place from the phone, SD card and USB drives; refreshes itself when you plug one in.
 - Songs A to Z with letter headers and a letter rail; Albums; Artists; Playlists; Search.
 - **Playlists**: create, rename, delete, add any song from its "⋮" menu. **Liked songs** page. Play next / Add to queue / Share on every song.
-- **Now Playing** like your mockup: edge-to-edge art, four round buttons (Queue, Like, Sound, More), progress bar, shuffle / prev / play / next / repeat.
-- **Lyrics**: tap or drag up the handle. Synced lines follow the song and tap-to-seek (from lrclib.net, same as the web app; needs internet the first time per song).
+- **Now Playing**: edge-to-edge art fading to black, a row of round buttons (Like, Save, Queue, Sound, Timer, Visual, More), a live mini waveform, progress bar and playback controls. The play button spins while a song buffers.
+- **Lyrics**: swipe up from Now playing (swipe down to close). The line being sung is large and centred with the next two lines fading below it. Synced lines follow the song and tap-to-seek (from lrclib.net, same as the web app; needs internet the first time per song).
 - **Sound**: speed, 8 equaliser presets, per-band sliders, bass boost and spatial (uses the phone's own audio effects).
 - Sleep timer (More menu), background playback with notification and lock-screen controls.
 

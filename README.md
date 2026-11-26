@@ -45,7 +45,7 @@ Your library, the YouTube Music catalogue, live radio and word-by-word karaoke l
 <img src="docs/web-welcome.jpg" width="23%" alt="Web welcome screen">
 </div>
 
-<sub>Screenshots are from the native Android app (and the web welcome screen). The native app has a newer design system since these were taken; replace the files in `docs/` with fresh captures any time.</sub>
+<sub>The top row (Home, Now playing, Library, Lyrics) is the current native Android app. Discover, Profile and the web welcome screen are older captures; replace the files in `docs/` with fresh ones any time.</sub>
 
 ## 🤖 Native Android app (Kotlin + Jetpack Compose)
 
@@ -56,6 +56,10 @@ Found in `milo-native/` (package `com.ubayanda.milonative`), built by the **Buil
 - **Online:** radio, previews, YouTube search, Navidrome/Subsonic server, lyrics (synced) with translation and lyric share cards.
 - **Social:** messenger-style chats with photos, voice notes, replies, reactions, friend profiles and "listening now"; cloud sync of likes and playlists.
 - **Extras:** listening insights, backup/restore, car mode, profile photo and cover, and three home-screen widgets (4×2 player, 4×1 slim bar, 2×2 cover).
+
+- **Looks:** glass controls, a floating tab bar (Home, Search, Explore, Library, Friends, Profile), a poster-style lyrics screen with the cover fading up from black, a small live waveform on the Now playing card, and accents that follow the song or the colour you pick.
+- **Crossmix:** songs flow into each other with beat-matched transitions instead of stopping.
+- **Runs on Android 8.0 and up.**
 
 See [`milo-native/README.md`](milo-native/README.md) for building it.
 
