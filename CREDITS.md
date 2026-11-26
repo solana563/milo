@@ -798,3 +798,6 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 ## Round 189 — update available + release pipeline
 - In-app update message: a few seconds after launch milo. checks the newest GitHub Release (milo.apk) and offers Download / Not now when it is newer. Off in the F-Droid build. New `UpdateChecker`, `UpdatePrompt`, BuildConfig `SELF_UPDATE` / `UPDATE_REPO`.
 - Workflow: a `v*` tag publishes milo.apk and its SHA-256 on a GitHub Release (only when the release signing key is set). See docs/RELEASING.md.
+
+## Round 190 — mini visualiser adapts to loud music
+- MiniWave now follows the song instead of pinning at full height on loud, bass-heavy tracks (amapiano, house): 9 thinner bars with more gap, a slow loudness reference, a response curve, a beat lift, fast rise / slow fall, taller middle, and a top and bottom margin.

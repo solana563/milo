@@ -297,3 +297,4 @@ Devices: ☐ Android 8–9 (Lite) ☐ Android 12 ☐ Android 14+ ☐ low-RAM pho
 - R187: change songs (and let crossmix change them) with the Now playing screen open: the new cover should slide in already drawn, no blank flash.
 - R188: the small visualisers look like the iPhone island waveform (7 thin white rounded bars, centred).
 - R189: install an older tagged build, publish a newer v* release, reopen the app: after ~4 s an Update available dialog appears; Download opens the APK; Not now hides that version.
+- R190: play a loud amapiano track: the small waveform bars should move up and down with the beat, not sit at full height; quiet songs should look calmer.
