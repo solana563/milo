@@ -25,6 +25,7 @@ object YtMusic {
     private data class Client(
         val name: String, val version: String, val id: String, val ua: String,
         val os: String? = null, val osVersion: String? = null, val make: String? = null, val model: String? = null,
+        val sdk: Int? = null,
     )
 
     private var remix = Client(
@@ -36,6 +37,20 @@ object YtMusic {
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
         "visionOS", "1.3.21O771", "Apple", "RealityDevice14,1",
     )
+
+    /** Other client identities tried for a song when the first one is refused (an error 400 means YouTube changed what it accepts from one). */
+    private val androidVr = Client(
+        "ANDROID_VR", "1.65.10", "28",
+        "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+        "Android", "12L", "Oculus", "Quest 3", 32,
+    )
+    private val ios = Client(
+        "IOS", "20.10.4", "5",
+        "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)",
+        "iPhone", "18.3.2.22D82", "Apple", "iPhone16,2",
+    )
+    @Volatile private var goodClient = 0   // index into streamClients() of the one that worked last
+    private fun streamClients(): List<Client> = listOf(vision, androidVr, ios)
 
     const val STREAM_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
@@ -117,6 +132,7 @@ object YtMusic {
         val (hl, gl) = locale()
         val cl = JSONObject().put("clientName", c.name).put("clientVersion", c.version).put("gl", gl).put("hl", hl)
         if (c.os != null) cl.put("osName", c.os).put("osVersion", c.osVersion).put("deviceMake", c.make).put("deviceModel", c.model)
+        if (c.sdk != null) cl.put("androidSdkVersion", c.sdk)
         if (visitor.isNotEmpty()) cl.put("visitorData", visitor)
         return JSONObject().put("client", cl)
             .put("request", JSONObject().put("internalExperimentFlags", JSONArray()).put("useSsl", true))
@@ -146,18 +162,22 @@ object YtMusic {
         ensureVisitor()
         body.put("context", ctx(c))
         val (hl, _) = locale()
-        val rb = Request.Builder().url(BASE + path + "?prettyPrint=false")
+        val app = c.os == "Android" || c.os == "iPhone"   // phone-app identities talk to the main host and send no web origin
+        val rb = Request.Builder().url((if (app) "https://www.youtube.com/youtubei/v1/" else BASE) + path + "?prettyPrint=false")
             .header("Content-Type", "application/json").header("Accept", "application/json")
             .header("X-Goog-Api-Format-Version", "1")
             .header("X-YouTube-Client-Name", c.id).header("X-YouTube-Client-Version", c.version)
-            .header("X-Origin", "https://music.youtube.com").header("Referer", "https://music.youtube.com/")
             .header("User-Agent", c.ua)
+        if (!app) rb.header("X-Origin", "https://music.youtube.com").header("Referer", "https://music.youtube.com/")
             .header("Accept-Language", if (hl == "en") "en-US,en;q=0.9" else "$hl,en;q=0.5")
         if (visitor.isNotEmpty()) rb.header("X-Goog-Visitor-Id", visitor)
         val req = rb.post(body.toString().toRequestBody(JSON)).build()
         http.newCall(req).execute().use { r ->
             val tx = r.body?.string().orEmpty()
-            if (!r.isSuccessful) throw IllegalStateException("milo. Stream answered ${r.code}")
+            if (!r.isSuccessful) {
+                com.ubayanda.milonative.util.ErrorLog.add("stream-http", c.name + " v" + c.version + " " + path + " -> " + r.code + " " + tx.replace(Regex("\\s+"), " ").take(160))
+                throw IllegalStateException("milo. Stream answered ${r.code}")
+            }
             return JSONObject(tx)
         }
     }
@@ -242,7 +262,7 @@ object YtMusic {
         val radioId: String, val isCollage: Boolean,
     )
 
-    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int, val loudnessDb: Double = 0.0, val title: String = "", val author: String = "")
+    data class Stream(val url: String, val mime: String, val expiresAt: Long, val durationSec: Int, val loudnessDb: Double = 0.0, val title: String = "", val author: String = "", val ua: String = STREAM_UA)
 
     private fun songOf(n: JSONObject): Song? {
         val cols = n.optJSONArray("flexColumns")
@@ -430,15 +450,29 @@ object YtMusic {
 
     fun stream(videoId: String, force: Boolean = false, low: Boolean = false): Stream {
         if (!low) streams[videoId]?.let { if (!force && it.expiresAt > System.currentTimeMillis() + 90_000L) return it }
-        val j = post("player", JSONObject().put("videoId", videoId).put("contentCheckOk", true).put("racyCheckOk", true), vision)
+        // the usual identity first (the one that worked last); when YouTube refuses it (400 and the like) the next identity is tried
+        val all = streamClients(); val order = (listOf(goodClient.coerceIn(0, all.lastIndex)) + all.indices.filter { it != goodClient })
+        var firstErr: Exception? = null
+        for (k in order) {
+            try {
+                val s = streamWith(videoId, low, all[k])
+                if (!low) streams[videoId] = s
+                if (k != goodClient) { goodClient = k; com.ubayanda.milonative.util.ErrorLog.add("stream-http", "now using " + all[k].name) }
+                return s
+            } catch (e: Exception) { if (firstErr == null) firstErr = e }
+        }
+        throw firstErr ?: java.io.IOException("no stream")
+    }
+
+    private fun streamWith(videoId: String, low: Boolean, c: Client): Stream {
+        val j = post("player", JSONObject().put("videoId", videoId).put("contentCheckOk", true).put("racyCheckOk", true), c)
         val ps = j.optJSONObject("playabilityStatus")
         val status = ps?.optString("status").orEmpty()
         if (status.isNotEmpty() && status != "OK") throw java.io.IOException(ps?.optString("reason").orEmpty().ifEmpty { status })
         val sd = j.optJSONObject("streamingData") ?: throw java.io.IOException("no stream data")
         val f = pick(sd, low) ?: throw java.io.IOException("no direct audio stream")
         val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
-        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic"))
-        if (!low) streams[videoId] = s
+        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic", ua = if (c === vision) STREAM_UA else c.ua)
         return s
     }
 

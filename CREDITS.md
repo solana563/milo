@@ -824,3 +824,10 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 - Everything a person reads in the app (search headings, Discover feed, Downloads, sessions, import text, errors, Profile source, What's new, tour) now says "milo. Stream" instead of YouTube / YouTube Music. Old saved songs whose album was "YouTube" or "YouTube Music" still display correctly.
 - Website and README wording changed too; the site footer now says milo. is a personal, non-commercial project for the maker, family and friends.
 - Kept as they are because they are technical, not wording: web addresses, request headers, the "yt:" song address, and the label of the optional Google API key.
+
+## Round 197 — crash fix: "Key d-… was already used"
+- Album / playlist / artist song lists crashed when the same song appeared twice in one list (for example an imported playlist). Each row now gets its own key, with a number added for a repeat. The search / Discover / YouTube-style lists got the same protection.
+
+## Round 198 — milo. Stream "answered 400": other identities as fallback
+- Every milo. Stream song failed with "answered 400" (the one identity used to ask for the audio link was refused). Looking up a song's audio now tries a second and third identity (an Android VR app, then an iPhone app) when the first is refused, remembers the one that worked, and plays / saves the song with that identity's own user-agent.
+- The error log now records which identity got which answer and the start of YouTube's reply (`[stream-http]` lines), so a report shows exactly what changed if all three are refused.

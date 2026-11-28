@@ -346,7 +346,7 @@ object OfflineStore {
             java.io.FileOutputStream(part, resumeAt > 0L).use { out ->
                 while (total < 0 || start < total) {
                     val end = start + PIECE - 1
-                    val req = Request.Builder().url(s.url).header("User-Agent", YtMusic.STREAM_UA).header("Range", "bytes=$start-$end").build()
+                    val req = Request.Builder().url(s.url).header("User-Agent", s.ua).header("Range", "bytes=$start-$end").build()
                     http.newCall(req).execute().use { r ->
                         if (r.code == 416 && total < 0) { start = 0L; throw IOException("Resume point rejected, will start again") }
                         if (r.code != 206 && r.code != 200) throw IOException("milo. Stream answered ${r.code}")

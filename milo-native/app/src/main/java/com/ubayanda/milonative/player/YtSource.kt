@@ -38,7 +38,7 @@ object YtSource {
             }
             return dataSpec.buildUpon()
                 .setUri(Uri.parse(s.url))
-                .setHttpRequestHeaders(dataSpec.httpRequestHeaders + ("User-Agent" to YtMusic.STREAM_UA))
+                .setHttpRequestHeaders(dataSpec.httpRequestHeaders + ("User-Agent" to s.ua))
                 .build()
         }
     }
