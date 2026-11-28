@@ -472,7 +472,7 @@ object YtMusic {
         val sd = j.optJSONObject("streamingData") ?: throw java.io.IOException("no stream data")
         val f = pick(sd, low) ?: throw java.io.IOException("no direct audio stream")
         val secs = sd.optString("expiresInSeconds").toLongOrNull() ?: 18_000L
-        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic", ua = if (c === vision) STREAM_UA else c.ua)
+        val s = Stream(f.getString("url"), f.optString("mimeType"), System.currentTimeMillis() + secs * 1000L, j.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toIntOrNull() ?: 0, j.optJSONObject("playerConfig")?.optJSONObject("audioConfig")?.optDouble("loudnessDb", 0.0) ?: 0.0, j.optJSONObject("videoDetails")?.optString("title").orEmpty(), j.optJSONObject("videoDetails")?.optString("author").orEmpty().removeSuffix(" - Topic"), ua = if (c === vision) STREAM_UA else c.ua)
         return s
     }
 
