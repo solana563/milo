@@ -138,7 +138,7 @@ fun DownloadManagerScreen(vm: com.ubayanda.milonative.ui.MainViewModel, onClose:
             }
         }
         item { Text("Saved on this phone · " + items.size, color = Milo.dim, style = Ty.label, modifier = Modifier.padding(top = 4.dp)) }
-        if (items.isEmpty()) item { Text("Nothing saved yet. Open a YouTube song's menu and choose Download, or use Download on an album or playlist.", color = Milo.dim, style = Ty.caption) }
+        if (items.isEmpty()) item { Text("Nothing saved yet. Open a milo. Stream song's menu and choose Download, or use Download on an album or playlist.", color = Milo.dim, style = Ty.caption) }
         // kept the way they were downloaded: each playlist, album and artist together, then songs saved one by one
         val groups = items.groupBy { it.gKind to it.gName }.entries.sortedWith(
             compareBy({ when (it.key.first) { "playlist" -> 0; "album" -> 1; "artist" -> 2; else -> 3 } }, { -(it.value.maxOfOrNull { x -> x.at } ?: 0L) })
@@ -173,9 +173,9 @@ fun DownloadManagerScreen(vm: com.ubayanda.milonative.ui.MainViewModel, onClose:
         item {
             Column(Modifier.fillMaxWidth().clip(card).background(Milo.card2).padding(16.dp)) {
                 Text("What's what", color = Milo.text, style = Ty.heading)
-                Text("Downloaded: YouTube songs saved here with Download. They play with no connection.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp))
+                Text("Downloaded: milo. Stream songs saved here with Download. They play with no connection.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp))
                 Text("On this phone: your own music files. They always work offline.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp))
-                Text("Streaming only: any other YouTube song. It needs a connection and is not stored.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp))
+                Text("Streaming only: any other milo. Stream song. It needs a connection and is not stored.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }

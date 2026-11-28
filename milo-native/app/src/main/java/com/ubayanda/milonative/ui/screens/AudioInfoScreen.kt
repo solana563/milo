@@ -60,7 +60,7 @@ fun AudioInfoScreen(vm: MainViewModel, onClose: () -> Unit) {
                         when {
                             cur == null -> "Nothing is playing."
                             i != null -> AudioCaps.mimeLabel(i.mime) + (if (i.rate > 0) " · ${i.rate / 1000.0} kHz" else "") + (if (i.channels > 0) " · ${if (i.channels == 1) "mono" else if (i.channels == 2) "stereo" else i.channels.toString() + " ch"}" else "") + (if (i.kbps > 0) " · ${i.kbps} kbps" else "")
-                            cur.uri.startsWith("yt:") || cur.uri.startsWith("http") -> "Streamed: YouTube picks the format and quality when the song starts."
+                            cur.uri.startsWith("yt:") || cur.uri.startsWith("http") -> "Streamed: milo. Stream picks the format and quality when the song starts."
                             else -> "This file's format couldn't be read."
                         }, color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp),
                     )

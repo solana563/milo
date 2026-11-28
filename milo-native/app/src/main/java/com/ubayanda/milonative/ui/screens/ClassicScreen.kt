@@ -169,7 +169,7 @@ fun ClassicApp(vm: MainViewModel) {
         is Scr.PlaylistOf -> trackRows(pls.firstOrNull { it.id == s.id }?.trackIds.orEmpty().mapNotNull { byId[it] })
         Scr.Search -> {
             val k = q.trim()
-            if (k.length < 2) listOf(CRow("Type to search", "Your songs and YouTube Music") {})
+            if (k.length < 2) listOf(CRow("Type to search", "Your songs and milo. Stream") {})
             else {
                 val mine = songs.filter { it.title.contains(k, true) || it.artist.contains(k, true) || it.album.contains(k, true) }.take(60)
                 val ids = mine.map { it.id }.toSet()
@@ -234,7 +234,7 @@ fun ClassicApp(vm: MainViewModel) {
             }
             if (top.scr == Scr.Search) {
                 val fr = remember { FocusRequester() }
-                LaunchedEffect(Unit) { try { fr.requestFocus() } catch (_: Throwable) {} }
+                LaunchedEffect(Unit) { try { fr.requestFocus() } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
                 BasicTextField(
                     value = q, onValueChange = { q = it; top.sel = 0 }, singleLine = true,
                     textStyle = TextStyle(color = Color(0xFF1F2329), fontSize = 16.sp), cursorBrush = SolidColor(Color(0xFF2F6FD1)),

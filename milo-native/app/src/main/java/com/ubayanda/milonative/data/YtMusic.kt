@@ -61,7 +61,7 @@ object YtMusic {
             val o = JSONObject(p.getString("ymc", "") ?: "")
             o.optJSONObject("REMIX")?.let { remix = remix.copy(version = it.optString("v", remix.version), ua = it.optString("ua", remix.ua)) }
             o.optJSONObject("VISION")?.let { vision = vision.copy(version = it.optString("v", vision.version)) }
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         refreshRemote(p)
     }
 
@@ -100,7 +100,7 @@ object YtMusic {
                 out.optJSONObject("REMIX")?.let { remix = remix.copy(version = it.optString("v", remix.version), ua = it.optString("ua", remix.ua)) }
                 out.optJSONObject("VISION")?.let { vision = vision.copy(version = it.optString("v", vision.version)) }
                 p.edit().putString("ymc", out.toString()).apply()
-            } catch (_: Exception) {}
+            } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         }.start()
     }
 
@@ -139,7 +139,7 @@ object YtMusic {
                     return
                 }
             }
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     private fun post(path: String, body: JSONObject, c: Client): JSONObject {
@@ -157,7 +157,7 @@ object YtMusic {
         val req = rb.post(body.toString().toRequestBody(JSON)).build()
         http.newCall(req).execute().use { r ->
             val tx = r.body?.string().orEmpty()
-            if (!r.isSuccessful) throw IllegalStateException("YouTube answered ${r.code}")
+            if (!r.isSuccessful) throw IllegalStateException("milo. Stream answered ${r.code}")
             return JSONObject(tx)
         }
     }
@@ -506,7 +506,7 @@ object YtMusic {
     fun loudness(videoId: String): Double = streams[videoId]?.loudnessDb ?: 0.0
 
     /** Look the stream up ahead of time so the next song starts without a pause. */
-    fun warm(videoId: String) { try { stream(videoId) } catch (_: Exception) {} }
+    fun warm(videoId: String) { try { stream(videoId) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
 
     // ---- into the app's own model ----
     private fun hashId(s: String): Long = (s.hashCode().toLong() and 0x7fffffffL)
@@ -515,7 +515,7 @@ object YtMusic {
     fun trackId(videoId: String): Long = -(1L + hashId("yt:$videoId"))
 
     /** Words that stand in when a song's real artist is not known. They must never be counted as an artist. */
-    val PLACEHOLDER_ARTISTS = setOf("", "youtube music", "youtube", "unknown artist")
+    val PLACEHOLDER_ARTISTS = setOf("", "youtube music", "youtube", "milo. stream", "unknown artist")
     fun isPlaceholder(artist: String) = artist.trim().lowercase() in PLACEHOLDER_ARTISTS
 
     /** The real artist / channel YouTube reports for a song that has been opened for playing (empty if not known yet). */
@@ -528,7 +528,7 @@ object YtMusic {
         val aid = 4_000_000_000_000L + (if (s.albumId.isNotEmpty()) hashId(s.albumId) else -id)
         return Track(
             id = id, uri = "yt:${s.id}", title = s.title, artist = s.artist.ifEmpty { artistFallback }.ifEmpty { "Unknown artist" },
-            album = s.album.ifEmpty { "YouTube Music" }, albumId = aid, durationMs = if (s.durationSec > 0) s.durationSec * 1000L else 1L,
+            album = s.album.ifEmpty { "milo. Stream" }, albumId = aid, durationMs = if (s.durationSec > 0) s.durationSec * 1000L else 1L,
             trackNo = 0, year = 0, addedSec = 0L, artUrl = cover,
         )
     }
@@ -570,10 +570,10 @@ object YtMusic {
             repeat(2) {
                 val tok = (findAll(j, "nextContinuationData").firstOrNull { it is JSONObject } as? JSONObject)?.optString("continuation").orEmpty()
                 if (tok.isEmpty()) return@repeat
-                try { j = post("browse", JSONObject().put("continuation", tok), remix); all.addAll(shelvesOf(j)) } catch (_: Exception) { return all }
+                try { j = post("browse", JSONObject().put("continuation", tok), remix); all.addAll(shelvesOf(j)) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); return all }
             }
             all
-        } catch (_: Exception) { emptyList() }
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() }
     }
 
     /** What the Home screen shows below your own music while you are online. */

@@ -312,7 +312,7 @@ class CrossmixDirector(
             if (rampMs > 0.0) {
                 if (!waitForOutgoing(outgoing, item, firstMoveMs - ArmLeadMs - rampMs)) return
                 host.crossmixBlocker()?.let { report(it); return }
-                report("Bringing this song up to the next one's tempo…")
+                report("Bringing this song up to the next one's tempo (+${((plan.outSpeed - 1f) * 1000).toInt() / 10f}% speed)…")
                 if (!rampOutgoing(outgoing, item, plan, base, firstMoveMs - ArmLeadMs)) return
             }
             prepareAndStart(outgoing, item, nextIndex, plan, base, firstMoveMs)

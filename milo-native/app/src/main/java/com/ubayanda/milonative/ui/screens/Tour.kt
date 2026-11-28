@@ -52,7 +52,7 @@ private class Page(val title: String, val body: String)
 
 private val PAGES = listOf(
     Page("Welcome to milo.", "Your music on this phone, plus a whole streaming catalogue when you're online. Offline, it's just your own library."),
-    Page("Home is a guide", "When you're connected, Home fills with recommended playlists, charts and artists from YouTube Music. Your own songs sit below it."),
+    Page("Home is a guide", "When you're connected, Home fills with recommended playlists, charts and artists from milo. Stream. Your own songs sit below it."),
     Page("Search finds anything", "One box for your songs, playlists, friends and online music. Type a lyric you remember and it looks for the song."),
     Page("Make it sound right", "Open the player and tap Sound for the equaliser, a five-band parametric EQ that remembers each pair of headphones, and loudness matching."),
     Page("Share the moment", "Add friends, chat, and start Listen together to hear the same song at the same spot. Your yearly recap is on Profile."),

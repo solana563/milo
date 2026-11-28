@@ -212,7 +212,7 @@ private fun PlaylistsList(
                 val msg = when {
                     r == null -> "Couldn't import that file."
                     r.onPhone + r.fromYoutube == 0 -> "None of those " + r.total + " songs were found."
-                    else -> "Imported " + (r.onPhone + r.fromYoutube) + " of " + r.total + " songs (" + r.onPhone + " on this phone, " + r.fromYoutube + " from YouTube Music)" + (if (r.missing > 0) ". " + r.missing + " not found." else ".")
+                    else -> "Imported " + (r.onPhone + r.fromYoutube) + " of " + r.total + " songs (" + r.onPhone + " on this phone, " + r.fromYoutube + " from milo. Stream)" + (if (r.missing > 0) ". " + r.missing + " not found." else ".")
                 }
                 android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_LONG).show()
             }
@@ -221,9 +221,9 @@ private fun PlaylistsList(
     val byId = remember(allTracks) { allTracks.associateBy { it.id } }
     LazyColumn(state = vm.mem.list("lib-playlists"), contentPadding = PaddingValues(bottom = bottomPad)) {
         item { IconRow(MiloIcons.Add, false, "New playlist", "Make your own mix", { creating = true }) }
-        item { IconRow(MiloIcons.Add, false, "Import a playlist", "An .m3u or .csv file; songs not on the phone are found on YouTube Music", { picker.launch(arrayOf("*/*")) }) }
+        item { IconRow(MiloIcons.Add, false, "Import a playlist", "An .m3u or .csv file; songs not on the phone are found on milo. Stream", { picker.launch(arrayOf("*/*")) }) }
         item { IconRow(MiloIcons.QueueMusic, false, "Import history", "What was imported and what wasn't found", { history = true }) }
-        item { IconRow(MiloIcons.Add, false, "Import from a link", "A public YouTube Music playlist", { linking = true }) }
+        item { IconRow(MiloIcons.Add, false, "Import from a link", "A public milo. Stream playlist", { linking = true }) }
         item { IconRow(MiloIcons.Favorite, true, "Liked songs", plural(likedCount, "song"), onLiked) }
         item { IconRow(MiloIcons.QueueMusic, false, "Most played", "Built from your listening", { onSmart("most") }) }
         item { IconRow(MiloIcons.QueueMusic, false, "Recently added", "Your newest songs", { onSmart("recent") }) }
@@ -253,7 +253,7 @@ private fun PlaylistsList(
                         Text(e.name, color = Milo.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp))
                         Text(
                             java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(e.at)) + " \u00b7 " +
-                                e.onPhone + " on this phone, " + e.fromYoutube + " from YouTube Music, " + e.missing.size + " not found",
+                                e.onPhone + " on this phone, " + e.fromYoutube + " from milo. Stream, " + e.missing.size + " not found",
                             color = Milo.dim, fontSize = 12.sp,
                         )
                         if (e.missing.isNotEmpty()) Text("Not found: " + e.missing.joinToString("; "), color = Milo.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))

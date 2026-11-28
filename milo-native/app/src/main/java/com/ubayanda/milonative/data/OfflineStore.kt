@@ -52,7 +52,7 @@ object OfflineStore {
     enum class State { QUEUED, ACTIVE, PAUSED, FAILED }
     data class Job(
         val id: String, val track: Track, val state: State, val error: String = "", val attempts: Int = 0,
-        val doneBytes: Long = 0L, val totalBytes: Long = 0L, val notBefore: Long = 0L, val source: String = "YouTube Music", val group: Group? = null,
+        val doneBytes: Long = 0L, val totalBytes: Long = 0L, val notBefore: Long = 0L, val source: String = "milo. Stream", val group: Group? = null,
     ) {
         /** Rough size until the real one is known: about 20 KB per second of music (about 6 with the data saver). */
         fun estimate(saver: Boolean): Long = if (totalBytes > 0) totalBytes else (track.durationMs / 1000L) * (if (saver) 6_000L else 20_000L)
@@ -107,7 +107,7 @@ object OfflineStore {
             if (cm.activeNetwork == null) "Waiting for a connection"
             else if (_settings.value.wifiOnly && cm.isActiveNetworkMetered) "Waiting for Wi-Fi"
             else ""
-        } catch (_: Exception) { "" }
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); "" }
     }
 
     /** Starts as many queued songs as there are free slots, unless the network says wait. */
@@ -203,7 +203,7 @@ object OfflineStore {
         val d = dir ?: return
         val a = JSONArray()
         _jobs.value.forEach { a.put(JSONObject().put("t", SavedStore.toJson(it.track)).put("s", it.state.name).put("e", it.error).put("gk", it.group?.kind ?: "").put("gn", it.group?.name ?: "")) }
-        try { File(d, "queue.json").writeText(a.toString()) } catch (_: Exception) {}
+        try { File(d, "queue.json").writeText(a.toString()) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     /** Songs that were still queued when the app closed come back paused, so nothing starts by surprise. */
@@ -220,7 +220,7 @@ object OfflineStore {
                 out.add(Job(id, t, if (failed) State.FAILED else State.PAUSED, if (failed) o.optString("e") else "", group = o.optString("gk").takeIf { it.isNotEmpty() }?.let { Group(it, o.optString("gn")) }))
             }
             _jobs.value = out
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     /** Drop the oldest saved songs until the saved total is at most [target] bytes. */
@@ -251,7 +251,7 @@ object OfflineStore {
                 override fun onCapabilitiesChanged(network: android.net.Network, nc: android.net.NetworkCapabilities) { pump() }
                 override fun onLost(network: android.net.Network) { pump() }
             })
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         try {
             val a = JSONArray(File(d, "index.json").takeIf { it.exists() }?.readText() ?: "[]")
             val out = ArrayList<Item>()
@@ -261,7 +261,7 @@ object OfflineStore {
                 if (f.exists()) out.add(Item(o.getString("id"), o.getString("title"), o.optString("artist"), o.optString("album"), o.optString("art"), o.optLong("d"), o.getString("file"), f.length(), o.optLong("at"), o.optString("gk"), o.optString("gn")))
             }
             _items.value = out
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         loadQueue(d)
     }
 
@@ -269,7 +269,7 @@ object OfflineStore {
         val d = dir ?: return
         val a = JSONArray()
         _items.value.forEach { a.put(JSONObject().put("id", it.id).put("title", it.title).put("artist", it.artist).put("album", it.album).put("art", it.art).put("d", it.durationMs).put("file", it.file).put("at", it.at).put("gk", it.gKind).put("gn", it.gName)) }
-        try { File(d, "index.json").writeText(a.toString()) } catch (_: Exception) {}
+        try { File(d, "index.json").writeText(a.toString()) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     fun has(videoId: String) = _items.value.any { it.id == videoId }
@@ -323,7 +323,7 @@ object OfflineStore {
     private suspend fun run(t: Track): Unit = withContext(Dispatchers.IO) {
         val d = dir ?: throw Fatal("Not ready yet")
         val id = t.uri.removePrefix("yt:")
-        if (!t.uri.startsWith("yt:") || id.isEmpty()) throw Fatal("Only YouTube songs can be downloaded")
+        if (!t.uri.startsWith("yt:") || id.isEmpty()) throw Fatal("Only milo. Stream songs can be downloaded")
         if (has(id)) return@withContext
         val st = _settings.value
         val limit = st.limitMb * 1_048_576L
@@ -349,7 +349,7 @@ object OfflineStore {
                     val req = Request.Builder().url(s.url).header("User-Agent", YtMusic.STREAM_UA).header("Range", "bytes=$start-$end").build()
                     http.newCall(req).execute().use { r ->
                         if (r.code == 416 && total < 0) { start = 0L; throw IOException("Resume point rejected, will start again") }
-                        if (r.code != 206 && r.code != 200) throw IOException("YouTube answered ${r.code}")
+                        if (r.code != 206 && r.code != 200) throw IOException("milo. Stream answered ${r.code}")
                         val cr = r.header("Content-Range")
                         if (total < 0) total = cr?.substringAfter('/')?.toLongOrNull() ?: (if (r.code == 200) r.body?.contentLength() ?: -1L else -1L)
                         val body = r.body ?: throw IOException("empty answer")
@@ -380,12 +380,12 @@ object OfflineStore {
                         if (ok) break
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             val grp = _jobs.value.firstOrNull { it.id == id }?.group
-            _items.value = _items.value.filter { it.id != id } + Item(id, t.title, t.artist, if (t.album == "YouTube Music" || t.album == "YouTube") "" else t.album, art, t.durationMs, name, f.length(), System.currentTimeMillis(), grp?.kind ?: "", grp?.name ?: "")
+            _items.value = _items.value.filter { it.id != id } + Item(id, t.title, t.artist, if (t.album == "milo. Stream" || t.album == "YouTube Music" || t.album == "YouTube") "" else t.album, art, t.durationMs, name, f.length(), System.currentTimeMillis(), grp?.kind ?: "", grp?.name ?: "")
             save()
             if (limit > 0 && st.autoClean && totalBytes() > limit) evictTo(limit, keep = id)
-            try { appCtx?.let { com.ubayanda.milonative.data.LyricsRepo(it).fetchTo(File(d, "$id.lrc"), t) } } catch (_: Exception) {}
+            try { appCtx?.let { com.ubayanda.milonative.data.LyricsRepo(it).fetchTo(File(d, "$id.lrc"), t) } } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             setProgress(id, null)
         } catch (e: kotlinx.coroutines.CancellationException) {
             if (!keepPart.remove(id)) { part.delete(); File(d, "$id.fmt").delete() }

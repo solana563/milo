@@ -382,12 +382,12 @@ private fun YouTubeKeyCard(vm: MainViewModel) {
     var saved by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(com.ubayanda.milonative.ui.theme.Rad.xl)
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
-        Text("YouTube", color = Milo.text, style = Ty.title)
+        Text("milo. Stream", color = Milo.text, style = Ty.title)
         Text(
-            "YouTube songs now search and stream inside milo. without a key. This key is only a backup for the old search if the main one ever fails (free from Google Cloud).",
+            "milo. Stream songs search and play inside milo. without a key. This key is only a backup for the old search if the main one ever fails (a free Google Cloud key).",
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
-        ServerField(key, "Your YouTube Data API key (optional)", false) { key = it; saved = false }
+        ServerField(key, "Your Google API key for search (optional)", false) { key = it; saved = false }
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Pill("Save", null, true) { vm.youtube.setKey(key); saved = true }
@@ -637,7 +637,7 @@ private fun TogetherCard(vm: MainViewModel) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Listen together", color = Milo.text, style = Ty.title)
         Text(
-            "Host a session and share the code, or enter a friend's code, to hear the same song at the same spot. Works for YouTube songs, and everyone needs to be signed in. Web and phone can join the same session.",
+            "Host a session and share the code, or enter a friend's code, to hear the same song at the same spot. Works for milo. Stream songs, and everyone needs to be signed in. Web and phone can join the same session.",
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
         if (code.isNotEmpty()) {
@@ -648,7 +648,7 @@ private fun TogetherCard(vm: MainViewModel) {
                 if (!vm.signedIn) toast("Sign in first")
                 else {
                     val c = (1..6).map { "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".random() }.joinToString("")
-                    vm.joinTogether(c, true) { ok -> toast(if (ok) "Hosting $c. Play a YouTube song." else "Couldn't start the session") }
+                    vm.joinTogether(c, true) { ok -> toast(if (ok) "Hosting $c. Play a milo. Stream song." else "Couldn't start the session") }
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -698,7 +698,7 @@ private fun BluetoothCard() {
             colors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Milo.amber, activeTrackColor = Milo.amber),
         )
         Pill("Bluetooth settings", null, false) {
-            try { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
+            try { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         }
     }
 }
@@ -844,7 +844,7 @@ private fun DownloadsCard(vm: MainViewModel) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Sp.gutter).lift(shape, 14f).glass(shape).padding(Sp.x6)) {
         Text("Downloads", color = Milo.text, style = Ty.title)
         Text(
-            if (items.isEmpty()) "Nothing saved yet. Open a YouTube song's menu and choose Download, or tap Download on an artist, album or playlist."
+            if (items.isEmpty()) "Nothing saved yet. Open a milo. Stream song's menu and choose Download, or tap Download on an artist, album or playlist."
             else "${items.size} song" + (if (items.size == 1) "" else "s") + " saved · " + "%.1f".format(mb) + " MB. They play with no connection.",
             color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp),
         )
@@ -867,7 +867,7 @@ private fun BroughtByCard() {
             val i = android.content.Intent(if (mail) android.content.Intent.ACTION_SENDTO else android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
             if (mail) i.putExtra(android.content.Intent.EXTRA_SUBJECT, "milo.")
             ctx.startActivity(i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-        } catch (_: Exception) {
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);
             android.widget.Toast.makeText(ctx, "Couldn't open that", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
@@ -937,7 +937,7 @@ private class ProfileSection(val key: String, val glyph: String, val title: Stri
 private val profileSections = listOf(
     ProfileSection("listening", "\uD83D\uDCCA", "Your listening", "Recap, top songs, taste profile"),
     ProfileSection("connect", "\uD83D\uDD17", "Connections", "Devices, listening rooms, shared playlists, sharing with friends"),
-    ProfileSection("sources", "\uD83C\uDFA7", "Accounts and sources", "YouTube, scrobbling, my own server"),
+    ProfileSection("sources", "\uD83C\uDFA7", "Accounts and sources", "milo. Stream, scrobbling, my own server"),
     ProfileSection("playback", "\uD83D\uDD0A", "Playback and sound", "Autoplay, player mode, gestures, Bluetooth, audio info"),
     ProfileSection("look", "\uD83C\uDFA8", "Look and layout", "Appearance, accent colour, Home"),
     ProfileSection("storage", "\u2B07", "Downloads and backup", "Saved songs, save and restore"),

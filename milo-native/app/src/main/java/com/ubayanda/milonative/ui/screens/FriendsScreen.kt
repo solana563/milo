@@ -320,7 +320,7 @@ private fun FriendProfileDialog(vm: MainViewModel, f: Friend, sh: FriendShare?, 
                         }
                         if (!com.ubayanda.milonative.BuildConfig.LITE) SmallBtn("Listen together", false) {
                             vm.inviteToTogether(f.id) { c ->
-                                android.widget.Toast.makeText(ctx, if (c != null) "Invite sent. Hosting $c. Play a YouTube song." else "Couldn't start. Sign in first.", android.widget.Toast.LENGTH_LONG).show()
+                                android.widget.Toast.makeText(ctx, if (c != null) "Invite sent. Hosting $c. Play a milo. Stream song." else "Couldn't start. Sign in first.", android.widget.Toast.LENGTH_LONG).show()
                                 if (c != null) onClose()
                             }
                         }

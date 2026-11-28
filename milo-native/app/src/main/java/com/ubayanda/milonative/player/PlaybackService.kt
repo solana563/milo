@@ -87,14 +87,17 @@ class PlaybackService : MediaLibraryService() {
             if (now - lastResync < 8_000L) return
             if (!p.isPlaying || p.duration == C.TIME_UNSET || p.isCurrentMediaItemLive) return
             lastResync = now
-            handler.postDelayed({
+            // straight away (it used to wait 150 ms, and that wait was the audible rush): the seek empties the output, so the player stops
+            // feeding the stale audio and carries on from the current spot instead of playing the backlog fast
+            handler.post {
                 try {
                     if (p.isPlaying && p.playbackState == Player.STATE_READY && xfPhase == 0 && !xfWarm) {
-                        com.ubayanda.milonative.util.ErrorLog.add("audio", "stall: restarting the output at ${p.currentPosition} ms to drop queued audio")
-                        p.seekTo(p.currentPosition)
+                        val at = p.currentPosition
+                        com.ubayanda.milonative.util.ErrorLog.add("audio", "stall: restarting the output at $at ms to drop queued audio")
+                        p.seekTo(at)
                     }
                 } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
-            }, 150L)
+            }
         } catch (swallowed: Throwable) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 

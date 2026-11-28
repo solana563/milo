@@ -96,6 +96,7 @@ fun TrackRow(
 ) {
     val actions = LocalActions.current
     val ctx = LocalContext.current
+    val songFiles = rememberSongFiles(vm)
     val haptic = LocalHapticFeedback.current
     val favState = vm.favs.collectAsState()
     val liked by remember(t.id) { androidx.compose.runtime.derivedStateOf { favState.value.contains(t.id) } }
@@ -189,7 +190,7 @@ fun TrackRow(
                 }
                 if (editing) EditInfoDialog(
                     t.title, t.artist.takeIf { it != "Unknown artist" } ?: "", t.album, com.ubayanda.milonative.data.MetaEdits.has(t.id),
-                    { n, a, al -> editing = false; vm.editInfo(t.id, n, a, al) }, { editing = false; vm.resetInfo(t.id) }, { editing = false },
+                    { n, a, al -> editing = false; songFiles.saveTags(t, n, a, al) }, { editing = false; vm.resetInfo(t.id) }, { editing = false },
                 )
                 if (lyricFix) LyricsFixDialog(t.id, t.title) { lyricFix = false }
                 if (menu) MiloPopup({ menu = false }) {
@@ -218,6 +219,7 @@ fun TrackRow(
                     PopupAction(MiloIcons.Edit, "Lyrics: timing and file") { menu = false; lyricFix = true }
                     PopupAction(MiloIcons.Edit, "Change cover") { menu = false; coverPicker.launch(arrayOf("image/*")) }
                     if (com.ubayanda.milonative.data.SongCover.has(ctx, t.id)) PopupAction(MiloIcons.Edit, "Use the original cover") { menu = false; com.ubayanda.milonative.data.SongCover.remove(ctx, t.id) }
+                    if (t.id >= 0 && t.uri.startsWith("content:")) PopupAction(MiloIcons.DeleteOutline, "Delete from phone", Color(0xFFFF8A80)) { menu = false; songFiles.delete(t) }
                     PopupAction(MiloIcons.ThumbUp, "More like this") { menu = false; vm.moreLikeThis(t); Toast.makeText(ctx, "You'll see more like this", Toast.LENGTH_SHORT).show() }
                     PopupAction(MiloIcons.ThumbDown, "Don't recommend this song") { menu = false; vm.notThisSong(t) }
                     if (t.artist.isNotBlank() && t.artist != "Unknown artist") PopupAction(MiloIcons.Block, "Don't recommend this artist") { menu = false; vm.notThisArtist(t) }

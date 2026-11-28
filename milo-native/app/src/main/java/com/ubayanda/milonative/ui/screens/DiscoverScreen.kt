@@ -188,7 +188,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
             throw e
         } catch (e: Exception) {
             items = emptyList()
-            err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else if (mode == 3) (e.message ?: "Couldn't reach YouTube.") else "Couldn't load that. Check your internet connection and try again."
+            err = if (mode == 2) (e.message ?: "Couldn't reach your server.") else if (mode == 3) (e.message ?: "Couldn't reach milo. Stream.") else "Couldn't load that. Check your internet connection and try again."
         }
         if (err.isEmpty()) vm.mem.dKey = fkey
         discState.scrollToItem(0) // a new search starts at the top
@@ -225,7 +225,7 @@ fun DiscoverScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onYouTube: (L
         }
         if (sources) com.ubayanda.milonative.ui.components.MiloPopup({ sources = false }) {
             Text("Sources", color = Milo.text, style = Ty.title, modifier = Modifier.padding(start = 14.dp, bottom = 8.dp))
-            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.Home, "YouTube feed") { sources = false; query = ""; tag = 0; mode = 3 }
+            com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.Home, "milo. Stream feed") { sources = false; query = ""; tag = 0; mode = 3 }
             com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.PlayArrow, "30-second previews (iTunes)") { sources = false; query = ""; tag = 0; mode = 1 }
             com.ubayanda.milonative.ui.components.PopupAction(MiloIcons.Storage, "My server (Navidrome / Subsonic)") { sources = false; query = ""; tag = 0; mode = 2 }
         }

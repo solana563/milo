@@ -14,7 +14,7 @@ object WhatsNew {
         Entry("Player Studio", "Switch the open player between Flagship, Poster, Timeline, Lyrics, iPod and Bedside from the ••• menu. Poster, Timeline and Lyrics can be restyled (text size, colour, backdrop, presets)."),
         Entry("A smoother open and fold", "The mini player's cover, title and buttons now travel into the full player and back, and the lyrics cover flies into its header."),
         Entry("Downloads, kept the way you saved them", "Library > Downloads separates whole playlists, albums and artists from songs saved one by one, with a cover for each."),
-        Entry("Playlists", "Playlist covers are collages of their songs, with a short description you can write. Import from an .m3u or .csv file, or from a public YouTube Music playlist link; songs not on your phone are found on YouTube Music, and Import history shows what wasn't."),
+        Entry("Playlists", "Playlist covers are collages of their songs, with a short description you can write. Import from an .m3u or .csv file, or from a public milo. Stream playlist link; songs not on your phone are found on milo. Stream, and Import history shows what wasn't."),
         Entry("Fix a song", "From a song's ⋮ menu: shift the lyrics' timing, use your own lyrics file, or choose your own cover picture."),
         Entry("Recap story", "Profile > Your listening > Watch my recap: your time, plays, top songs and artists as a story you can share."),
         Entry("Gestures", "Profile > Gestures: choose what double-tap does, how far a skip jumps, and how far to swipe the cover."),

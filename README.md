@@ -5,7 +5,7 @@
 # milo.
 
 **A premium, single-file music player that lives in your browser.**
-Your library, the YouTube Music catalogue, live radio and word-by-word karaoke lyrics, with no build step and no server.
+Your library, the milo. Stream catalogue, live radio and word-by-word karaoke lyrics, with no build step and no server.
 
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=for-the-badge)
 ![Vanilla JS](https://img.shields.io/badge/vanilla-HTML%20%7C%20CSS%20%7C%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
@@ -25,12 +25,12 @@ Your library, the YouTube Music catalogue, live radio and word-by-word karaoke l
 | | |
 |---|---|
 | 🎧 **Your music** | Add your own files and they stay in the app's storage between launches. Open audio files with milo. straight from your desktop. |
-| 🌐 **Stream** | YouTube Music catalogue, 30-second iTunes previews and live radio. |
+| 🌐 **Stream** | milo. Stream catalogue, 30-second iTunes previews and live radio. |
 | 🧠 **Music intelligence** | Autoplay queues songs like the one playing, using artist, genre, tempo, energy, what you like and what you skip. Tempo and energy are analysed on-device. When online it also uses similar artists from iTunes, Deezer and YouTube. Every song menu has **Start radio**. |
 | 🎤 **Karaoke lyrics** | On desktop, Now Playing fills the current line word by word in time with the music. Lyrics come from SimpMusic Lyrics, LRCLIB and BetterLyrics (timed). |
-| 🖥️ **Immersive desktop** | Full-bleed art (or the YouTube video) behind the player, spectrum visualiser, wide middle panel. |
+| 🖥️ **Immersive desktop** | Full-bleed art (or the music video) behind the player, spectrum visualiser, wide middle panel. |
 | 📜 **Queue and lists** | The playing song is highlighted everywhere, with a jump pill to scroll back to it. Glass pop-ups throughout. |
-| 📊 **YouTube extras** | SimpMusic weekly charts, SponsorBlock skips, Return YouTube Dislike counts. |
+| 📊 **Stream extras** | SimpMusic weekly charts, SponsorBlock skips, Return YouTube Dislike counts. |
 | ☁️ **Cloud sync** | Optional Supabase sync with row-level security, each person sees only their own data. |
 | 👤 **Accounts** | Sign-up screen on launch, then your profile card and the terms (versioned, must be accepted). Playlists, likes, history and settings sync across devices. |
 | 🤝 **Friends** | Add people by username, see their shared playlists and what they're listening to. Friends get the *song DNA* (title, artist, source link), never your files, and it opens by streaming. |

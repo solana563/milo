@@ -817,7 +817,7 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         val fxp = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("milo_fx", 0)
         var rg by remember { mutableStateOf(fxp.getBoolean("rg", true)) }
         Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Turns louder songs down to match quieter ones, using ReplayGain tags in your files and YouTube's own loudness. It never boosts, so nothing distorts. Applies from the next song.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text("Turns louder songs down to match quieter ones, using ReplayGain tags in your files and milo. Stream's own loudness. It never boosts, so nothing distorts. Applies from the next song.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
             com.ubayanda.milonative.ui.components.MiloSwitch(checked = rg, onCheckedChange = { rg = it; fxp.edit().putBoolean("rg", it).apply() },
                 colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
         }
@@ -825,7 +825,7 @@ private fun SoundContent(vm: MainViewModel, ui: PlayerUi) {
         Label("Song analysis (experimental)")
         var xan by remember { mutableStateOf(fxp.getBoolean("xanalyse", false)) }
         Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Reads each song's tempo, beats and key while it plays and writes what it found to Diagnostics. It is the first step toward beat-matched mixing and changes nothing you hear. A YouTube song that isn't saved is streamed once to be read, which uses data.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text("Reads each song's tempo, beats and key while it plays and writes what it found to Diagnostics. It is the first step toward beat-matched mixing and changes nothing you hear. A milo. Stream song that isn't saved is streamed once to be read, which uses data.", color = Milo.dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
             com.ubayanda.milonative.ui.components.MiloSwitch(checked = xan, onCheckedChange = { xan = it; fxp.edit().putBoolean("xanalyse", it).apply() },
                 colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Milo.amber))
         }
@@ -1114,6 +1114,8 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
     val bouncy = bouncyPref && !calm
     val dens = androidx.compose.ui.platform.LocalDensity.current.density
     var moreMenu by remember { mutableStateOf(false) }
+    var flSettings by remember { mutableStateOf(false) }
+    if (flSettings) com.ubayanda.milonative.ui.components.FloatingLyricsSettings { flSettings = false }
     var lang by remember { mutableStateOf(fx.getString("lylang", "") ?: "") }
     var langMenu by remember { mutableStateOf(false) }
     val translator = remember { com.ubayanda.milonative.data.LyricsTranslator(ctx) }
@@ -1211,6 +1213,7 @@ private fun LyricsPage(vm: MainViewModel, t: Track, ui: PlayerUi, soft: Bitmap?,
                                 com.ubayanda.milonative.ui.FloatingLyrics.askPermission(ctx)
                             }
                         })
+                        DropdownMenuItem(text = { Text("Floating lyrics settings") }, onClick = { moreMenu = false; flSettings = true })
                         DropdownMenuItem(text = { Text("Lyric card look: " + com.ubayanda.milonative.data.ShareCard.STYLES[com.ubayanda.milonative.data.ShareCard.style(ctx)]) }, onClick = {
                             fx.edit().putInt("cardstyle", (com.ubayanda.milonative.data.ShareCard.style(ctx) + 1) % com.ubayanda.milonative.data.ShareCard.STYLES.size).apply(); moreMenu = false
                         })

@@ -175,7 +175,7 @@ fun ConnectScreen(vm: MainViewModel, onClose: () -> Unit) {
                             Pill("Play here", null, false, compact = true) { vm.playHere(d) }
                             Pill("Send my music there", null, false, compact = true) { vm.sendTo(d) }
                         }
-                        Text("Moving music works for online (YouTube) songs. Songs stored on one phone can't play on another.", color = Milo.dim, style = Ty.micro, modifier = Modifier.padding(top = 6.dp))
+                        Text("Moving music works for online (milo. Stream) songs. Songs stored on one phone can't play on another.", color = Milo.dim, style = Ty.micro, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
             }

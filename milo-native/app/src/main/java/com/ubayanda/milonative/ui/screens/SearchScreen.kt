@@ -104,7 +104,7 @@ fun SearchScreen(
     }
     val lyricQuery = s.trim().split(" ").size >= 3
     val ytSection: LazyListScope.() -> Unit = {
-        if (ytHits.isNotEmpty() || ytBusy) item(key = "yt-head") { SectionTitle(if (lyricQuery) "On YouTube Music \u00b7 matches for those lyrics" else "On YouTube Music") }
+        if (ytHits.isNotEmpty() || ytBusy) item(key = "yt-head") { SectionTitle(if (lyricQuery) "On milo. Stream \u00b7 matches for those lyrics" else "On milo. Stream") }
         if (ytBusy && ytHits.isEmpty()) item(key = "yt-busy") { Text("Searching\u2026", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
         items(ytHits, key = { "yt" + it.id }, contentType = { "track" }) { t ->
             TrackRow(vm, t, t.id == ui.currentId, Milo.amber) { done(); vm.playRemote(listOf(t), 0) }  // alone in the queue: Autoplay then adds similar songs

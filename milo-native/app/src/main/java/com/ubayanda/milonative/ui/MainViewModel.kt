@@ -91,7 +91,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             kotlinx.coroutines.yield()
             player.state.collect { u ->
                 val t = trackById(u.currentId)
-                com.ubayanda.milonative.ui.FloatingLyrics.onState(getApplication(), viewModelScope, u, t) { lyricsRepo.get(it) }
+                com.ubayanda.milonative.ui.FloatingLyrics.onState(getApplication(), viewModelScope, u, t, { art.cover(it, 200) }) { lyricsRepo.get(it) }
             }
         }
         if (cloud.session != null) viewModelScope.launch {
@@ -262,7 +262,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val l = pairing.list(); _pairLists.value = l
-                _pairDevices.value = l.controlling.associate { it.uid to (try { pairing.devices(it.uid) } catch (_: Exception) { emptyList() }) }
+                _pairDevices.value = l.controlling.associate { it.uid to (try { pairing.devices(it.uid) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() }) }
                 _pairMsg.value = ""
             } catch (x: Exception) { pairError(x) }
         }
@@ -326,7 +326,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             "seekby" -> player.seekTo((player.state.value.positionMs + c.optLong("ms")).coerceAtLeast(0L))
             "load" -> {
                 val a = c.optJSONArray("q") ?: return
-                val list = (0 until a.length()).mapNotNull { try { com.ubayanda.milonative.data.SavedStore.fromJson(a.getJSONObject(it)) } catch (_: Exception) { null } }
+                val list = (0 until a.length()).mapNotNull { try { com.ubayanda.milonative.data.SavedStore.fromJson(a.getJSONObject(it)) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null } }
                 if (list.isEmpty()) return
                 val pos = c.optLong("pos"); val go = c.optBoolean("play", true)
                 playRemote(list, 0)
@@ -484,7 +484,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val id = roomId ?: return
         val host = _room.value?.isHost == true
         clearRoom()
-        viewModelScope.launch { try { if (host) sessions.end(id) else sessions.leave(id) } catch (_: Exception) {} }
+        viewModelScope.launch { try { if (host) sessions.end(id) else sessions.leave(id) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);} }
     }
 
     fun refreshPublicRooms() { viewModelScope.launch { try { _publicRooms.value = sessions.publicRooms(); _sessionMsg.value = "" } catch (x: Exception) { sessionError(x) } } }
@@ -500,7 +500,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Hide a person's messages, reactions and suggestions on this phone. */
     fun blockPerson(uid: String) { blocked.add(uid); prefs0(getApplication()).edit().putStringSet("room_blocked", blocked.toSet()).apply(); _roomEvents.value = _roomEvents.value.filter { it.uid != uid } }
     fun isBlocked(uid: String) = uid in blocked
-    fun roomSearch(q: String, done: (List<Track>) -> Unit) { viewModelScope.launch { done(try { youtube.search(q).take(12) } catch (_: Exception) { emptyList() }) } }
+    fun roomSearch(q: String, done: (List<Track>) -> Unit) { viewModelScope.launch { done(try { youtube.search(q).take(12) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() }) } }
 
     /** Host: play the next approved song in the queue. */
     fun hostPlayNext() {
@@ -659,9 +659,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // leave the account's device list first, while the login still works
         val rid = roomId; val hosting = _room.value?.isHost == true
         if (connect.enabled || rid != null || com.ubayanda.milonative.push.Push.available(getApplication())) viewModelScope.launch {
-            try { com.ubayanda.milonative.push.Push.unregisterNow(getApplication()) } catch (_: Exception) {}
-            try { if (connect.enabled) connect.remove() } catch (_: Exception) {}
-            try { if (rid != null) { clearRoom(); if (hosting) sessions.end(rid) else sessions.leave(rid) } } catch (_: Exception) {}
+            try { com.ubayanda.milonative.push.Push.unregisterNow(getApplication()) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+            try { if (connect.enabled) connect.remove() } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+            try { if (rid != null) { clearRoom(); if (hosting) sessions.end(rid) else sessions.leave(rid) } } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
             finishSignOut()
         } else finishSignOut()
     }
@@ -739,7 +739,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- remembering removals so a sync doesn't bring them back ----
-    private val ops = com.ubayanda.milonative.data.SyncOps.fromJson(try { JSONObject(prefs.getString("sync_ops", "{}") ?: "{}") } catch (_: Exception) { null })
+    private val ops = com.ubayanda.milonative.data.SyncOps.fromJson(try { JSONObject(prefs.getString("sync_ops", "{}") ?: "{}") } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null })
     private fun saveOps() { ops.prune(); prefs.edit().putString("sync_ops", ops.toJson().toString()).apply() }
     private fun opKey(e: JSONObject) = e.optString("k") + "|" + e.optString("u")
     private fun opKeyOf(id: Long): String? = entryOf(id)?.let { opKey(it) }
@@ -866,7 +866,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Safety copy of the local library before a remote snapshot is applied, so a bad sync is never unrecoverable. */
     private fun backupLocal() {
-        try { java.io.File(getApplication<android.app.Application>().filesDir, "sync_backup.json").writeText(snapshot().toString()) } catch (_: Exception) {}
+        try { java.io.File(getApplication<android.app.Application>().filesDir, "sync_backup.json").writeText(snapshot().toString()) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     fun syncNow() {
@@ -912,9 +912,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun deletePlaylist(id: String) = savePlaylists(_playlists.value.filterNot { it.id == id })
     fun renamePlaylist(id: String, name: String) = savePlaylists(_playlists.value.map { if (it.id == id) it.copy(name = name.trim().ifEmpty { it.name }) else it })
     fun addToPlaylist(id: String, trackId: Long) { ensureSaved(trackId); addToPl(id, trackId) }
-    private fun addToPl(id: String, trackId: Long) = savePlaylists(_playlists.value.map {
-        if (it.id == id && trackId !in it.trackIds) it.copy(trackIds = it.trackIds + trackId) else it
-    })
+    private fun addToPl(id: String, trackId: Long) {
+        val pl = _playlists.value.firstOrNull { it.id == id } ?: return
+        val adding = trackById(trackId)
+        // the same id, or another copy of the same song (same title, artist and length), is not added twice
+        val already = trackId in pl.trackIds || (adding != null && pl.trackIds.any { x -> trackById(x)?.let { com.ubayanda.milonative.data.Dupes.same(it, adding) } == true })
+        if (already) { android.widget.Toast.makeText(getApplication(), "Already in ${pl.name}", android.widget.Toast.LENGTH_SHORT).show(); return }
+        savePlaylists(_playlists.value.map { if (it.id == id) it.copy(trackIds = it.trackIds + trackId) else it })
+    }
+
+    /** songs were deleted from the phone: out of the queue, then the library is read again so they leave every list */
+    fun songsDeleted(ts: List<Track>) {
+        player.removeFromQueueById(ts.map { it.id }.toSet())
+        android.widget.Toast.makeText(getApplication(), if (ts.size == 1) "Deleted from this phone" else "Deleted ${ts.size} songs from this phone", android.widget.Toast.LENGTH_SHORT).show()
+        scan()
+    }
     fun removeFromPlaylist(id: String, trackId: Long) {
         val at = _playlists.value.firstOrNull { it.id == id }?.trackIds?.indexOf(trackId) ?: -1
         savePlaylists(_playlists.value.map {
@@ -1065,7 +1077,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 cloud.setShare(np, pl)
                 setAcct { it.copy(shareNp = np ?: it.shareNp, sharePl = pl ?: it.sharePl) }
                 if (pl != null) { plSig = "#"; schedulePlPush() }
-            } catch (_: Exception) {}
+            } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
         }
     }
 
@@ -1088,7 +1100,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (cur.durationMs == 0L && cur.uri.startsWith("http")) return // a live station: don't start it on its own
             _remote.value = _remote.value + list.associateBy { it.id }
             player.restore(list, idx, lastPrefs.getLong("pos", 0L))
-        } catch (_: Exception) {}
+        } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     private suspend fun saveLoop() {
@@ -1204,7 +1216,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * The songs stay YouTube songs (they stream, or play from a download), so nothing needs to be on the phone.
      */
     suspend fun importPlaylistLink(link: String): Pair<Int, String> {
-        val id = com.ubayanda.milonative.util.PlaylistLink.pageId(link) ?: throw IllegalArgumentException("That isn't a public YouTube playlist link.")
+        val id = com.ubayanda.milonative.util.PlaylistLink.pageId(link) ?: throw IllegalArgumentException("That isn't a public milo. Stream playlist link.")
         val page = youtube.page(id)
         val tracks = page.songs.map { com.ubayanda.milonative.data.YtMusic.toTrack(it, page.cover, if (page.kind == "album") page.subtitle.substringAfter(" \u00b7 ", "").substringBefore(" \u00b7 ") else "") }
         if (tracks.isEmpty()) throw IllegalStateException("No songs found. The playlist may be private.")
@@ -1242,7 +1254,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     gate.acquire()
                     try {
                         val (t, a) = entries[idx]
-                        val hit = try { pickSong(t, a, com.ubayanda.milonative.data.YtMusic.searchSongs((t + " " + a).trim())) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { null }
+                        val hit = try { pickSong(t, a, com.ubayanda.milonative.data.YtMusic.searchSongs((t + " " + a).trim())) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null }
                         if (hit != null) synchronized(found) { found[idx] = com.ubayanda.milonative.data.YtMusic.toTrack(hit); online++ }
                     } finally { gate.release(); progress(synchronized(found) { ++done }, todo.size) }
                 }
@@ -1277,12 +1289,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun createPlaylistWith(name: String, ids: List<Long>): String {
         ids.forEach { ensureSaved(it) }
         val pid = "p" + System.currentTimeMillis()
-        savePlaylists(_playlists.value + Playlist(pid, name.trim().ifEmpty { "New playlist" }, ids.distinct()))
+        savePlaylists(_playlists.value + Playlist(pid, name.trim().ifEmpty { "New playlist" }, newOnly(emptyList(), ids)))
         return pid
+    }
+    /** [add] without ids already in [have], repeated ids, or other copies of a song that is already there */
+    private fun newOnly(have: List<Long>, add: List<Long>): List<Long> {
+        val kept = ArrayList<Long>(); val keptTracks = ArrayList<Track>()
+        have.mapNotNullTo(keptTracks) { trackById(it) }
+        for (id in add) {
+            if (id in have || id in kept) continue
+            val t = trackById(id)
+            if (t != null && keptTracks.any { com.ubayanda.milonative.data.Dupes.same(it, t) }) continue
+            kept.add(id); if (t != null) keptTracks.add(t)
+        }
+        return kept
     }
     fun addManyToPlaylist(pid: String, ids: List<Long>) {
         ids.forEach { ensureSaved(it) }
-        savePlaylists(_playlists.value.map { if (it.id == pid) it.copy(trackIds = it.trackIds + ids.filter { x -> x !in it.trackIds }.distinct()) else it })
+        val pl = _playlists.value.firstOrNull { it.id == pid } ?: return
+        val fresh = newOnly(pl.trackIds, ids)
+        val skipped = ids.distinct().size - fresh.size
+        if (skipped > 0) android.widget.Toast.makeText(getApplication(), if (fresh.isEmpty()) "Already in ${pl.name}" else "Skipped $skipped already in ${pl.name}", android.widget.Toast.LENGTH_SHORT).show()
+        savePlaylists(_playlists.value.map { if (it.id == pid) it.copy(trackIds = it.trackIds + fresh) else it })
     }
     fun likeMany(ids: List<Long>) {
         val n = _favs.value.toMutableSet().also { it.addAll(ids) }
@@ -1380,7 +1408,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             val r = youtube.radio(radioId).filterNot { isBanned(it) }.take(40)
                             if (r.size >= 8) got.add(a to r)
                         }
-                    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) {}
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
                 }
                 if (got.isNotEmpty()) {
                     got.forEach { rememberRemote(it.second) }
@@ -1412,14 +1440,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!force && _ytHome.value.isNotEmpty() && System.currentTimeMillis() - ytHomeAt < 20 * 60_000L) return
         viewModelScope.launch {
             _ytHomeLoading.value = true
-            val r = withContext(Dispatchers.IO) { try { com.ubayanda.milonative.data.YtMusic.home() } catch (_: Exception) { emptyList() } }
+            val r = withContext(Dispatchers.IO) { try { com.ubayanda.milonative.data.YtMusic.home() } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() } }
             if (r.isNotEmpty()) { _ytHome.value = r; ytHomeAt = System.currentTimeMillis() }
             _ytHomeLoading.value = false
         }
     }
     /** Universal search helpers: songs on YouTube Music, and songs on this phone whose saved lyrics contain the text. */
     suspend fun ytSearch(q: String): List<Track> = withContext(Dispatchers.IO) {
-        try { com.ubayanda.milonative.data.YtMusic.searchSongs(q).take(15).map { com.ubayanda.milonative.data.YtMusic.toTrack(it) } } catch (_: Exception) { emptyList() }
+        try { com.ubayanda.milonative.data.YtMusic.searchSongs(q).take(15).map { com.ubayanda.milonative.data.YtMusic.toTrack(it) } } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() }
     }
     suspend fun lyricSearch(q: String): List<Pair<Track, String>> =
         lyricsRepo.searchCached(q).mapNotNull { (id, line) -> trackById(id)?.let { it to line } }
@@ -1433,8 +1461,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 try {
                     com.ubayanda.milonative.data.YtMusic.init(getApplication())
                     val s = com.ubayanda.milonative.data.YtMusic.stream(id)
-                    com.ubayanda.milonative.data.YtMusic.toTrack(com.ubayanda.milonative.data.YtMusic.Song(id, s.title.ifEmpty { "YouTube song" }, s.author, "", "", "", s.durationSec, "https://i.ytimg.com/vi/$id/hqdefault.jpg"))
-                } catch (_: Exception) { null }
+                    com.ubayanda.milonative.data.YtMusic.toTrack(com.ubayanda.milonative.data.YtMusic.Song(id, s.title.ifEmpty { "milo. Stream song" }, s.author, "", "", "", s.durationSec, "https://i.ytimg.com/vi/$id/hqdefault.jpg"))
+                } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); null }
             }
             if (t == null) android.widget.Toast.makeText(getApplication(), "Couldn't open that link", android.widget.Toast.LENGTH_SHORT).show()
             else playRemote(listOf(t), 0)
@@ -1596,7 +1624,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         .filter { (skipArtists[it.artist] ?: 0) < 2 }
                         .filter { !isBanned(it) }
                         .filter { perArtist.merge(it.artist, 1, Int::plus)!! <= 2 }.take(8)
-                } catch (_: Exception) { emptyList() }
+                } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() }
             } else if (cur.id >= 0) {
                 val queueArtists = queueTracks.map { it.artist }.toHashSet()
                 val favs = _favs.value

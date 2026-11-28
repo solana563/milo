@@ -96,7 +96,7 @@ fun DownloadsScreen(vm: MainViewModel, ui: PlayerUi, bottomPad: Dp, onBack: () -
             if (tabs.size > 2) GlassSegmented(tabs, safeTab, { tab = it }, Modifier.padding(horizontal = 18.dp, vertical = 4.dp))
         }
         if (items.isEmpty()) {
-            item { Text("Open a YouTube song's menu and choose Download, or use Download on an album or playlist.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(Sp.gutter)) }
+            item { Text("Open a milo. Stream song's menu and choose Download, or use Download on an album or playlist.", color = Milo.dim, style = Ty.caption, modifier = Modifier.padding(Sp.gutter)) }
         }
         if ((now == "All" || now == "Playlists") && playlists.isNotEmpty()) {
             item { SectionTitle("Playlists") }

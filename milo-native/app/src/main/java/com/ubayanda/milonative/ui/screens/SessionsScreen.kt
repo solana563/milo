@@ -221,7 +221,7 @@ private fun RoomView(vm: MainViewModel, r: RoomSnap, onClose: () -> Unit) {
                         Pill(if (ps.isPlaying) "Pause" else "Play", null, true, compact = true) { vm.player.toggle() }
                         Pill("Play next from queue", null, false, compact = true, enabled = r.queue.any { it.status == "queued" }) { vm.hostPlayNext() }
                     }
-                    Text("Only online (YouTube) songs are shared; songs from your own storage can't be heard by others.", color = Milo.dim, style = Ty.micro, modifier = Modifier.padding(top = 6.dp))
+                    Text("Only online (milo. Stream) songs are shared; songs from your own storage can't be heard by others.", color = Milo.dim, style = Ty.micro, modifier = Modifier.padding(top = 6.dp))
                 }
             }
         }

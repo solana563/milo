@@ -34,7 +34,7 @@ object YtSource {
                 throw e
             } catch (e: Exception) {
                 com.ubayanda.milonative.util.ErrorLog.add("stream " + id, e.javaClass.simpleName + ": " + e.message)
-                throw IOException(e.message ?: "YouTube lookup failed", e)
+                throw IOException(e.message ?: "milo. Stream lookup failed", e)
             }
             return dataSpec.buildUpon()
                 .setUri(Uri.parse(s.url))

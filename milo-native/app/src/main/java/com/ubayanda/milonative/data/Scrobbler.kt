@@ -34,7 +34,7 @@ class Scrobbler(ctx: Context) {
     val fmOn get() = fmSession.isNotBlank()
 
     init {
-        try { val a = JSONArray(p.getString("q", "[]")); for (i in 0 until a.length()) queue.add(a.getJSONObject(i)) } catch (_: Exception) {}
+        try { val a = JSONArray(p.getString("q", "[]")); for (i in 0 until a.length()) queue.add(a.getJSONObject(i)) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     fun setListenBrainz(token: String) { p.edit().putString("lb", token.trim()).apply() }
@@ -57,7 +57,7 @@ class Scrobbler(ctx: Context) {
         val sig = md5(m.toSortedMap().entries.joinToString("") { it.key + it.value } + secret)
         val body = FormBody.Builder().apply { m.forEach { (k, v) -> add(k, v) }; add("api_sig", sig); add("format", "json") }.build()
         http.newCall(Request.Builder().url("https://ws.audioscrobbler.com/2.0/").post(body).build()).execute().use { r ->
-            val j = try { JSONObject(r.body?.string().orEmpty()) } catch (_: Exception) { JSONObject() }
+            val j = try { JSONObject(r.body?.string().orEmpty()) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); JSONObject() }
             if (j.has("error")) throw IllegalStateException(j.optString("message", "Last.fm error"))
             if (!r.isSuccessful) throw IllegalStateException("Last.fm answered ${r.code}")
             return j
@@ -86,15 +86,15 @@ class Scrobbler(ctx: Context) {
         else { m["timestamp"] = ts.toString(); fm(fmKey, fmSecret, "track.scrobble", m) }
     }
 
-    private fun item(t: Track) = JSONObject().put("t", t.title).put("a", artistOf(t)).put("al", if (t.album == "YouTube" || t.album.isBlank()) "" else t.album).put("d", t.durationMs)
+    private fun item(t: Track) = JSONObject().put("t", t.title).put("a", artistOf(t)).put("al", if (t.album == "milo. Stream" || t.album == "YouTube" || t.album.isBlank()) "" else t.album).put("d", t.durationMs)
 
     /** Call when a song starts playing. */
     suspend fun nowPlaying(t: Track) = withContext(Dispatchers.IO) {
         if (!ok(t) || (!lbOn && !fmOn) || nowKey == t.uri) return@withContext
         nowKey = t.uri
         val it = item(t)
-        try { if (lbOn) lbCall("playing_now", it, 0) } catch (_: Exception) {}
-        try { if (fmOn) fmCall("playing_now", it, 0) } catch (_: Exception) {}
+        try { if (lbOn) lbCall("playing_now", it, 0) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+        try { if (fmOn) fmCall("playing_now", it, 0) } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
     }
 
     /** Call when a play has counted. */
@@ -112,8 +112,8 @@ class Scrobbler(ctx: Context) {
             val it = queue.iterator()
             while (it.hasNext()) {
                 val x = it.next()
-                try { if (x.optBoolean("lb")) { lbCall("single", x, x.getLong("ts")); x.put("lb", false) } } catch (_: Exception) {}
-                try { if (x.optBoolean("fm")) { fmCall("single", x, x.getLong("ts")); x.put("fm", false) } } catch (_: Exception) {}
+                try { if (x.optBoolean("lb")) { lbCall("single", x, x.getLong("ts")); x.put("lb", false) } } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
+                try { if (x.optBoolean("fm")) { fmCall("single", x, x.getLong("ts")); x.put("fm", false) } } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed);}
                 if (!x.optBoolean("lb") && !x.optBoolean("fm")) it.remove()
             }
             p.edit().putString("q", JSONArray(queue).toString()).apply()

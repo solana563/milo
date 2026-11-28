@@ -79,7 +79,7 @@ fun YouTubeScreen(vm: MainViewModel, items: List<Track>, start: Int, onClose: ()
     Column(Modifier.fillMaxSize().background(Milo.bg).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onClose) { Icon(MiloIcons.ArrowBack, "Back", tint = Milo.text) }
-            Text("YouTube", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Text("milo. Stream", color = Milo.text, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
         }
         AndroidView(
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(androidx.compose.ui.graphics.Color.Black),
@@ -93,7 +93,7 @@ fun YouTubeScreen(vm: MainViewModel, items: List<Track>, start: Int, onClose: ()
                         @JavascriptInterface fun ended() { main.post { if (index + 1 in items.indices) go(index + 1) } }
                         @JavascriptInterface fun failed(code: Int) {
                             main.post {
-                                Toast.makeText(ctx, "YouTube won't play this one here (the owner may block embedding). Skipping.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, "milo. Stream won't play this one here (the owner may block embedding). Skipping.", Toast.LENGTH_SHORT).show()
                                 if (index + 1 in items.indices) go(index + 1)
                             }
                         }

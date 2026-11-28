@@ -33,12 +33,12 @@ class YouTubeRepo(context: Context) {
         try {
             val r = YtMusic.searchSongs(term.trim()).map { YtMusic.toTrack(it) }.distinctBy { it.id }
             if (r.isNotEmpty()) return@withContext r
-        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { }
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); }
         legacySearch(term)
     }
 
-    suspend fun artists(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "artist").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
-    suspend fun albums(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "album").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { emptyList() } }
+    suspend fun artists(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "artist").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() } }
+    suspend fun albums(term: String): List<YtMusic.Card> = withContext(Dispatchers.IO) { try { YtMusic.searchCards(term.trim(), "album").take(12) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); emptyList() } }
     private val pageCache = object : LinkedHashMap<String, YtMusic.Page>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, YtMusic.Page>?): Boolean = size > 24
     }
@@ -46,7 +46,7 @@ class YouTubeRepo(context: Context) {
     suspend fun page(id: String): YtMusic.Page = withContext(Dispatchers.IO) { YtMusic.page(id).also { synchronized(pageCache) { pageCache[id] = it } } }
     suspend fun radio(id: String): List<Track> = withContext(Dispatchers.IO) { YtMusic.radio(id).map { YtMusic.toTrack(it) } }
     /** True when a direct stream can be found, so the song can play in milo.'s own player. */
-    suspend fun canStream(track: Track): Boolean = withContext(Dispatchers.IO) { try { YtMusic.stream(track.uri.removePrefix("yt:")); true } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { false } }
+    suspend fun canStream(track: Track): Boolean = withContext(Dispatchers.IO) { try { YtMusic.stream(track.uri.removePrefix("yt:")); true } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (swallowed: Exception) { com.ubayanda.milonative.util.ErrorLog.swallowed(swallowed); false } }
 
     private suspend fun legacySearch(term: String): List<Track> = withContext(Dispatchers.IO) {
         val k = key.ifEmpty { "AIzaSyAFSMixowk9ptdAnT6ap3aK_gKO9fOmZ0E" }
@@ -58,8 +58,8 @@ class YouTubeRepo(context: Context) {
             if (!r.isSuccessful) {
                 val msg = try { JSONObject(tx).optJSONObject("error")?.optString("message").orEmpty() } catch (e: Exception) { "" }
                 throw IllegalStateException(
-                    if (r.code == 403 || r.code == 400) "YouTube refused the search ($msg). You can add your own YouTube Data API key in Profile."
-                    else "YouTube answered ${r.code}."
+                    if (r.code == 403 || r.code == 400) "milo. Stream refused the search ($msg). You can add your own milo. Stream Data API key in Profile."
+                    else "milo. Stream answered ${r.code}."
                 )
             }
             tx
@@ -77,7 +77,7 @@ class YouTubeRepo(context: Context) {
             out.add(
                 Track(
                     id = id, uri = "yt:$vid", title = clean(sn.optString("title")), artist = clean(sn.optString("channelTitle")),
-                    album = "YouTube", albumId = 4_000_000_000_000L + (-id), durationMs = 1L, trackNo = 0, year = 0, addedSec = 0L, artUrl = thumb,
+                    album = "milo. Stream", albumId = 4_000_000_000_000L + (-id), durationMs = 1L, trackNo = 0, year = 0, addedSec = 0L, artUrl = thumb,
                 )
             )
         }

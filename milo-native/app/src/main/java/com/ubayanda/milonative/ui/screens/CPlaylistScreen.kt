@@ -101,7 +101,7 @@ private fun CplHome(vm: MainViewModel, onClose: () -> Unit) {
     val card = RoundedCornerShape(20.dp)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) { Pill("Back", null, false, compact = true, onClick = onClose); Spacer(Modifier.width(12.dp)); Text("Shared playlists", color = Milo.text, style = Ty.title) } }
-        item { Text("Build a playlist together. The owner decides who can edit; every change is logged. Online (YouTube) songs only, because songs stored on one phone can't play on another.", color = Milo.dim, style = Ty.caption) }
+        item { Text("Build a playlist together. The owner decides who can edit; every change is logged. Online (milo. Stream) songs only, because songs stored on one phone can't play on another.", color = Milo.dim, style = Ty.caption) }
         if (!vm.signedIn) item { Text("Sign in first (Profile) to use shared playlists.", color = Milo.amber, style = Ty.label) }
         if (msg.isNotEmpty()) item { Text(msg, color = Color(0xFFFF8A80), style = Ty.caption) }
         item {
@@ -211,7 +211,7 @@ private fun CplDetailView(vm: MainViewModel, d: CplDetail) {
             Column(Modifier.fillMaxWidth().clip(card).background(Milo.card2).padding(16.dp)) {
                 Text("Add songs", color = Milo.text, style = Ty.heading)
                 Spacer(Modifier.height(8.dp))
-                CplField(q, "Search YouTube", { q = it }, { search() })
+                CplField(q, "Search milo. Stream", { q = it }, { search() })
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill("Search", null, true, compact = true) { search() }
                     val cur = vm.trackById(ps.currentId)

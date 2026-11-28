@@ -81,6 +81,7 @@ android {
 dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20231013")   // the phone provides org.json; plain JVM tests need a real copy
+    implementation("net.jthink:jaudiotagger:3.0.1")   // writes title / artist / album into the audio files
     implementation("com.google.zxing:core:3.5.3")   // draws the session QR code on the phone
     implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")   // reads Japanese lyrics out in romaji (Mochy Music's romaniser)
     implementation("com.belerweb:pinyin4j:2.5.1")   // pinyin for Chinese lyrics

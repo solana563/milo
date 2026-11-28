@@ -801,3 +801,26 @@ CI error: SearchScreen.kt:119 used the full path androidx.compose.material.icons
 
 ## Round 190 — mini visualiser adapts to loud music
 - MiniWave now follows the song instead of pinning at full height on loud, bass-heavy tracks (amapiano, house): 9 thinner bars with more gap, a slow loudness reference, a response curve, a beat lift, fast rise / slow fall, taller middle, and a top and bottom margin.
+
+## Round 191 — log the tempo-match speed-up
+- The crossmix line "Bringing this song up to the next one's tempo" now says how much faster the song is played (for example +4.0% speed), so a report shows exactly how big the speed change was.
+
+## Round 192 — stall resync straight away
+- After an audio dropout (CPU busy, app switch) the output is now emptied immediately instead of 150 ms later, so the backlog of queued audio is not played in a rush before the restart.
+
+## Round 193 — duplicates, delete from phone, edit tags in the file
+- Duplicates: the queue (Play next, Queue, select-many) and playlists skip a song that is already there, including another copy of it (same title, artist and length within 3 s), and say so. Playing a list leaves repeated copies out of the queue; the song you tapped always stays. New `Dupes`.
+- Delete from phone: song menu -> "Delete from phone" asks, then removes the file (Android 11+: system confirmation; Android 10: per-file access; Android 8-9: storage permission). The song leaves the queue and every list.
+- Edit info now writes title / artist / album into the audio file (MP3, M4A, FLAC, Ogg/Opus, WAV, WMA) with a spare copy kept until the write works; files that cannot be edited fall back to milo.-only edits. New `TagWriter` (jaudiotagger), `SongFiles`.
+
+## Round 194 — floating lyrics upgrade
+- The floating lyrics card now shows the cover, title and artist with the line being sung, and can be set up from Now playing -> ... -> "Floating lyrics settings": window opacity, text size, a translation under each line (17 languages), cover/title row on or off, and a click-through lock (a small unlock button stays on screen). A close button is on the card. Still drag up/down, tap to open milo.
+
+## Round 195 — lyric card redesign + redirect to milo
+- New layout: song row (cover, title, artist) on top, the lyric large and bold with an amber bar, and a footer with the milo. wordmark, "Synced lyrics. Free music player.", the address, and a QR code that opens milo's newest download page. Scanning it, or tapping the link in the share text, takes people to milo.
+- New look "Sticker" (lyric on a cream card over the blurred cover); "Blurred cover" now really blurs. The link comes from the repo the build was made from (or solana563/milo).
+
+## Round 196 — "YouTube" renamed to "milo. Stream"
+- Everything a person reads in the app (search headings, Discover feed, Downloads, sessions, import text, errors, Profile source, What's new, tour) now says "milo. Stream" instead of YouTube / YouTube Music. Old saved songs whose album was "YouTube" or "YouTube Music" still display correctly.
+- Website and README wording changed too; the site footer now says milo. is a personal, non-commercial project for the maker, family and friends.
+- Kept as they are because they are technical, not wording: web addresses, request headers, the "yt:" song address, and the label of the optional Google API key.

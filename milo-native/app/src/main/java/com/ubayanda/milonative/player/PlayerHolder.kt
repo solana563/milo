@@ -75,6 +75,7 @@ class PlayerHolder(context: Context) {
                 .setTitle(t.title)
                 .setArtist(t.artist)
                 .setAlbumTitle(t.album)
+                .also { b -> if (t.durationMs > 0) b.setDurationMs(t.durationMs) }
                 .also { b -> if (t.artUrl.startsWith("http")) b.setArtworkUri(Uri.parse(t.artUrl)) }
                 .build()
         )
@@ -85,9 +86,37 @@ class PlayerHolder(context: Context) {
         if (c != null) block(c) else { pending = { controller?.let(block) }; connect() }
     }
 
-    /** Play [tracks] as the queue, starting at [index]. */
-    fun playQueue(tracks: List<Track>, index: Int) = withController { c ->
-        if (tracks.isEmpty()) return@withController
+    /** is this song (or another copy of it) already in the queue? */
+    private fun inQueue(c: MediaController, t: Track): Boolean {
+        for (i in 0 until c.mediaItemCount) {
+            val m = c.getMediaItemAt(i)
+            if (m.mediaId == t.id.toString()) return true
+            val md = m.mediaMetadata
+            if (com.ubayanda.milonative.data.Dupes.sameSong(md.title?.toString(), md.artist?.toString(), md.durationMs ?: 0L, t.title, t.artist, t.durationMs)) return true
+        }
+        return false
+    }
+
+    /** [list] without songs already in the queue (or repeated inside the list); tells the person what was left out. */
+    private fun fresh(c: MediaController, list: List<Track>): List<Track> {
+        val unique = com.ubayanda.milonative.data.Dupes.distinct(list)
+        val out = unique.filterNot { inQueue(c, it) }
+        val skipped = list.size - out.size
+        if (skipped > 0) android.widget.Toast.makeText(app, if (list.size == 1) "Already in your queue" else "Skipped $skipped already in your queue", android.widget.Toast.LENGTH_SHORT).show()
+        return out
+    }
+
+    /** Take songs out of the queue by id (after they were deleted from the phone). The playing song is skipped past, not left to fail. */
+    fun removeFromQueueById(ids: Set<Long>) = withController { c ->
+        for (i in c.mediaItemCount - 1 downTo 0) if (c.getMediaItemAt(i).mediaId.toLongOrNull() in ids) c.removeMediaItem(i)
+    }
+
+    /** Play [tracks] as the queue, starting at [index]. Repeated copies of one song are left out (the one tapped stays). */
+    fun playQueue(allTracks: List<Track>, allIndex: Int) = withController { c ->
+        if (allTracks.isEmpty()) return@withController
+        val picked = allTracks[allIndex.coerceIn(0, allTracks.size - 1)]
+        val tracks = com.ubayanda.milonative.data.Dupes.distinct(allTracks, picked)
+        val index = tracks.indexOfFirst { it.id == picked.id }.coerceAtLeast(0)
         // Media3 1.4 can crash while syncing a very long queue to the notification/controller, so keep the queue to a window around the song.
         val i = index.coerceIn(0, tracks.size - 1)
         val from = (i - QUEUE_BEHIND).coerceAtLeast(0)
@@ -97,7 +126,8 @@ class PlayerHolder(context: Context) {
         c.play()
     }
 
-    fun playShuffled(tracks: List<Track>) = withController { c ->
+    fun playShuffled(all: List<Track>) = withController { c ->
+        val tracks = com.ubayanda.milonative.data.Dupes.distinct(all)
         if (tracks.isEmpty()) return@withController
         c.shuffleModeEnabled = true
         val part = if (tracks.size > QUEUE_MAX) tracks.shuffled().take(QUEUE_MAX) else tracks
@@ -118,12 +148,14 @@ class PlayerHolder(context: Context) {
         }
     }
 
-    fun playNextMany(list: List<Track>) = withController { c ->
+    fun playNextMany(all: List<Track>) = withController { c ->
+        val list = if (c.mediaItemCount == 0) com.ubayanda.milonative.data.Dupes.distinct(all) else fresh(c, all)
         if (list.isEmpty()) return@withController
         if (c.mediaItemCount == 0) { c.setMediaItems(list.map { item(it) }); c.prepare(); c.play() }
         else c.addMediaItems(c.currentMediaItemIndex + 1, list.map { item(it) })
     }
-    fun addManyToQueue(list: List<Track>) = withController { c ->
+    fun addManyToQueue(all: List<Track>) = withController { c ->
+        val list = if (c.mediaItemCount == 0) com.ubayanda.milonative.data.Dupes.distinct(all) else fresh(c, all)
         if (list.isEmpty()) return@withController
         if (c.mediaItemCount == 0) { c.setMediaItems(list.map { item(it) }); c.prepare(); c.play() }
         else c.addMediaItems(list.map { item(it) })
@@ -134,11 +166,11 @@ class PlayerHolder(context: Context) {
 
     fun playNext(t: Track) = withController { c ->
         if (c.mediaItemCount == 0) { c.setMediaItems(listOf(item(t))); c.prepare(); c.play() }
-        else c.addMediaItem(c.currentMediaItemIndex + 1, item(t))
+        else if (fresh(c, listOf(t)).isNotEmpty()) c.addMediaItem(c.currentMediaItemIndex + 1, item(t))
     }
     fun addToQueue(t: Track) = withController { c ->
         if (c.mediaItemCount == 0) { c.setMediaItems(listOf(item(t))); c.prepare(); c.play() }
-        else c.addMediaItem(item(t))
+        else if (fresh(c, listOf(t)).isNotEmpty()) c.addMediaItem(item(t))
     }
     fun removeFromQueue(i: Int) = withController { c -> if (i in 0 until c.mediaItemCount) c.removeMediaItem(i) }
 
